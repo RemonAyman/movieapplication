@@ -2,6 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    // ✅ تفعيل KAPT و Hilt Plugins
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -55,6 +59,7 @@ android {
     }
 
     composeOptions {
+        // ✅ Jetpack Compose Compiler
         kotlinCompilerExtensionVersion = "1.7.0"
     }
 
@@ -74,12 +79,16 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // ✅ Compose BOM (توحيد الإصدارات)
+    // ✅ Compose BOM
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation("androidx.compose.material3:material3")
+
+    // ✅ Material Icons
+    implementation("androidx.compose.material:material-icons-core:1.7.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.0")
 
     // ✅ Navigation
     implementation("androidx.navigation:navigation-compose:2.8.0")
@@ -93,23 +102,38 @@ dependencies {
     // ✅ Coil (تحميل الصور)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // ✅ DataStore (تخزين بيانات المستخدم)
+    // ✅ DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.datastore:datastore-core:1.1.1")
+
+    // ✅ Coroutine
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // ✅ ViewModel for Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 
-    // ✅ Lifecycle Runtime for Compose (لتعامل Compose مع الـ Flow)
+    // ✅ Lifecycle Runtime for Compose
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
 
     // ✅ Activity KTX
     implementation("androidx.activity:activity-ktx:1.9.3")
 
-    // ✅ Accompanist Permissions (لو هتتعامل مع الصور)
+    // ✅ Accompanist Permissions
     implementation("com.google.accompanist:accompanist-permissions:0.35.2-beta")
 
-    // ✅ WebView (لو هتحتاجها في عرض محتوى ويب)
+    // ✅ WebView
     implementation("androidx.webkit:webkit:1.9.0")
+
+    // ✅ ToastCompat
+    implementation("com.github.GrenderG:Toasty:1.5.2")
+
+    // ✅ Paging 3
+    implementation("androidx.paging:paging-runtime:3.3.2")
+    implementation("androidx.paging:paging-compose:3.3.2")
+
+    // ✅ Hilt (Dependency Injection)
+    implementation("com.google.dagger:hilt-android:2.52")
+    kapt("com.google.dagger:hilt-compiler:2.52")
 
     // ✅ اختبارات
     testImplementation(libs.junit)

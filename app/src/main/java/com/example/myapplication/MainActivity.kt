@@ -1,11 +1,15 @@
 package com.example.myapplication
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,8 +27,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -38,6 +41,10 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 import androidx.navigation.navArgument
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.material.icons.Icons.Default
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,10 +132,23 @@ data class Cast(
 
 // ========== API Interface ==========
 interface MovieApi {
+    @GET("movie/now_playing")
+    suspend fun getLatestMovies(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1
+    ): MovieResponse
+
     @GET("search/movie")
     suspend fun searchMovies(
         @Query("api_key") apiKey: String,
         @Query("query") query: String
+    ): MovieResponse
+
+    @GET("movie/popular")
+    suspend fun getPopularMovies(
+        @Query("api_key") apiKey: String,
+        @Query("page") page: Int = 1
     ): MovieResponse
 
     @GET("movie/{movie_id}")
@@ -176,18 +196,68 @@ fun MovieListScreen(navController: NavHostController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // ✅ أول ما تفتح الصفحة يعرض أحدث 100 فيلم
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val response = RetrofitClient.api.getLatestMovies(BuildConfig.API_KEY, page = 1)
+                movies = response.results.take(100)
+                errorMessage = null
+            } catch (e: Exception) {
+                errorMessage = e.message
+            }
+        }
+    }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!spokenText.isNullOrEmpty()) {
+                query = spokenText
+                scope.launch {
+                    try {
+                        val response = RetrofitClient.api.searchMovies(BuildConfig.API_KEY, spokenText)
+                        movies = response.results
+                        errorMessage = null
+                    } catch (e: Exception) {
+                        errorMessage = e.message
+                        movies = emptyList()
+                    }
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            label = { Text("Search for a movie...") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Search for a movie...") },
+                modifier = Modifier.weight(1f)
+            )
+
+            IconButton(onClick = {
+                Toast.makeText(context, "Listening...", Toast.LENGTH_SHORT).show()
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                }
+                speechLauncher.launch(intent)
+            }) {
+                Icon(Icons.Default.Mic, contentDescription = "Voice Search")
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -217,12 +287,8 @@ fun MovieListScreen(navController: NavHostController) {
                 Text("Error loading movies 😢")
             }
 
-            movies.isEmpty() && query.isNotEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No movies found 😕")
-            }
-
             movies.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Type a movie name to search 🎬")
+                Text("No movies available 😕")
             }
 
             else -> LazyColumn(contentPadding = PaddingValues(8.dp)) {
@@ -261,7 +327,6 @@ fun MovieCard(movie: Movie, onClick: () -> Unit) {
     }
 }
 
-// ========== Details ==========
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovieDetailScreen(navController: NavHostController, movieId: Int) {
@@ -279,7 +344,7 @@ fun MovieDetailScreen(navController: NavHostController, movieId: Int) {
                 val videos = RetrofitClient.api.getMovieVideos(movieId, BuildConfig.API_KEY).results
                 val credits = RetrofitClient.api.getMovieCredits(movieId, BuildConfig.API_KEY).cast
                 trailerKey = videos.firstOrNull { it.site == "YouTube" && it.type == "Trailer" }?.key
-                castList = credits.take(10) // نعرض أول 10 ممثلين
+                castList = credits.take(10)
             } catch (e: Exception) {
                 errorMessage = e.message
             }

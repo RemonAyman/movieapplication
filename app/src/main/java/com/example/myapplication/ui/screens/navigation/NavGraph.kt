@@ -23,43 +23,67 @@ import com.example.myapplication.data.remote.MovieApiModel
 fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     val favoritesViewModel: FavoritesViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "home", modifier = modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = "home",
+        modifier = modifier
+    ) {
 
-        // Home Screen
+        // ✅ Home Screen
         composable("home") {
-            HomeScreen(navController = navController, favoritesViewModel = favoritesViewModel)
+            HomeScreen(
+                navController = navController,
+                favoritesViewModel = favoritesViewModel
+            )
         }
 
-        // Favorites Screen
+        // ✅ Favorites Screen
         composable("favorites") {
-            FavoritesScreen(navController = navController, viewModel = favoritesViewModel)
+            FavoritesScreen(
+                navController = navController,
+                viewModel = favoritesViewModel
+            )
         }
 
-        // Search Screen
+        // ✅ Search Screen
         composable("search") {
             SearchScreen(navController = navController)
         }
 
-        // Placeholder Chats Screen
+        // ✅ Chats Screen (Placeholder for now)
         composable("chats") {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Chats Screen (placeholder)", color = Color.White, fontSize = 18.sp)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Chats Screen (placeholder)",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
             }
         }
 
-        // Placeholder Profile Screen
+        // ✅ Profile Screen (Placeholder)
         composable("profile") {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Profile Screen", color = Color.White, fontSize = 18.sp)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Profile Screen",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
             }
         }
 
-        // Movie Details Screen
+        // ✅ Movie Details Screen
         composable("details/{movieId}") { backStackEntry ->
             val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull() ?: 0
 
-            // جلب الفيلم من FavoritesViewModel أو أي مصدر بيانات
-            val movie: MovieApiModel? = favoritesViewModel.favorites.find { it.id == movieId }
+            val movie: MovieApiModel? =
+                favoritesViewModel.favorites.find { it.id == movieId }
 
             if (movie != null) {
                 MovieDetailsScreen(
@@ -68,8 +92,15 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
                     favoritesViewModel = favoritesViewModel
                 )
             } else {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Movie not found", color = Color.White, fontSize = 18.sp)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Movie not found",
+                        color = Color.White,
+                        fontSize = 18.sp
+                    )
                 }
             }
         }

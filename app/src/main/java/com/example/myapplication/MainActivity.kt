@@ -44,6 +44,8 @@ import androidx.navigation.navArgument
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.material.icons.Icons.Default
 import androidx.compose.material3.Icon
+import com.example.myapplication.ui.navigation.NavGraph
+import com.example.myapplication.ui.navigation.BottomNavigationBar
 import androidx.compose.material3.IconButton
 
 class MainActivity : ComponentActivity() {
@@ -55,32 +57,15 @@ class MainActivity : ComponentActivity() {
                 val sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
                 val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
 
-                NavHost(
-                    navController = navController,
-                    startDestination = if (isLoggedIn) "movies" else "login"
-                ) {
-                    composable("login") { LoginScreen(navController) }
-                    composable("signup") { SignUpScreen(navController) }
-                    composable("resetPassword") { ResetPasswordScreen(navController) }
-                    composable("movies") { MovieListScreenWithProfile(navController) }
-
-                    composable(
-                        "details/{movieId}",
-                        arguments = listOf(navArgument("movieId") { type = NavType.IntType })
-                    ) { backStackEntry ->
-                        val movieId = backStackEntry.arguments?.getInt("movieId") ?: 0
-                        MovieDetailScreen(navController, movieId)
+                Scaffold(
+                    bottomBar = { BottomNavigationBar(navController) }
+                ) { innerPadding ->
+                    Box(modifier = Modifier.padding(innerPadding)) {
+                        NavGraph(navController = navController)
                     }
-
-                    composable("profile") {
-                        ProfileScreen(
-                            navController = navController,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
                 }
             }
+
         }
     }
 }

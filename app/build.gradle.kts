@@ -71,6 +71,15 @@ android {
             )
         }
     }
+
+    // ✅ تحسين الأداء مع Kotlin 2.0.21
+    composeCompiler {
+        enableStrongSkippingMode = true
+    }
+}
+
+kapt {
+    correctErrorTypes = true
 }
 
 dependencies {
@@ -137,7 +146,7 @@ dependencies {
     kapt("com.google.dagger:hilt-compiler:2.52")
 
     // ✅ Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
@@ -146,6 +155,7 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // ✅ اختبارات
     testImplementation(libs.junit)

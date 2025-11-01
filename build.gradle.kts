@@ -1,6 +1,19 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// ✅ Top-level build.gradle.kts
+// الملف الرئيسي للمشروع كله
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
+
+    // ✅ Hilt Plugin
+    id("com.google.dagger.hilt.android") version "2.52" apply false
+
+    // ✅ Google Services Plugin (علشان Firebase)
+    id("com.google.gms.google-services") version "4.4.4" apply false
+}
+
+// ✅ تنظيف المشروع
+tasks.register("clean", Delete::class) {
+    delete(rootProject.buildDir)
 }

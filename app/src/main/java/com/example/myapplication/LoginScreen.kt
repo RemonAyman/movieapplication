@@ -1,91 +1,227 @@
 package com.example.myapplication
 
-import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavHostController) {
-    val context = navController.context
-    val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+    val auth = remember { FirebaseAuth.getInstance() }
+    val db = remember { FirebaseFirestore.getInstance() }
 
-    var username by remember { mutableStateOf("") }
+    var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
+    var error by remember { mutableStateOf("") }
+    var showSnackbar by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(padding)
         ) {
-            Text(
-                text = "Login",
-                style = MaterialTheme.typography.headlineMedium
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Login", style = MaterialTheme.typography.headlineMedium)
+                        Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedTextField(
+                            value = identifier,
+                            onValueChange = { identifier = it },
+                            label = { Text("Email, Username or Phone") },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth()
-            )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Password") },
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { showPassword = !showPassword }) {
+                                    Icon(
+                                        if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
+                        Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (error.isNotEmpty()) {
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            Button(
-                onClick = {
-                    val savedUser = sharedPref.getString("username", null)
-                    val savedPass = sharedPref.getString("password", null)
-
-                    if (username == savedUser && password == savedPass) {
-                        sharedPref.edit().putBoolean("isLoggedIn", true).apply()
-                        navController.navigate("movies") {
-                            popUpTo("login") { inclusive = true }
+                        TextButton(
+                            onClick = { navController.navigate("resetPassword") },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("Forgot Password?")
                         }
-                    } else {
-                        error = "Invalid username or password"
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                when {
+                                    identifier.isEmpty() || password.isEmpty() -> {
+                                        error = "All fields are required"
+                                        showSnackbar = true
+                                    }
+                                    else -> {
+                                        loading = true
+                                        val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
+                                        val phonePattern = Regex("^01[0-9]{9}$")
+
+                                        when {
+                                            emailPattern.matches(identifier) -> {
+                                                // ✅ Login by Email
+                                                auth.signInWithEmailAndPassword(identifier, password)
+                                                    .addOnCompleteListener { task ->
+                                                        loading = false
+                                                        if (task.isSuccessful) {
+                                                            navController.navigate("movies") {
+                                                                popUpTo("login") { inclusive = true }
+                                                            }
+                                                        } else {
+                                                            error = task.exception?.localizedMessage ?: "Login failed"
+                                                            showSnackbar = true
+                                                        }
+                                                    }
+                                            }
+
+                                            phonePattern.matches(identifier) -> {
+                                                // ✅ Login by Phone
+                                                db.collection("users")
+                                                    .whereEqualTo("phone", identifier)
+                                                    .get()
+                                                    .addOnSuccessListener { result ->
+                                                        if (!result.isEmpty) {
+                                                            val email = result.documents[0].getString("email") ?: ""
+                                                            auth.signInWithEmailAndPassword(email, password)
+                                                                .addOnCompleteListener { task ->
+                                                                    loading = false
+                                                                    if (task.isSuccessful) {
+                                                                        navController.navigate("movies") {
+                                                                            popUpTo("login") { inclusive = true }
+                                                                        }
+                                                                    } else {
+                                                                        error = "Invalid password or user"
+                                                                        showSnackbar = true
+                                                                    }
+                                                                }
+                                                        } else {
+                                                            loading = false
+                                                            error = "Phone not found"
+                                                            showSnackbar = true
+                                                        }
+                                                    }
+                                                    .addOnFailureListener {
+                                                        loading = false
+                                                        error = "Error checking phone"
+                                                        showSnackbar = true
+                                                    }
+                                            }
+
+                                            else -> {
+                                                // ✅ Login by Username
+                                                db.collection("users")
+                                                    .whereEqualTo("username", identifier)
+                                                    .get()
+                                                    .addOnSuccessListener { result ->
+                                                        if (!result.isEmpty) {
+                                                            val email = result.documents[0].getString("email") ?: ""
+                                                            auth.signInWithEmailAndPassword(email, password)
+                                                                .addOnCompleteListener { task ->
+                                                                    loading = false
+                                                                    if (task.isSuccessful) {
+                                                                        navController.navigate("movies") {
+                                                                            popUpTo("login") { inclusive = true }
+                                                                        }
+                                                                    } else {
+                                                                        error = "Invalid password or user"
+                                                                        showSnackbar = true
+                                                                    }
+                                                                }
+                                                        } else {
+                                                            loading = false
+                                                            error = "Username not found"
+                                                            showSnackbar = true
+                                                        }
+                                                    }
+                                                    .addOnFailureListener {
+                                                        loading = false
+                                                        error = "Error checking username"
+                                                        showSnackbar = true
+                                                    }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !loading
+                        ) {
+                            if (loading)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            else
+                                Text("Login")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        TextButton(onClick = { navController.navigate("signup") }) {
+                            Text("Don’t have an account? Sign up")
+                        }
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Login")
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TextButton(
-                onClick = { navController.navigate("signup") }
-            ) {
-                Text("Don’t have an account? Sign up")
+            if (showSnackbar && error.isNotEmpty()) {
+                LaunchedEffect(error) {
+                    snackbarHostState.showSnackbar(error)
+                    showSnackbar = false
+                }
             }
         }
     }

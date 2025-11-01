@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable("login") { LoginScreen(navController) }
                     composable("signup") { SignUpScreen(navController) }
+                    composable("resetPassword") { ResetPasswordScreen(navController) }
                     composable("movies") { MovieListScreenWithProfile(navController) }
 
                     composable(
@@ -72,12 +73,12 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("profile") {
-                        ProfileScreen(navToLogin = {
-                            navController.navigate("login") {
-                                popUpTo("movies") { inclusive = true }
-                            }
-                        })
+                        ProfileScreen(
+                            navController = navController,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
+
                 }
             }
         }

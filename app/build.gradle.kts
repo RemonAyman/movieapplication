@@ -3,9 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 
-    // ✅ تفعيل KAPT و Hilt Plugins
+    // ✅ KAPT و Hilt
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+
+    // ✅ Firebase
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -15,13 +18,12 @@ android {
     defaultConfig {
         applicationId = "com.example.myapplication"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // ✅ قراءة TMDB API Key من gradle.properties
         buildConfigField(
             "String",
             "API_KEY",
@@ -39,18 +41,17 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
             buildConfigField("boolean", "DEBUG_MODE", "true")
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     buildFeatures {
@@ -59,7 +60,6 @@ android {
     }
 
     composeOptions {
-        // ✅ Jetpack Compose Compiler
         kotlinCompilerExtensionVersion = "1.7.0"
     }
 
@@ -118,22 +118,34 @@ dependencies {
     // ✅ Activity KTX
     implementation("androidx.activity:activity-ktx:1.9.3")
 
-    // ✅ Accompanist Permissions
+    // ✅ Accompanist Permissions + FlowLayout
     implementation("com.google.accompanist:accompanist-permissions:0.35.2-beta")
+    implementation("com.google.accompanist:accompanist-flowlayout:0.31.5-beta")
 
     // ✅ WebView
     implementation("androidx.webkit:webkit:1.9.0")
 
-    // ✅ ToastCompat
+    // ✅ ToastCompat / Toasty
     implementation("com.github.GrenderG:Toasty:1.5.2")
 
     // ✅ Paging 3
     implementation("androidx.paging:paging-runtime:3.3.2")
     implementation("androidx.paging:paging-compose:3.3.2")
 
-    // ✅ Hilt (Dependency Injection)
+    // ✅ Hilt
     implementation("com.google.dagger:hilt-android:2.52")
     kapt("com.google.dagger:hilt-compiler:2.52")
+
+    // ✅ Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+
+    // ✅ Google Sign-In APIs
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     // ✅ اختبارات
     testImplementation(libs.junit)

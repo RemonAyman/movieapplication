@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 
-    // ✅ KAPT و Hilt
+    // ✅ Hilt + KAPT
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
 
@@ -13,7 +13,7 @@ plugins {
 
 android {
     namespace = "com.example.myapplication"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.myapplication"
@@ -24,6 +24,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // ✅ مفتاح API الخاص بـ TMDB (لو موجود)
         buildConfigField(
             "String",
             "API_KEY",
@@ -72,7 +73,7 @@ android {
         }
     }
 
-    // ✅ تحسين الأداء مع Kotlin 2.0.21
+    // ✅ تحسين الأداء في Compose
     composeCompiler {
         enableStrongSkippingMode = true
     }
@@ -87,6 +88,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.activity:activity-compose:1.9.3") // ✅ إضافة مهمة
 
     // ✅ Compose BOM
     implementation(platform(libs.androidx.compose.bom))
@@ -95,6 +97,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation("androidx.compose.material3:material3")
 
+    implementation("androidx.core:core-splashscreen:1.0.1")
     // ✅ Material Icons
     implementation("androidx.compose.material:material-icons-core:1.7.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.0")
@@ -118,23 +121,21 @@ dependencies {
     // ✅ Coroutine
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // ✅ ViewModel for Compose
+    // ✅ ViewModel + Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
-
-    // ✅ Lifecycle Runtime for Compose
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
 
     // ✅ Activity KTX
     implementation("androidx.activity:activity-ktx:1.9.3")
 
-    // ✅ Accompanist Permissions + FlowLayout
+    // ✅ Accompanist
     implementation("com.google.accompanist:accompanist-permissions:0.35.2-beta")
     implementation("com.google.accompanist:accompanist-flowlayout:0.31.5-beta")
 
     // ✅ WebView
     implementation("androidx.webkit:webkit:1.9.0")
 
-    // ✅ ToastCompat / Toasty
+    // ✅ Toasty
     implementation("com.github.GrenderG:Toasty:1.5.2")
 
     // ✅ Paging 3
@@ -145,7 +146,7 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.52")
     kapt("com.google.dagger:hilt-compiler:2.52")
 
-    // ✅ Firebase
+    // ✅ Firebase (تم تضمين كل الخدمات الأساسية)
     implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
@@ -157,7 +158,7 @@ dependencies {
     implementation(libs.googleid)
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
-    // ✅ اختبارات
+    // ✅ الاختبارات
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

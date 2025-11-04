@@ -15,26 +15,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
-    var selectedIndex by remember { mutableStateOf(0) }
 
-    // ✅ Replace "shows" with "favorites"
-    val items = listOf("home", "favorites", "search", "chats", "profile")
-    val icons = listOf(
-        Icons.Default.Home,
-        Icons.Default.Favorite,
-        Icons.Default.Search,
-        Icons.Default.Chat,
-        Icons.Default.Person
+    val items = listOf(
+        BottomNavItem("HomeScreen", Icons.Default.Home),
+        BottomNavItem("favorites", Icons.Default.Favorite),
+        BottomNavItem("search", Icons.Default.Search),
+        BottomNavItem("chats", Icons.Default.Chat),
+        BottomNavItem("profile", Icons.Default.Person)
     )
 
+    val currentDestination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
+    val currentRoute = currentDestination?.destination?.route
+
     NavigationBar(containerColor = Color(0xFF1A1A1A)) {
-        items.forEachIndexed { index, route ->
-            val isSelected = selectedIndex == index
-            val scale by animateFloatAsState(targetValue = if (isSelected) 1.35f else 1f, label = "")
+        items.forEach { item ->
+            val isSelected = currentRoute == item.route
+            val scale by animateFloatAsState(
+                targetValue = if (isSelected) 1.35f else 1f,
+                label = ""
+            )
 
             Box(
                 modifier = Modifier
@@ -53,14 +58,20 @@ fun BottomNavigationBar(navController: NavHostController) {
 
                 IconButton(
                     onClick = {
-                        selectedIndex = index
-                        navController.navigate(route)
+                        // ✅ التنقل بدون تكرار الوجهات
+                        navController.navigate(item.route) {
+                            launchSingleTop = true
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            restoreState = true
+                        }
                     },
                     modifier = Modifier.scale(scale)
                 ) {
                     Icon(
-                        imageVector = icons[index],
-                        contentDescription = route,
+                        imageVector = item.icon,
+                        contentDescription = item.route,
                         tint = if (isSelected) Color.White else Color.LightGray
                     )
                 }
@@ -68,3 +79,8 @@ fun BottomNavigationBar(navController: NavHostController) {
         }
     }
 }
+
+data class BottomNavItem(
+    val route: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)

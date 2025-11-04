@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -14,18 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.myapplication.data.UserPreferences
-import com.example.myapplication.viewmodel.ProfileViewModel
+import com.example.myapplication.ui.theme.MovitoBackground
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -41,10 +40,6 @@ fun ProfileScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // ✅ ViewModel مربوط بـ UserPreferences
-    val userPrefs = remember { UserPreferences(context) }
-    val viewModel = remember { ProfileViewModel(userPrefs) }
-
     val snackbarHostState = remember { SnackbarHostState() }
 
     var username by remember { mutableStateOf(TextFieldValue("")) }
@@ -57,7 +52,20 @@ fun ProfileScreen(
     val currentUser = auth.currentUser
     val uid = currentUser?.uid
 
-    // ✅ تحميل البيانات من Firestore و DataStore
+    // ✅ ألوان الـ TextField المعدلة لتناسق واضح مع الثيم
+    val textFieldColors = TextFieldDefaults.colors(
+        focusedContainerColor = Color(0xFF2C1E4A),
+        unfocusedContainerColor = Color(0xFF3B2A5E),
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White.copy(alpha = 0.9f),
+        cursorColor = Color(0xFF9B5DE5),
+        focusedIndicatorColor = Color(0xFF9B5DE5),
+        unfocusedIndicatorColor = Color.Gray,
+        focusedLabelColor = Color(0xFF9B5DE5),
+        unfocusedLabelColor = Color.LightGray
+    )
+
+    // ✅ تحميل بيانات المستخدم
     suspend fun loadUserData() {
         if (uid != null) {
             try {
@@ -66,11 +74,9 @@ fun ProfileScreen(
                     username = TextFieldValue(snapshot.getString("username") ?: "")
                     email = TextFieldValue(snapshot.getString("email") ?: "")
                     phone = snapshot.getString("phone") ?: ""
-                    // حفظ محلي
-                    viewModel.saveProfile(username.text, email.text, "")
                 }
             } catch (e: Exception) {
-                snackbarHostState.showSnackbar("فشل تحميل البيانات ❌")
+                snackbarHostState.showSnackbar("❌ فشل تحميل البيانات")
             } finally {
                 loading = false
             }
@@ -79,42 +85,27 @@ fun ProfileScreen(
         }
     }
 
-    // ✅ أول تحميل
+    // ✅ تحميل البيانات عند فتح الشاشة
     LaunchedEffect(uid) {
         loadUserData()
-    }
-
-    // 🧠 Auto Save بعد آخر تعديل بـ 2 ثانية
-    LaunchedEffect(username.text) {
-        if (!loading && uid != null && username.text.isNotBlank()) {
-            delay(2000)
-            if (username.text.matches("^[A-Za-zأ-ي\\s]{3,}$".toRegex())) {
-                try {
-                    db.collection("users").document(uid)
-                        .update("username", username.text.trim())
-                        .await()
-
-                    // حفظ محلي كمان
-                    viewModel.updateProfile(name = username.text.trim())
-                    snackbarHostState.showSnackbar("تم الحفظ التلقائي ✅")
-                } catch (e: Exception) {
-                    snackbarHostState.showSnackbar("حدث خطأ أثناء الحفظ ❌")
-                }
-            } else {
-                snackbarHostState.showSnackbar("الاسم لازم يكون 3 حروف على الأقل بدون رموز ⚠️")
-            }
-        }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Profile") },
+                title = {
+                    Text(
+                        text = "Profile",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                },
                 navigationIcon = {
                     onBack?.let {
                         IconButton(onClick = it) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
                     }
                 },
@@ -123,129 +114,155 @@ fun ProfileScreen(
                         scope.launch {
                             loading = true
                             loadUserData()
-                            snackbarHostState.showSnackbar("تم تحديث البيانات 🔄")
+                            snackbarHostState.showSnackbar("✅ تم تحديث البيانات")
                         }
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2C1E4A)
+                )
             )
         }
     ) { padding ->
 
-        if (loading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // 🟣 Avatar أول حرف من الاسم + ظل خفيف
-                Box(
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MovitoBackground)
+                .padding(padding)
+        ) {
+            if (loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.White
+                )
+            } else {
+                Column(
                     modifier = Modifier
-                        .size(120.dp)
-                        .shadow(6.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
-                        color = Color.White,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Bold
+                    // ✅ Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .shadow(6.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(Color(0xFF4A3A64)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
+                            color = Color.White,
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // ✅ Username
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
                     )
-                }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Username") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    // ✅ Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {},
+                        label = { Text("Email") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = {},
-                    label = { Text("Email") },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    // ✅ Phone
+                    OutlinedTextField(
+                        value = TextFieldValue(phone),
+                        onValueChange = {},
+                        label = { Text("Phone") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = textFieldColors
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                OutlinedTextField(
-                    value = TextFieldValue(phone),
-                    onValueChange = {},
-                    label = { Text("Phone") },
-                    readOnly = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    // ✅ زر الحفظ
+                    Button(
+                        onClick = {
+                            if (uid == null) return@Button
 
-                Spacer(modifier = Modifier.height(24.dp))
+                            if (!username.text.matches("^[A-Za-zأ-ي\\s]{3,}$".toRegex())) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("⚠️ الاسم لازم يكون 3 حروف على الأقل")
+                                }
+                                return@Button
+                            }
 
-                Button(
-                    onClick = {
-                        if (uid == null) return@Button
-
-                        if (!username.text.matches("^[A-Za-zأ-ي\\s]{3,}$".toRegex())) {
                             scope.launch {
-                                snackbarHostState.showSnackbar("الاسم لازم يكون 3 حروف على الأقل بدون رموز ⚠️")
+                                saving = true
+                                try {
+                                    db.collection("users").document(uid)
+                                        .update("username", username.text.trim())
+                                        .await()
+                                    snackbarHostState.showSnackbar("✅ تم حفظ التغييرات")
+                                } catch (e: Exception) {
+                                    snackbarHostState.showSnackbar("❌ فشل حفظ التغييرات")
+                                } finally {
+                                    saving = false
+                                }
                             }
-                            return@Button
-                        }
+                        },
+                        enabled = !saving,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF9B5DE5)
+                        )
+                    ) {
+                        if (saving)
+                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+                        else
+                            Text("Save Changes", color = Color.White)
+                    }
 
-                        scope.launch {
-                            saving = true
-                            try {
-                                db.collection("users").document(uid)
-                                    .update("username", username.text.trim())
-                                    .await()
-                                viewModel.updateProfile(name = username.text.trim())
-                                snackbarHostState.showSnackbar("تم حفظ التغييرات ✅")
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("فشل الحفظ ❌")
-                            } finally {
-                                saving = false
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // ✅ زر تسجيل الخروج
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                                sharedPref.edit()
+                                    .putBoolean("isLoggedIn", false)
+                                    .apply()
+
+                                auth.signOut()
+
+                                navController.navigate("login") {
+                                    popUpTo("HomeScreen") { inclusive = true }
+                                }
                             }
-                        }
-                    },
-                    enabled = !saving,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (saving) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
-                    else Text("Save Changes")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            viewModel.clearUserData()
-                            auth.signOut()
-                            navController.navigate("login") {
-                                popUpTo("movies") { inclusive = true }
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Logout")
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp, brush = SolidColor(Color.White))
+                    ) {
+                        Text("Logout", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

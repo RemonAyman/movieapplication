@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignUpScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val sharedPref = context.getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
+
     val auth = remember { FirebaseAuth.getInstance() }
     val db = remember { FirebaseFirestore.getInstance() }
 
@@ -166,6 +170,15 @@ fun SignUpScreen(navController: NavHostController) {
 
                                     else -> {
                                         loading = true
+
+                                        fun onSignUpSuccess() {
+                                            // تحديث SharedPreferences بعد نجاح التسجيل
+                                            sharedPref.edit().putBoolean("isLoggedIn", true).apply()
+                                            navController.navigate("HomeScreen") {
+                                                popUpTo("signup") { inclusive = true }
+                                            }
+                                        }
+
                                         auth.createUserWithEmailAndPassword(email, password)
                                             .addOnCompleteListener { task ->
                                                 loading = false
@@ -175,16 +188,14 @@ fun SignUpScreen(navController: NavHostController) {
                                                         "username" to username,
                                                         "email" to email,
                                                         "phone" to phone,
-                                                        "password" to password, // مضافة هنا
+                                                        "password" to password,
                                                         "uid" to uid
                                                     )
 
                                                     db.collection("users").document(uid)
                                                         .set(user)
                                                         .addOnSuccessListener {
-                                                            navController.navigate("movies") {
-                                                                popUpTo("signup") { inclusive = true }
-                                                            }
+                                                            onSignUpSuccess()
                                                         }
                                                         .addOnFailureListener {
                                                             error = "Failed to save user data"

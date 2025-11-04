@@ -10,14 +10,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(navController: NavHostController) {
     val auth = remember { FirebaseAuth.getInstance() }
     var email by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -29,7 +33,8 @@ fun ResetPasswordScreen(navController: NavHostController) {
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -63,7 +68,9 @@ fun ResetPasswordScreen(navController: NavHostController) {
                 Button(
                     onClick = {
                         if (email.isEmpty()) {
-                            message = "Please enter your email"
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Please enter your email")
+                            }
                             return@Button
                         }
 
@@ -71,10 +78,21 @@ fun ResetPasswordScreen(navController: NavHostController) {
                         auth.sendPasswordResetEmail(email)
                             .addOnCompleteListener { task ->
                                 loading = false
-                                message = if (task.isSuccessful) {
-                                    "✅ Password reset email sent successfully!"
-                                } else {
-                                    "❌ Error: ${task.exception?.localizedMessage}"
+                                scope.launch {
+                                    message = if (task.isSuccessful) {
+                                        "✅ Password reset email sent successfully!"
+                                    } else {
+                                        "❌ Error: ${task.exception?.localizedMessage}"
+                                    }
+                                    snackbarHostState.showSnackbar(message)
+
+                                    // لو نجح، يرجع للـ Login بعد ثانيتين
+                                    if (task.isSuccessful) {
+                                        delay(2000)
+                                        navController.navigate("login") {
+                                            popUpTo("resetPassword") { inclusive = true }
+                                        }
+                                    }
                                 }
                             }
                     },
@@ -91,19 +109,6 @@ fun ResetPasswordScreen(navController: NavHostController) {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                if (message.isNotEmpty()) {
-                    Text(
-                        text = message,
-                        color = if (message.contains("Error") || message.contains("❌"))
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
 
                 TextButton(onClick = {
                     navController.navigate("login") {

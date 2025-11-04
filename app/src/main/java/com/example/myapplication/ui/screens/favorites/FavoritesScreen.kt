@@ -1,5 +1,10 @@
 package com.example.myapplication.data
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -22,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.myapplication.data.remote.MovieApiModel // ✅ الموديل الجديد من الـ API
+import com.example.myapplication.data.remote.MovieApiModel
 import com.example.myapplication.ui.theme.MovitoBackground
 
 @Composable
@@ -31,6 +36,7 @@ fun FavoritesScreen(
     navController: NavController
 ) {
     var movieToDelete by remember { mutableStateOf<MovieApiModel?>(null) }
+    val favorites by viewModel.favoritesFlow.collectAsState(emptyList())
 
     Column(
         modifier = Modifier
@@ -62,20 +68,31 @@ fun FavoritesScreen(
         }
 
         // 🔹 Main Content
-        if (viewModel.favorites.isEmpty()) {
+        if (favorites.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No Favorites Yet", color = Color.White, fontSize = 16.sp)
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(viewModel.favorites) { movie ->
-                    FavoriteMovieCard(
-                        movie = movie,
-                        onSwipe = { movieToDelete = movie },
-                        onClick = {
-                            navController.navigate("details/${movie.id}")
-                        }
-                    )
+                items(favorites, key = { it.id }) { movie ->
+                    var visible by remember { mutableStateOf(true) }
+
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+                    ) {
+                        FavoriteMovieCard(
+                            movie = movie,
+                            onSwipe = {
+                                visible = false
+                                movieToDelete = movie
+                            },
+                            onClick = {
+                                navController.navigate("details/${movie.id}")
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val sharedPref = context.getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
+
     val auth = remember { FirebaseAuth.getInstance() }
     val db = remember { FirebaseFirestore.getInstance() }
 
@@ -110,16 +114,21 @@ fun LoginScreen(navController: NavHostController) {
                                         val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
                                         val phonePattern = Regex("^01[0-9]{9}$")
 
+                                        fun onLoginSuccess() {
+                                            // هنا نحدث SharedPreferences بعد نجاح الدخول
+                                            sharedPref.edit().putBoolean("isLoggedIn", true).apply()
+                                            navController.navigate("HomeScreen") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        }
+
                                         when {
                                             emailPattern.matches(identifier) -> {
-                                                // ✅ Login by Email
                                                 auth.signInWithEmailAndPassword(identifier, password)
                                                     .addOnCompleteListener { task ->
                                                         loading = false
                                                         if (task.isSuccessful) {
-                                                            navController.navigate("movies") {
-                                                                popUpTo("login") { inclusive = true }
-                                                            }
+                                                            onLoginSuccess()
                                                         } else {
                                                             error = task.exception?.localizedMessage ?: "Login failed"
                                                             showSnackbar = true
@@ -128,27 +137,23 @@ fun LoginScreen(navController: NavHostController) {
                                             }
 
                                             phonePattern.matches(identifier) -> {
-                                                // ✅ Login by Phone
                                                 db.collection("users")
                                                     .whereEqualTo("phone", identifier)
                                                     .get()
                                                     .addOnSuccessListener { result ->
+                                                        loading = false
                                                         if (!result.isEmpty) {
                                                             val email = result.documents[0].getString("email") ?: ""
                                                             auth.signInWithEmailAndPassword(email, password)
                                                                 .addOnCompleteListener { task ->
-                                                                    loading = false
                                                                     if (task.isSuccessful) {
-                                                                        navController.navigate("movies") {
-                                                                            popUpTo("login") { inclusive = true }
-                                                                        }
+                                                                        onLoginSuccess()
                                                                     } else {
                                                                         error = "Invalid password or user"
                                                                         showSnackbar = true
                                                                     }
                                                                 }
                                                         } else {
-                                                            loading = false
                                                             error = "Phone not found"
                                                             showSnackbar = true
                                                         }
@@ -161,27 +166,23 @@ fun LoginScreen(navController: NavHostController) {
                                             }
 
                                             else -> {
-                                                // ✅ Login by Username
                                                 db.collection("users")
                                                     .whereEqualTo("username", identifier)
                                                     .get()
                                                     .addOnSuccessListener { result ->
+                                                        loading = false
                                                         if (!result.isEmpty) {
                                                             val email = result.documents[0].getString("email") ?: ""
                                                             auth.signInWithEmailAndPassword(email, password)
                                                                 .addOnCompleteListener { task ->
-                                                                    loading = false
                                                                     if (task.isSuccessful) {
-                                                                        navController.navigate("movies") {
-                                                                            popUpTo("login") { inclusive = true }
-                                                                        }
+                                                                        onLoginSuccess()
                                                                     } else {
                                                                         error = "Invalid password or user"
                                                                         showSnackbar = true
                                                                     }
                                                                 }
                                                         } else {
-                                                            loading = false
                                                             error = "Username not found"
                                                             showSnackbar = true
                                                         }

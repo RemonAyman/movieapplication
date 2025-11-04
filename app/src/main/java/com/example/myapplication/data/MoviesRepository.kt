@@ -1,17 +1,42 @@
 package com.example.myapplication.data
 
-import javax.inject.Inject
+import com.example.myapplication.data.remote.MovieApiService
+import com.example.myapplication.data.remote.MovieApiModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
-class MoviesRepository @Inject constructor(
+class MoviesRepository(
     private val apiService: MovieApiService
 ) {
-    // ✅ دالة بتجيب أحدث 100 فيلم عن طريق دمج أول 5 صفحات (كل صفحة فيها 20 فيلم)
-    suspend fun getLatest100Movies(): List<Movie> {
-        val allMovies = mutableListOf<Movie>()
-        for (page in 1..5) {
-            val response = apiService.getLatestMovies(page = page)
-            allMovies.addAll(response.results)
+    // 🎬 جلب أول 100 فيلم شعبي
+    suspend fun getPopular100Movies(): List<MovieApiModel> = coroutineScope {
+        try {
+            val pages = (1..5).map { page ->
+                async { apiService.getPopularMovies(page = page).results }
+            }
+
+            val allMovies = pages.flatMap { it.await() }
+
+            allMovies.filter { it.title.isNotEmpty() && it.poster_path != null }
+                .take(100)
+        } catch (e: Exception) {
+            emptyList()
         }
-        return allMovies
+    }
+
+    // 🔹 جلب أول 100 فيلم قادم (Upcoming)
+    suspend fun getUpcomingMovies(): List<MovieApiModel> = coroutineScope {
+        try {
+            val pages = (1..5).map { page ->
+                async { apiService.getUpcomingMovies(page = page).results }
+            }
+
+            val allMovies = pages.flatMap { it.await() }
+
+            allMovies.filter { it.title.isNotEmpty() && it.poster_path != null }
+                .take(100)
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 }

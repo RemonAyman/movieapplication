@@ -1,12 +1,16 @@
 package com.example.myapplication
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
@@ -16,98 +20,78 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(navController: NavHostController) {
+    val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
+
     var email by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    var showSnackbar by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Reset Password") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(AppColors.DarkBg)
                 .padding(padding),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "Enter your email to reset your password",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
+                NeonTitle("Reset Password") // لو ما عندكش NeonTitle، استبدله بـ Text
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
-                    onClick = {
-                        if (email.isEmpty()) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Please enter your email")
-                            }
-                            return@Button
+                NeonInput( // لو ما عندكش NeonInput، استبدله بـ OutlinedTextField
+                    value = email,
+                    onValueChange = { email = it },
+                    placeholder = "Enter your email",
+                    icon = Icons.Default.Email
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                val onResetClick: () -> Unit = {
+                    when {
+                        email.isEmpty() -> {
+                            error = "Please enter your email"
+                            showSnackbar = true
                         }
-
-                        loading = true
-                        auth.sendPasswordResetEmail(email)
-                            .addOnCompleteListener { task ->
-                                loading = false
-                                scope.launch {
-                                    message = if (task.isSuccessful) {
-                                        "✅ Password reset email sent successfully!"
-                                    } else {
-                                        "❌ Error: ${task.exception?.localizedMessage}"
-                                    }
-                                    snackbarHostState.showSnackbar(message)
-
-                                    // لو نجح، يرجع للـ Login بعد ثانيتين
+                        else -> {
+                            loading = true
+                            auth.sendPasswordResetEmail(email)
+                                .addOnCompleteListener { task ->
+                                    loading = false
                                     if (task.isSuccessful) {
-                                        delay(2000)
-                                        navController.navigate("login") {
-                                            popUpTo("resetPassword") { inclusive = true }
+                                        scope.launch {
+                                            error = "✅ Password reset email sent!"
+                                            showSnackbar = true
+                                            delay(2000)
+                                            navController.navigate("login") {
+                                                popUpTo("resetPassword") { inclusive = true }
+                                            }
                                         }
+                                    } else {
+                                        error = task.exception?.localizedMessage ?: "Failed to send email"
+                                        showSnackbar = true
                                     }
                                 }
-                            }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !loading
-                ) {
-                    if (loading)
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    else
-                        Text("Send Reset Link")
+                        }
+                    }
                 }
 
+                NeonButton(
+                    text = "Send Reset Link",
+                    onClick = onResetClick,
+                    loading = loading,
+                    enabled = !loading
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TextButton(onClick = {
@@ -115,7 +99,14 @@ fun ResetPasswordScreen(navController: NavHostController) {
                         popUpTo("resetPassword") { inclusive = true }
                     }
                 }) {
-                    Text("Back to Login")
+                    Text("Back to Login", color = AppColors.TextColor)
+                }
+            }
+
+            if (showSnackbar && error.isNotEmpty()) {
+                LaunchedEffect(error) {
+                    snackbarHostState.showSnackbar(error)
+                    showSnackbar = false
                 }
             }
         }

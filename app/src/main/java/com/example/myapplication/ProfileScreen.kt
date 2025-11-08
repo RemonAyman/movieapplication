@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -22,7 +21,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.myapplication.ui.theme.MovitoBackground
+import com.example.myapplication.AppColors
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -52,20 +51,19 @@ fun ProfileScreen(
     val currentUser = auth.currentUser
     val uid = currentUser?.uid
 
-    // ✅ ألوان الـ TextField المعدلة لتناسق واضح مع الثيم
+    // ألوان الـ TextField متناسقة مع ثيم AppColors
     val textFieldColors = TextFieldDefaults.colors(
-        focusedContainerColor = Color(0xFF2C1E4A),
-        unfocusedContainerColor = Color(0xFF3B2A5E),
-        focusedTextColor = Color.White,
-        unfocusedTextColor = Color.White.copy(alpha = 0.9f),
-        cursorColor = Color(0xFF9B5DE5),
-        focusedIndicatorColor = Color(0xFF9B5DE5),
-        unfocusedIndicatorColor = Color.Gray,
-        focusedLabelColor = Color(0xFF9B5DE5),
-        unfocusedLabelColor = Color.LightGray
+        focusedContainerColor = AppColors.DarkBg.copy(alpha = 0.9f),
+        unfocusedContainerColor = AppColors.DarkBg.copy(alpha = 0.8f),
+        focusedTextColor = AppColors.TextColor,
+        unfocusedTextColor = AppColors.TextColor.copy(alpha = 0.8f),
+        cursorColor = AppColors.NeonGlow,
+        focusedIndicatorColor = AppColors.NeonGlow,
+        unfocusedIndicatorColor = AppColors.TextColor.copy(alpha = 0.4f),
+        focusedLabelColor = AppColors.NeonGlow,
+        unfocusedLabelColor = AppColors.TextColor.copy(alpha = 0.7f)
     )
 
-    // ✅ تحميل بيانات المستخدم
     suspend fun loadUserData() {
         if (uid != null) {
             try {
@@ -85,7 +83,6 @@ fun ProfileScreen(
         }
     }
 
-    // ✅ تحميل البيانات عند فتح الشاشة
     LaunchedEffect(uid) {
         loadUserData()
     }
@@ -97,7 +94,7 @@ fun ProfileScreen(
                 title = {
                     Text(
                         text = "Profile",
-                        color = Color.White,
+                        color = AppColors.TextColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -105,7 +102,7 @@ fun ProfileScreen(
                 navigationIcon = {
                     onBack?.let {
                         IconButton(onClick = it) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = AppColors.TextColor)
                         }
                     }
                 },
@@ -117,11 +114,11 @@ fun ProfileScreen(
                             snackbarHostState.showSnackbar("✅ تم تحديث البيانات")
                         }
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = AppColors.NeonGlow)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2C1E4A)
+                    containerColor = AppColors.DarkBg
                 )
             )
         }
@@ -130,13 +127,13 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MovitoBackground)
+                .background(AppColors.DarkBg)
                 .padding(padding)
         ) {
             if (loading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
-                    color = Color.White
+                    color = AppColors.NeonGlow
                 )
             } else {
                 Column(
@@ -145,18 +142,18 @@ fun ProfileScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // ✅ Avatar
+                    // Avatar
                     Box(
                         modifier = Modifier
                             .size(120.dp)
                             .shadow(6.dp, CircleShape)
                             .clip(CircleShape)
-                            .background(Color(0xFF4A3A64)),
+                            .background(AppColors.NeonGlow.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
-                            color = Color.White,
+                            color = AppColors.NeonGlow,
                             fontSize = 48.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -164,7 +161,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ✅ Username
+                    // Username
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
@@ -175,7 +172,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // ✅ Email
+                    // Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {},
@@ -187,7 +184,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // ✅ Phone
+                    // Phone
                     OutlinedTextField(
                         value = TextFieldValue(phone),
                         onValueChange = {},
@@ -199,7 +196,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // ✅ زر الحفظ
+                    // Save button
                     Button(
                         onClick = {
                             if (uid == null) return@Button
@@ -228,18 +225,18 @@ fun ProfileScreen(
                         enabled = !saving,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF9B5DE5)
+                            containerColor = AppColors.NeonGlow
                         )
                     ) {
                         if (saving)
-                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = AppColors.TextColor, strokeWidth = 2.dp)
                         else
-                            Text("Save Changes", color = Color.White)
+                            Text("Save Changes", color = AppColors.TextColor)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // ✅ زر تسجيل الخروج
+                    // Logout button
                     OutlinedButton(
                         onClick = {
                             scope.launch {
@@ -257,11 +254,14 @@ fun ProfileScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
+                            contentColor = AppColors.TextColor
                         ),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp, brush = SolidColor(Color.White))
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 2.dp,
+                            brush = SolidColor(AppColors.NeonGlow)
+                        )
                     ) {
-                        Text("Logout", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Logout", fontWeight = FontWeight.Bold)
                     }
                 }
             }

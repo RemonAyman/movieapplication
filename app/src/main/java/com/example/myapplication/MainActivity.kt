@@ -42,65 +42,42 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             MaterialTheme {
                 val navController = rememberNavController()
                 val sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
+                val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
 
-                // ✅ شاشة البداية (Splash)
-                LaunchedEffect(Unit) {
-                    delay(2000)
-                    isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
-                }
+                if (isLoggedIn) {
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = currentBackStackEntry?.destination?.route
 
-                when (isLoggedIn) {
-                    null -> {
-                        // ✅ Splash Screen
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF1A1A1A)), // خلفية ثابتة بديلة لـ MovitoBackground
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "🎬 Movito",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = Color.White
-                            )
+                    val showBottomBar = currentDestination in listOf(
+                        "HomeScreen",
+                        "search",
+                        "favorites",
+                        "profile",
+                        "chats"
+                    )
+
+                    Scaffold(
+                        bottomBar = {
+                            if (showBottomBar) BottomNavigationBar(navController)
+                        }
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            NavGraph(navController = navController)
                         }
                     }
-
-                    true -> {
-                        val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentDestination = currentBackStackEntry?.destination?.route
-
-                        // ✅ الشاشات اللي يظهر فيها الـ Bottom Bar
-                        val showBottomBar = currentDestination in listOf(
-                            "HomeScreen", "search", "favorites", "profile"
-                        )
-
-                        Scaffold(
-                            bottomBar = {
-                                if (showBottomBar) BottomNavigationBar(navController)
-                            }
-                        ) { innerPadding ->
-                            Box(modifier = Modifier.padding(innerPadding)) {
-                                NavGraph(navController = navController)
-                            }
-                        }
-                    }
-
-                    false -> {
-                        // المستخدم مش عامل تسجيل دخول → يروح على صفحة اللوجين
-                        NavGraph(navController = navController)
-                    }
+                } else {
+                    // المستخدم مش عامل تسجيل دخول → يروح على صفحة اللوجين
+                    NavGraph(navController = navController)
                 }
             }
         }
@@ -188,7 +165,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             scope.launch {
                 try {
-                    val response = RetrofitClient.api.getLatestMovies(BuildConfig.API_KEY, page = 1)
+                    val response = RetrofitClient.api.getLatestMovies(BuildConfig.TMDB_API_KEY, page = 1)
                     movies = response.results.take(100)
                 } catch (e: Exception) {
                     errorMessage = e.message
@@ -208,7 +185,7 @@ class MainActivity : ComponentActivity() {
                     scope.launch {
                         try {
                             val response =
-                                RetrofitClient.api.searchMovies(BuildConfig.API_KEY, spokenText)
+                                RetrofitClient.api.searchMovies(BuildConfig.TMDB_API_KEY, spokenText)
                             movies = response.results
                             errorMessage = null
                         } catch (e: Exception) {
@@ -251,7 +228,7 @@ class MainActivity : ComponentActivity() {
                     scope.launch {
                         try {
                             val response =
-                                RetrofitClient.api.searchMovies(BuildConfig.API_KEY, query)
+                                RetrofitClient.api.searchMovies(BuildConfig.TMDB_API_KEY, query)
                             movies = response.results
                             errorMessage = null
                         } catch (e: Exception) {
@@ -270,11 +247,11 @@ class MainActivity : ComponentActivity() {
 
             when {
                 errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error loading movies 😢")
+                    Text("Error loading movies ")
                 }
 
                 movies.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No movies available 😕")
+                    Text("No movies available ")
                 }
 
                 else -> LazyColumn(contentPadding = PaddingValues(8.dp)) {
@@ -326,9 +303,10 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(movieId) {
             scope.launch {
                 try {
-                    movie = RetrofitClient.api.getMovieDetails(movieId, BuildConfig.API_KEY)
-                    val videos = RetrofitClient.api.getMovieVideos(movieId, BuildConfig.API_KEY).results
-                    val credits = RetrofitClient.api.getMovieCredits(movieId, BuildConfig.API_KEY).cast
+                    movie = RetrofitClient.api.getMovieDetails(movieId, BuildConfig.TMDB_API_KEY)
+                    val videos = RetrofitClient.api.getMovieVideos(movieId, BuildConfig.TMDB_API_KEY).results
+                    val credits = RetrofitClient.api.getMovieCredits(movieId, BuildConfig.TMDB_API_KEY).cast
+
                     trailerKey = videos.firstOrNull { it.site == "YouTube" && it.type == "Trailer" }?.key
                     castList = credits.take(10)
                 } catch (e: Exception) {
@@ -339,7 +317,7 @@ class MainActivity : ComponentActivity() {
 
         when {
             errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Error loading movie details 😢")
+                Text("Error loading movie details ")
             }
 
             movie == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -84,8 +84,13 @@ class MainActivity : ComponentActivity() {
 
                         // ✅ الشاشات اللي يظهر فيها الـ Bottom Bar
                         val showBottomBar = currentDestination in listOf(
-                            "HomeScreen", "search", "favorites", "profile"
+                            "HomeScreen",
+                            "search",
+                            "favorites",
+                            "profile",
+                            "chats"
                         )
+
 
                         Scaffold(
                             bottomBar = {

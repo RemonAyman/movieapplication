@@ -363,7 +363,7 @@ class MainActivity : ComponentActivity() {
                             }) {
                                 Text("🎥 Watch Trailer on YouTube")
                             }
-                        } else Text("No trailer available 😕")
+                        } else Text("No trailer available ")
 
                         Spacer(modifier = Modifier.height(24.dp))
                         Text("Cast:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

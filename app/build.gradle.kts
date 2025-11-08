@@ -106,7 +106,7 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // ✅ Coil for Images
+    // ✅ Coil for Images (عرض الصور من URL)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
     // ✅ DataStore
@@ -138,11 +138,12 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.52")
     kapt("com.google.dagger:hilt-compiler:2.52")
 
-    // ✅ Firebase (Auth + Firestore + Analytics)
+    // ✅ Firebase (Auth + Firestore + Analytics + Storage)
     implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx") // ✅ Firebase Storage
 
     // ✅ Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")

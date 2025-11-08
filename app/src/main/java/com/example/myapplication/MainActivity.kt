@@ -48,6 +48,7 @@ import kotlinx.coroutines.delay
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             MaterialTheme {
                 val navController = rememberNavController()
@@ -188,7 +189,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             scope.launch {
                 try {
-                    val response = RetrofitClient.api.getLatestMovies(BuildConfig.API_KEY, page = 1)
+                    val response = RetrofitClient.api.getLatestMovies(BuildConfig.TMDB_API_KEY, page = 1)
                     movies = response.results.take(100)
                 } catch (e: Exception) {
                     errorMessage = e.message
@@ -208,7 +209,7 @@ class MainActivity : ComponentActivity() {
                     scope.launch {
                         try {
                             val response =
-                                RetrofitClient.api.searchMovies(BuildConfig.API_KEY, spokenText)
+                                RetrofitClient.api.searchMovies(BuildConfig.TMDB_API_KEY, spokenText)
                             movies = response.results
                             errorMessage = null
                         } catch (e: Exception) {
@@ -251,7 +252,7 @@ class MainActivity : ComponentActivity() {
                     scope.launch {
                         try {
                             val response =
-                                RetrofitClient.api.searchMovies(BuildConfig.API_KEY, query)
+                                RetrofitClient.api.searchMovies(BuildConfig.TMDB_API_KEY, query)
                             movies = response.results
                             errorMessage = null
                         } catch (e: Exception) {
@@ -326,9 +327,10 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(movieId) {
             scope.launch {
                 try {
-                    movie = RetrofitClient.api.getMovieDetails(movieId, BuildConfig.API_KEY)
-                    val videos = RetrofitClient.api.getMovieVideos(movieId, BuildConfig.API_KEY).results
-                    val credits = RetrofitClient.api.getMovieCredits(movieId, BuildConfig.API_KEY).cast
+                    movie = RetrofitClient.api.getMovieDetails(movieId, BuildConfig.TMDB_API_KEY)
+                    val videos = RetrofitClient.api.getMovieVideos(movieId, BuildConfig.TMDB_API_KEY).results
+                    val credits = RetrofitClient.api.getMovieCredits(movieId, BuildConfig.TMDB_API_KEY).cast
+
                     trailerKey = videos.firstOrNull { it.site == "YouTube" && it.type == "Trailer" }?.key
                     castList = credits.take(10)
                 } catch (e: Exception) {

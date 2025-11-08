@@ -25,7 +25,7 @@ interface MovieApiService {
     // ✅ دالة بتجيب أحدث الأفلام مرتبة حسب تاريخ الإصدار
     @GET("discover/movie")
     suspend fun getLatestMovies(
-        @Query("api_key") apiKey: String = BuildConfig.API_KEY,
+        @Query("api_key") apiKey: String = BuildConfig.TMDB_API_KEY,
         @Query("language") language: String = "en-US",
         @Query("sort_by") sortBy: String = "release_date.desc",
         @Query("page") page: Int = 1

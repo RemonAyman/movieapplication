@@ -8,8 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,103 +49,86 @@ fun HomeScreen(
         moviesViewModel.loadUpcomingMovies()
     }
 
-    // دمج كل الأفلام لفلترة العربي
     val allMovies = popularMovies + upcomingMovies
+    val actionMovies = popularMovies.filter { it.genre_ids.contains(28) }
+    val comedyMovies = popularMovies.filter { it.genre_ids.contains(35) }
+    val romanceMovies = popularMovies.filter { it.genre_ids.contains(10749) }
+    val cartoonMovies = popularMovies.filter { it.genre_ids.contains(16) }
+    val animeMovies = popularMovies.filter { it.genre_ids.contains(16) && it.title.contains("Anime", ignoreCase = true) }
+    val arabicMovies = allMovies.filter { it.original_language == "ar" }
 
-    // ---- أقسام حسب Genre IDs + اللغة العربية ----
-    val actionMovies = popularMovies.filter { it.genre_ids.contains(28) }       // Action
-    val comedyMovies = popularMovies.filter { it.genre_ids.contains(35) }       // Comedy
-    val romanceMovies = popularMovies.filter { it.genre_ids.contains(10749) }   // Romance
-    val cartoonMovies = popularMovies.filter { it.genre_ids.contains(16) }      // Animation/Cartoon
-    val animeMovies = popularMovies.filter { it.genre_ids.contains(16) && it.title.contains("Anime", ignoreCase = true) } // Anime
-    val arabicMovies = allMovies.filter { it.original_language == "ar" }        // Arabic movies
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MovitoBackground)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        // ======= الهيدر =======
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Movito",
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-            IconButton(onClick = {}) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = Color.White
+    Scaffold(
+        containerColor = MovitoBackground
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = paddingValues.calculateBottomPadding() + 16.dp
                 )
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SectionTitle("Coming Soon")
+            MovieRow(upcomingMovies, navController)
+
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionTitle("Popular Movies")
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator(color = Color.White) }
+                }
+                error != null -> Text("Error: $error", color = Color.Red, fontSize = 16.sp)
+                else -> MovieRow(popularMovies, navController)
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ===== أقسام مختلفة =====
-        SectionTitle("🎬 Coming Soon")
-        MovieRow(upcomingMovies, navController)
-
-        Spacer(modifier = Modifier.height(24.dp))
-        SectionTitle("🔥 Popular Movies")
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = Color.White) }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (actionMovies.isNotEmpty()) {
+                SectionTitle("Action")
+                MovieRow(actionMovies, navController)
             }
-            error != null -> Text("Error: $error", color = Color.Red, fontSize = 16.sp)
-            else -> MovieRow(popularMovies, navController)
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (actionMovies.isNotEmpty()) {
-            SectionTitle("🗡 Action")
-            MovieRow(actionMovies, navController)
-        }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (comedyMovies.isNotEmpty()) {
+                SectionTitle("Comedy")
+                MovieRow(comedyMovies, navController)
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (comedyMovies.isNotEmpty()) {
-            SectionTitle("😂 Comedy")
-            MovieRow(comedyMovies, navController)
-        }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (romanceMovies.isNotEmpty()) {
+                SectionTitle("Romance")
+                MovieRow(romanceMovies, navController)
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (romanceMovies.isNotEmpty()) {
-            SectionTitle("❤️ Romance")
-            MovieRow(romanceMovies, navController)
-        }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (cartoonMovies.isNotEmpty()) {
+                SectionTitle("Cartoon")
+                MovieRow(cartoonMovies, navController)
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (cartoonMovies.isNotEmpty()) {
-            SectionTitle("🖍 Cartoon")
-            MovieRow(cartoonMovies, navController)
-        }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (animeMovies.isNotEmpty()) {
+                SectionTitle("Anime")
+                MovieRow(animeMovies, navController)
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (animeMovies.isNotEmpty()) {
-            SectionTitle("👾 Anime")
-            MovieRow(animeMovies, navController)
-        }
+            Spacer(modifier = Modifier.height(24.dp))
+            if (arabicMovies.isNotEmpty()) {
+                SectionTitle("Arabic")
+                MovieRow(arabicMovies, navController)
+            }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        if (arabicMovies.isNotEmpty()) {
-            SectionTitle("🇸🇦 Arabic")
-            MovieRow(arabicMovies, navController)
+            Spacer(modifier = Modifier.height(60.dp))
         }
-
-        Spacer(modifier = Modifier.height(60.dp))
     }
 }
 

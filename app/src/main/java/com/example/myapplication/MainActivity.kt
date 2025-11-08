@@ -42,7 +42,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -53,60 +52,32 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val navController = rememberNavController()
                 val sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
+                val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
 
-                // ✅ شاشة البداية (Splash)
-                LaunchedEffect(Unit) {
-                    delay(2000)
-                    isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
-                }
+                if (isLoggedIn) {
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = currentBackStackEntry?.destination?.route
 
-                when (isLoggedIn) {
-                    null -> {
-                        // ✅ Splash Screen
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF1A1A1A)), // خلفية ثابتة بديلة لـ MovitoBackground
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "🎬 Movito",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = Color.White
-                            )
+                    val showBottomBar = currentDestination in listOf(
+                        "HomeScreen",
+                        "search",
+                        "favorites",
+                        "profile",
+                        "chats"
+                    )
+
+                    Scaffold(
+                        bottomBar = {
+                            if (showBottomBar) BottomNavigationBar(navController)
+                        }
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            NavGraph(navController = navController)
                         }
                     }
-
-                    true -> {
-                        val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentDestination = currentBackStackEntry?.destination?.route
-
-                        // ✅ الشاشات اللي يظهر فيها الـ Bottom Bar
-                        val showBottomBar = currentDestination in listOf(
-                            "HomeScreen",
-                            "search",
-                            "favorites",
-                            "profile",
-                            "chats"
-                        )
-
-
-                        Scaffold(
-                            bottomBar = {
-                                if (showBottomBar) BottomNavigationBar(navController)
-                            }
-                        ) { innerPadding ->
-                            Box(modifier = Modifier.padding(innerPadding)) {
-                                NavGraph(navController = navController)
-                            }
-                        }
-                    }
-
-                    false -> {
-                        // المستخدم مش عامل تسجيل دخول → يروح على صفحة اللوجين
-                        NavGraph(navController = navController)
-                    }
+                } else {
+                    // المستخدم مش عامل تسجيل دخول → يروح على صفحة اللوجين
+                    NavGraph(navController = navController)
                 }
             }
         }
@@ -276,11 +247,11 @@ class MainActivity : ComponentActivity() {
 
             when {
                 errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error loading movies 😢")
+                    Text("Error loading movies ")
                 }
 
                 movies.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No movies available 😕")
+                    Text("No movies available ")
                 }
 
                 else -> LazyColumn(contentPadding = PaddingValues(8.dp)) {
@@ -346,7 +317,7 @@ class MainActivity : ComponentActivity() {
 
         when {
             errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Error loading movie details 😢")
+                Text("Error loading movie details ")
             }
 
             movie == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

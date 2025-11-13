@@ -26,14 +26,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
-data class ChatItem(
-    val id: String,
-    val name: String,
-    val lastMessage: String,
-    val lastMessageTime: Timestamp?,
-    val isGroup: Boolean,
-    val avatarBase64: String? = null // للصورة لو موجودة
-)
+
 
 data class UserData(
     val username: String,

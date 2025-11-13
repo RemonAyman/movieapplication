@@ -1,5 +1,7 @@
 package com.example.myapplication.ui.screens.friendDetail
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,19 +15,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
 import com.example.myapplication.AppColors
 import com.example.myapplication.ui.screens.friends.FriendsViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.painter.BitmapPainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendDetailScreen(
     friendId: String,
     viewModel: FriendsViewModel,
+    isSearchMode: Boolean = false, // لو جايه من Search/Add Friend
     onBack: (() -> Unit)? = null
 ) {
     val friend by viewModel.friendDetail.collectAsState(initial = null)
@@ -45,7 +50,7 @@ fun FriendDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Friend Details",
+                        text = if (isSearchMode) "Add Friend" else "Friend Details",
                         color = AppColors.TextColor,
                         style = MaterialTheme.typography.titleLarge
                     )
@@ -102,11 +107,27 @@ fun FriendDetailScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             if (f.avatarBase64.isNotEmpty()) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(f.avatarBase64),
-                                    contentDescription = "Avatar",
-                                    modifier = Modifier.fillMaxSize()
-                                )
+                                val imageBitmap: ImageBitmap? = try {
+                                    val bytes = Base64.decode(f.avatarBase64, Base64.DEFAULT)
+                                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                    bitmap?.asImageBitmap()
+                                } catch (e: Exception) {
+                                    null
+                                }
+
+                                if (imageBitmap != null) {
+                                    Image(
+                                        painter = BitmapPainter(imageBitmap),
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Text(
+                                        text = f.username.firstOrNull()?.uppercase() ?: "?",
+                                        color = AppColors.NeonGlow,
+                                        fontSize = 48.sp
+                                    )
+                                }
                             } else {
                                 Text(
                                     text = f.username.firstOrNull()?.uppercase() ?: "?",
@@ -144,34 +165,49 @@ fun FriendDetailScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        viewModel.acceptFriend(f.uid)
-                                        snackbarHostState.showSnackbar("✅ ${f.username} accepted")
-                                        viewModel.loadFriendsList()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow)
-                            ) {
-                                Text("Accept", color = AppColors.TextColor)
-                            }
+                            if (isSearchMode) {
+                                // زر Add Friend
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            viewModel.sendFriendRequest(f.uid)
+                                            snackbarHostState.showSnackbar("✅ Friend request sent to ${f.username}")
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow)
+                                ) {
+                                    Text("Add Friend", color = AppColors.TextColor)
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            viewModel.acceptFriend(f.uid)
+                                            snackbarHostState.showSnackbar("✅ ${f.username} accepted")
+                                            viewModel.loadFriendsList()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow)
+                                ) {
+                                    Text("Accept", color = AppColors.TextColor)
+                                }
 
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        viewModel.removeFriend(f.uid)
-                                        snackbarHostState.showSnackbar("❌ ${f.username} removed")
-                                        viewModel.loadFriendsList()
-                                    }
-                                },
-                                border = ButtonDefaults.outlinedButtonBorder.copy(
-                                    width = 1.5.dp,
-                                    brush = SolidColor(AppColors.NeonGlow)
-                                ),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.NeonGlow)
-                            ) {
-                                Text("Remove", color = AppColors.NeonGlow)
+                                OutlinedButton(
+                                    onClick = {
+                                        scope.launch {
+                                            viewModel.removeFriend(f.uid)
+                                            snackbarHostState.showSnackbar("❌ ${f.username} removed")
+                                            viewModel.loadFriendsList()
+                                        }
+                                    },
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                                        width = 1.5.dp,
+                                        brush = SolidColor(AppColors.NeonGlow)
+                                    ),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.NeonGlow)
+                                ) {
+                                    Text("Remove", color = AppColors.NeonGlow)
+                                }
                             }
                         }
                     }

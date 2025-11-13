@@ -12,7 +12,7 @@ class FriendsRepository {
     private val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     // 🔹 جلب قائمة الأصدقاء
-    suspend fun getFriendsList(): List< UserDataModel> {
+    suspend fun getFriendsList(): List<UserDataModel> {
         if (currentUserId.isEmpty()) return emptyList()
 
         return try {
@@ -43,12 +43,34 @@ class FriendsRepository {
             emptyList()
         }
     }
+
+    // 🔹 جلب كل المستخدمين (للبحث)
+    suspend fun getAllUsers(): List<UserDataModel> {
+        if (currentUserId.isEmpty()) return emptyList()
+
+        return try {
+            val usersSnapshot = db.collection("users").get().await()
+            usersSnapshot.mapNotNull { doc ->
+                val uid = doc.getString("uid") ?: return@mapNotNull null
+                if (uid == currentUserId) return@mapNotNull null // استبعاد المستخدم الحالي
+                UserDataModel(
+                    uid = uid,
+                    username = doc.getString("username") ?: "",
+                    email = doc.getString("email") ?: "",
+                    phone = doc.getString("phone") ?: "",
+                    avatarBase64 = doc.getString("avatarBase64") ?: ""
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     // 🔹 جلب قائمة طلبات الصداقة الواردة
     suspend fun getFriendRequests(): List<UserDataModel> {
         if (currentUserId.isEmpty()) return emptyList()
 
         return try {
-            // جلب الـ uids لكل طلبات الصداقة عندي
             val requestsSnapshot = db.collection("users")
                 .document(currentUserId)
                 .collection("friendRequests")
@@ -58,7 +80,6 @@ class FriendsRepository {
             val requestIds = requestsSnapshot.map { it.id }
             if (requestIds.isEmpty()) return emptyList()
 
-            // جلب بيانات المستخدمين اللي طلبوا الصداقة
             val usersSnapshot = db.collection("users")
                 .whereIn("uid", requestIds)
                 .get()
@@ -77,8 +98,6 @@ class FriendsRepository {
             emptyList()
         }
     }
-
-
 
     // 🔹 جلب بيانات صديق محدد
     suspend fun getUserById(friendId: String): UserDataModel? {

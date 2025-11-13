@@ -27,6 +27,7 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("favorites", Icons.Default.Favorite),
         BottomNavItem("search", Icons.Default.Search),
         BottomNavItem("chats", Icons.Default.Chat),
+        BottomNavItem("addFriend", Icons.Default.PersonAdd), // ✅ Added Add Friend
         BottomNavItem("profile", Icons.Default.Person)
     )
 
@@ -58,7 +59,6 @@ fun BottomNavigationBar(navController: NavHostController) {
 
                 IconButton(
                     onClick = {
-                        // ✅ التنقل بدون تكرار الوجهات
                         navController.navigate(item.route) {
                             launchSingleTop = true
                             popUpTo(navController.graph.startDestinationId) {

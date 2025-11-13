@@ -12,22 +12,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.myapplication.AppColors
-import com.example.myapplication.ui.screens.friends.FriendsViewModel
 
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel,
-    onFriendClick: (String) -> Unit
+    onFriendClick: (String) -> Unit, // اضغط على صديق → اعرض بروفايله
+    isSearchMode: Boolean = false // لو true يظهر شريط البحث
 ) {
-    // استخدام collectAsState بدل observeAsState
     val friends by viewModel.friendsList.collectAsState(initial = emptyList())
+    var searchQuery by remember { mutableStateOf("") }
+
+    // فلترة الأصدقاء لو في بحث
+    val filteredFriends = if (searchQuery.isEmpty()) friends else friends.filter {
+        it.username.contains(searchQuery, ignoreCase = true)
+    }
 
     LaunchedEffect(Unit) {
-        viewModel.loadFriendsList()
+        if (isSearchMode) {
+            viewModel.loadAllUsers() // جلب كل المستخدمين للبحث
+        } else {
+            viewModel.loadFriendsList() // جلب الأصدقاء الحاليين
+        }
     }
 
     Column(
@@ -44,10 +54,32 @@ fun FriendsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (friends.isEmpty()) {
+        // Search Bar يظهر لو الصفحة addFriend
+        if (isSearchMode) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("ابحث عن صديق باليوزر") },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color(0xFF2A1B3D),
+                    unfocusedContainerColor = Color(0xFF2A1B3D),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        if (filteredFriends.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "لا يوجد أصدقاء حتى الآن.",
+                    text = if (isSearchMode) "لا يوجد نتائج للبحث." else "لا يوجد أصدقاء حتى الآن.",
                     color = AppColors.TextColor,
                     fontSize = 16.sp
                 )
@@ -56,7 +88,7 @@ fun FriendsScreen(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(friends) { friend ->
+                items(filteredFriends) { friend ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

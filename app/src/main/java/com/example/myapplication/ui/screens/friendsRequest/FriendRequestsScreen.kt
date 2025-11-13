@@ -34,14 +34,11 @@ fun FriendRequestsScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // نقرأ StateFlow كـ state
     val requests by viewModel.friendRequests.collectAsState()
-
-    var loading by remember { mutableStateOf(true) }
+    val loading by viewModel.loadingState.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadFriendRequests()
-        loading = false
     }
 
     Scaffold(
@@ -66,9 +63,7 @@ fun FriendRequestsScreen(
                 actions = {
                     IconButton(onClick = {
                         scope.launch {
-                            loading = true
-                            viewModel.loadFriendsList()
-                            loading = false
+                            viewModel.loadFriendRequests()
                             snackbarHostState.showSnackbar("✅ Requests refreshed")
                         }
                     }) {

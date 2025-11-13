@@ -83,7 +83,7 @@ fun NavGraph(
             SearchScreen(navController)
         }
 
-        // ProfileMainScreen (modern)
+        // ProfileMainScreen
         composable("profile") {
             onDestinationChanged("profile")
             ProfileMainScreen(
@@ -126,6 +126,19 @@ fun NavGraph(
             onDestinationChanged("friendRequests")
             val friendsViewModel: FriendsViewModel = viewModel()
             FriendRequestsScreen(viewModel = friendsViewModel)
+        }
+
+        // Add Friend / Search Friend
+        composable("addFriend") {
+            onDestinationChanged("addFriend")
+            val friendsViewModel: FriendsViewModel = viewModel()
+            FriendsScreen(
+                viewModel = friendsViewModel,
+                onFriendClick = { friendUid ->
+                    navController.navigate("friendDetail/$friendUid")
+                },
+                isSearchMode = true // صفحة البحث عن أصدقاء
+            )
         }
 
         // Chats

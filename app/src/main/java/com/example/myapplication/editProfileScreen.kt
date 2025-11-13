@@ -2,7 +2,6 @@ package com.example.myapplication.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -27,18 +27,16 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import coil.compose.rememberAsyncImagePainter
 import com.example.myapplication.AppColors
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.util.Base64
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(
+fun editProfileScreen(
     navController: NavHostController,
     onBack: (() -> Unit)? = null
 ) {
@@ -72,13 +70,13 @@ fun ProfileScreen(
         unfocusedLabelColor = AppColors.TextColor.copy(alpha = 0.7f)
     )
 
-    // ✅ Function لتحويل الصورة إلى Base64
+    // ✅ تحويل الصورة إلى Base64
     fun encodeImageToBase64(context: Context, uri: Uri): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
             val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
             val outputStream = java.io.ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 60, outputStream)
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, outputStream)
             val bytes = outputStream.toByteArray()
             android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
         } catch (e: Exception) {
@@ -86,7 +84,7 @@ fun ProfileScreen(
         }
     }
 
-    // ✅ اختيار صورة + تحويلها Base64 + حفظها
+    // ✅ اختيار صورة
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -97,16 +95,13 @@ fun ProfileScreen(
                     val base64 = encodeImageToBase64(context, uri)
                     if (base64 != null) {
                         avatarBase64 = base64
-
                         // حفظ في Firestore
                         db.collection("users").document(uid)
                             .update("avatarBase64", base64)
                             .await()
-
                         // حفظ محلي
                         val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
                         sharedPref.edit().putString("avatarBase64", base64).apply()
-
                         snackbarHostState.showSnackbar("✅ الصورة اتسجلت")
                     } else {
                         snackbarHostState.showSnackbar("❌ فشل تحويل الصورة")
@@ -120,7 +115,6 @@ fun ProfileScreen(
         }
     }
 
-    // ✅ تحميل بيانات المستخدم
     suspend fun loadUserData() {
         if (uid != null) {
             try {
@@ -129,7 +123,6 @@ fun ProfileScreen(
                     username = TextFieldValue(snapshot.getString("username") ?: "")
                     email = TextFieldValue(snapshot.getString("email") ?: "")
                     phone = snapshot.getString("phone") ?: ""
-
                     avatarBase64 = snapshot.getString("avatarBase64")
                         ?: context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
                             .getString("avatarBase64", null)
@@ -198,7 +191,7 @@ fun ProfileScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // ✅ Avatar Base64
+                    // Avatar + click to pick image
                     Box(
                         modifier = Modifier
                             .size(120.dp)
@@ -211,7 +204,6 @@ fun ProfileScreen(
                         if (avatarBase64 != null) {
                             val decodedBytes = android.util.Base64.decode(avatarBase64, android.util.Base64.DEFAULT)
                             val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = "Avatar",
@@ -240,6 +232,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {},
@@ -251,6 +244,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Phone
                     OutlinedTextField(
                         value = TextFieldValue(phone),
                         onValueChange = {},
@@ -269,7 +263,7 @@ fun ProfileScreen(
 
                             if (!username.text.matches("^[A-Za-zأ-ي\\s]{3,}$".toRegex())) {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("⚠️ الاسم لازم يكون 3 حروف")
+                                    snackbarHostState.showSnackbar("⚠️ الاسم لازم يكون 3 حروف على الأقل")
                                 }
                                 return@Button
                             }
@@ -288,7 +282,7 @@ fun ProfileScreen(
                                 }
                             }
                         },
-                        enabled = !saving,
+                        enabled = !saving && !uploading,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AppColors.NeonGlow
@@ -307,20 +301,18 @@ fun ProfileScreen(
                         onClick = {
                             scope.launch {
                                 val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                sharedPref.edit()
-                                    .putBoolean("isLoggedIn", false)
-                                    .apply()
-
+                                sharedPref.edit().putBoolean("isLoggedIn", false).apply()
                                 auth.signOut()
-
                                 navController.navigate("login") {
                                     popUpTo("HomeScreen") { inclusive = true }
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = AppColors.TextColor
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.TextColor),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 2.dp,
+                            brush = SolidColor(AppColors.NeonGlow)
                         )
                     ) {
                         Text("Logout", fontWeight = FontWeight.Bold)

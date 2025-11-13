@@ -7,9 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -27,12 +25,18 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("favorites", Icons.Default.Favorite),
         BottomNavItem("search", Icons.Default.Search),
         BottomNavItem("chats", Icons.Default.Chat),
-        BottomNavItem("addFriend", Icons.Default.PersonAdd), // ✅ Added Add Friend
+        BottomNavItem("addFriend", Icons.Default.PersonAdd),
         BottomNavItem("profile", Icons.Default.Person)
     )
 
-    val currentDestination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
-    val currentRoute = currentDestination?.destination?.route
+    // ✅ استخدم remember مع nullable String عشان نتجنب NullPointer
+    var currentRoute by remember { mutableStateOf(navController.currentDestination?.route ?: "") }
+
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            currentRoute = entry.destination.route ?: ""
+        }
+    }
 
     NavigationBar(containerColor = Color(0xFF1A1A1A)) {
         items.forEach { item ->

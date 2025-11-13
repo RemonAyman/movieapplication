@@ -40,7 +40,7 @@ data class ChatItem(
     val avatarBase64: String? = null
 )
 
-// ✅ Utility object لمنع أي conflict
+// ✅ Utility object لتحويل Timestamp
 object TimestampUtils {
     fun format(timestamp: Timestamp): String {
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -57,18 +57,6 @@ fun ChatsScreen(navController: NavController) {
     var chats by remember { mutableStateOf<List<ChatItem>>(emptyList()) }
     var searchText by remember { mutableStateOf("") }
 
-    // ✅ تحميل كل المستخدمين مسبقًا للحصول على avatarBase64
-    var usersMap by remember { mutableStateOf<Map<String, String?>>(emptyMap()) } // id -> avatarBase64
-    LaunchedEffect(Unit) {
-        db.collection("users").get().addOnSuccessListener { snapshot ->
-            usersMap = snapshot.documents.associate { doc ->
-                val id = doc.id
-                val avatarBase64 = doc.getString("avatarBase64")
-                id to avatarBase64
-            }
-        }
-    }
-
     // ✅ تحميل كل الشاتات الخاصة بالمستخدم
     LaunchedEffect(Unit) {
         db.collection("chats")
@@ -76,19 +64,38 @@ fun ChatsScreen(navController: NavController) {
             .orderBy("lastMessageTime", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    chats = snapshot.documents.map { doc ->
+                    snapshot.documents.forEach { doc ->
                         val isGroup = doc.getBoolean("isGroup") ?: false
                         val members = doc.get("members") as? List<*> ?: emptyList<Any>()
                         val otherUserId = members.firstOrNull { it != currentUserId } as? String
 
-                        ChatItem(
-                            id = doc.id,
-                            name = doc.getString("name") ?: "Unknown Chat",
-                            isGroup = isGroup,
-                            lastMessage = doc.getString("lastMessage") ?: "",
-                            lastMessageTime = doc.getTimestamp("lastMessageTime"),
-                            avatarBase64 = if (!isGroup) usersMap[otherUserId] else doc.getString("avatarBase64")
-                        )
+                        if (!isGroup && otherUserId != null) {
+                            // ✅ جلب اسم المستخدم من collection "users" مباشرة
+                            db.collection("users").document(otherUserId).get()
+                                .addOnSuccessListener { userDoc ->
+                                    val username = userDoc.getString("username") ?: "Unknown"
+                                    val avatarBase64 = userDoc.getString("avatarBase64")
+                                    chats = chats.filter { it.id != doc.id } + ChatItem(
+                                        id = doc.id,
+                                        name = username,
+                                        isGroup = false,
+                                        lastMessage = doc.getString("lastMessage") ?: "",
+                                        lastMessageTime = doc.getTimestamp("lastMessageTime"),
+                                        avatarBase64 = avatarBase64
+                                    )
+                                }
+                        } else {
+                            // ✅ لو Group
+                            val groupItem = ChatItem(
+                                id = doc.id,
+                                name = doc.getString("name") ?: "Unknown Chat",
+                                isGroup = true,
+                                lastMessage = doc.getString("lastMessage") ?: "",
+                                lastMessageTime = doc.getTimestamp("lastMessageTime"),
+                                avatarBase64 = doc.getString("avatarBase64")
+                            )
+                            chats = chats.filter { it.id != doc.id } + groupItem
+                        }
                     }
                 }
             }
@@ -135,7 +142,6 @@ fun ChatsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ Search
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
@@ -175,7 +181,6 @@ fun ChatsScreen(navController: NavController) {
                                 .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // ✅ عرض الصورة أو أول حرف
                             if (!chat.avatarBase64.isNullOrEmpty()) {
                                 val bytes = Base64.decode(chat.avatarBase64, Base64.DEFAULT)
                                 val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -214,7 +219,6 @@ fun ChatsScreen(navController: NavController) {
                                 Text("Private", color = Color(0xFF5DE59B), fontSize = 14.sp)
                             }
 
-                            // ✅ الوقت
                             chat.lastMessageTime?.let {
                                 Text(
                                     text = TimestampUtils.format(it),

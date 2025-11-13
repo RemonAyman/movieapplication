@@ -1,10 +1,14 @@
 package com.example.myapplication.ui.screens.chats
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonAdd
@@ -12,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,7 +45,8 @@ fun NewPrivateChatScreen(navController: NavController) {
                     .filter { it.id != currentUserId }
                     .map { doc ->
                         val name = doc.getString("username") ?: "Unknown"
-                        UserItem(doc.id, name)
+                        val avatarBase64 = doc.getString("avatarBase64") // تعديل هنا
+                        UserItem(doc.id, name, avatarBase64)
                     }
             }
     }
@@ -113,12 +119,41 @@ fun NewPrivateChatScreen(navController: NavController) {
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // ✅ الصورة أو أفاتار أول حرف
+                        if (!user.avatarBase64.isNullOrEmpty()) {
+                            val bytes = Base64.decode(user.avatarBase64, Base64.DEFAULT)
+                            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = user.name,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(Color.Gray, shape = CircleShape)
+                            )
+                        } else {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(Color(0xFF9B5DE5), shape = CircleShape)
+                            ) {
+                                Text(
+                                    text = user.name.firstOrNull()?.uppercase() ?: "?",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
                         Text(
                             text = user.name,
                             color = Color.White,
                             fontSize = 18.sp,
                             modifier = Modifier.weight(1f)
                         )
+
                         Icon(
                             Icons.Default.PersonAdd,
                             contentDescription = "Start Chat",
@@ -164,11 +199,9 @@ fun createPrivateChat(
             }
 
             if (existingChat != null) {
-                // ✅ لو الشات موجود بالفعل → نروح له
                 onFinish()
                 navController.navigate("privateChatDetail/${existingChat.id}")
             } else {
-                // ✅ إنشاء شات جديد
                 val chatData = hashMapOf(
                     "isGroup" to false,
                     "members" to members,
@@ -192,5 +225,6 @@ fun createPrivateChat(
 // ✅ موديل المستخدم
 data class UserItem(
     val id: String,
-    val name: String
+    val name: String,
+    val avatarBase64: String? = null
 )

@@ -22,13 +22,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.toObject
 
-data class ChatItem(
-    val id: String = "",
-    val name: String = "",
-    val isGroup: Boolean = false,
-    val lastMessage: String = "",
-    val lastMessageTime: com.google.firebase.Timestamp? = null
-)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

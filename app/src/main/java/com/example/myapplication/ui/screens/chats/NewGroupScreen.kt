@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -34,7 +35,7 @@ fun NewGroupScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
 
-    // ✅ تحميل الأصدقاء من Firestore (users collection)
+    // تحميل الأصدقاء من Firestore (users collection)
     LaunchedEffect(Unit) {
         db.collection("users")
             .get()
@@ -58,31 +59,42 @@ fun NewGroupScreen(navController: NavController) {
             .background(Color(0xFF121212))
             .padding(16.dp)
     ) {
-        // عنوان الصفحة
-        Text(
-            text = "Create New Group",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
+        // عنوان الصفحة مع Avatar أول حرف
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF9B5DE5), shape = CircleShape)
+            ) {
+                Text(
+                    text = groupName.firstOrNull()?.uppercase() ?: "G",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        // إدخال اسم الجروب
-        OutlinedTextField(
-            value = groupName,
-            onValueChange = { groupName = it },
-            placeholder = { Text("Group Name", color = Color.Gray) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF1E1E1E),
-                unfocusedContainerColor = Color(0xFF1E1E1E),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = Color.White
-            ),
-            shape = RoundedCornerShape(12.dp)
-        )
+            OutlinedTextField(
+                value = groupName,
+                onValueChange = { groupName = it },
+                placeholder = { Text("Group Name", color = Color.Gray) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFF1E1E1E),
+                    unfocusedContainerColor = Color(0xFF1E1E1E),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -112,7 +124,7 @@ fun NewGroupScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ✅ عرض الأصدقاء
+        // عرض الأصدقاء
         if (filteredFriends.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -162,7 +174,7 @@ fun NewGroupScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ✅ زر الإنشاء
+        // زر الإنشاء
         Button(
             onClick = {
                 if (groupName.isNotBlank() && selectedFriends.isNotEmpty()) {
@@ -208,7 +220,7 @@ fun NewGroupScreen(navController: NavController) {
     }
 }
 
-// ✅ موديل بسيط للأصدقاء
+// موديل بسيط للأصدقاء
 data class FriendItem(
     val id: String,
     val name: String

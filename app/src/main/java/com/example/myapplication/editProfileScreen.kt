@@ -30,7 +30,7 @@ import kotlinx.coroutines.tasks.await
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(
+fun editProfileScreen(
     navController: NavHostController,
     onBack: (() -> Unit)? = null
 ) {

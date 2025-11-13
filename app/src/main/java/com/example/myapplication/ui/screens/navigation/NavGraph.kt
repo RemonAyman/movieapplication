@@ -31,6 +31,13 @@ import com.example.myapplication.ui.screens.friendDetail.FriendDetailScreen
 import com.example.myapplication.ui.screens.friendsRequest.FriendRequestsScreen
 import com.example.myapplication.ui.screens.profileMainScreen.ProfileMainScreen
 
+// ✅ import الشاشات الخاصة بالشات
+import com.example.myapplication.ui.screens.chats.ChatsScreen
+import com.example.myapplication.ui.screens.chats.ChatDetailScreen
+import com.example.myapplication.ui.screens.chats.NewGroupScreen
+import com.example.myapplication.ui.screens.chats.NewPrivateChatScreen
+import com.example.myapplication.ui.screens.chats.PrivateChatDetailScreen
+
 @Composable
 fun NavGraph(
     navController: NavHostController,
@@ -45,13 +52,13 @@ fun NavGraph(
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
-        // Splash Screen
+        // ✅ Splash
         composable("splash") {
             onDestinationChanged("splash")
             SplashScreen(navController)
         }
 
-        // Auth Screens
+        // ✅ Auth
         composable("login") {
             onDestinationChanged("login")
             LoginScreen(navController)
@@ -65,25 +72,25 @@ fun NavGraph(
             ResetPasswordScreen(navController)
         }
 
-        // Home
+        // ✅ Home
         composable("HomeScreen") {
             onDestinationChanged("HomeScreen")
             HomeScreen(navController, favoritesViewModel)
         }
 
-        // Favorites
+        // ✅ Favorites
         composable("favorites") {
             onDestinationChanged("favorites")
             FavoritesScreen(navController = navController, viewModel = favoritesViewModel)
         }
 
-        // Search
+        // ✅ Search
         composable("search") {
             onDestinationChanged("search")
             SearchScreen(navController)
         }
 
-        // ProfileMainScreen
+        // ✅ Profile Main
         composable("profile") {
             onDestinationChanged("profile")
             ProfileMainScreen(
@@ -95,13 +102,13 @@ fun NavGraph(
             )
         }
 
-        // Edit Profile
+        // ✅ Edit Profile
         composable("profileEdit") {
             onDestinationChanged("profileEdit")
             editProfileScreen(navController)
         }
 
-        // Friends List
+        // ✅ Friends List
         composable("friends") {
             onDestinationChanged("friends")
             val friendsViewModel: FriendsViewModel = viewModel()
@@ -113,7 +120,7 @@ fun NavGraph(
             )
         }
 
-        // Friend Detail
+        // ✅ Friend Detail
         composable("friendDetail/{friendId}") { backStackEntry ->
             onDestinationChanged("friendDetail")
             val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
@@ -121,14 +128,14 @@ fun NavGraph(
             FriendDetailScreen(friendId = friendId, viewModel = friendsViewModel)
         }
 
-        // Friend Requests
+        // ✅ Friend Requests
         composable("friendRequests") {
             onDestinationChanged("friendRequests")
             val friendsViewModel: FriendsViewModel = viewModel()
             FriendRequestsScreen(viewModel = friendsViewModel)
         }
 
-        // Add Friend / Search Friend
+        // ✅ Add Friend (Search Mode)
         composable("addFriend") {
             onDestinationChanged("addFriend")
             val friendsViewModel: FriendsViewModel = viewModel()
@@ -137,19 +144,41 @@ fun NavGraph(
                 onFriendClick = { friendUid ->
                     navController.navigate("friendDetail/$friendUid")
                 },
-                isSearchMode = true // صفحة البحث عن أصدقاء
+                isSearchMode = true
             )
         }
 
-        // Chats
+        // ✅ Chats (الشات العام أو الجروبات)
         composable("chats") {
             onDestinationChanged("chats")
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Chats Screen (placeholder)", color = Color.White, fontSize = 18.sp)
-            }
+            ChatsScreen(navController)
         }
 
-        // Movie Details
+        // ✅ Chat Details (شات عام أو جروب)
+        composable("chatDetail/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            ChatDetailScreen(navController, chatId)
+        }
+
+        // ✅ New Group Chat
+        composable("newGroup") {
+            onDestinationChanged("newGroup")
+            NewGroupScreen(navController)
+        }
+
+        // ✅ Private Chat (بدء محادثة خاصة)
+        composable("newPrivateChat") {
+            onDestinationChanged("newPrivateChat")
+            NewPrivateChatScreen(navController)
+        }
+
+        // ✅ Private Chat Detail (الشات الفردي بين شخصين)
+        composable("privateChatDetail/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            PrivateChatDetailScreen(chatId, navController)
+        }
+
+        // ✅ Movie Details
         composable("details/{movieId}") { backStackEntry ->
             onDestinationChanged("details/{movieId}")
             val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull()

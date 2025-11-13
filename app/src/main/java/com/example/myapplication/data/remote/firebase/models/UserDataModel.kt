@@ -5,5 +5,6 @@ data class UserDataModel(
     val username: String = "",
     val email: String = "",
     val phone: String = "",
-    val avatarBase64: String = ""
+    val avatarBase64: String = "",
+    val requestStatus: String = "" // "pending", "sent", "" للعرض في UI
 )

@@ -29,7 +29,7 @@ import com.google.firebase.firestore.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-// ✅ موديل الشات
+// موديل الشات
 data class ChatItem(
     val id: String,
     val name: String,
@@ -39,7 +39,7 @@ data class ChatItem(
     val avatarBase64: String? = null
 )
 
-// ✅ تحويل Timestamp لوقت
+// تحويل Timestamp لوقت
 object TimestampUtils {
     fun format(timestamp: Timestamp): String {
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -53,55 +53,56 @@ fun ChatsScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown"
 
-    var chats by remember { mutableStateOf<List<ChatItem>>(emptyList()) }
+    var chats by remember { mutableStateOf<Map<String, ChatItem>>(emptyMap()) }
     var searchText by remember { mutableStateOf("") }
 
-    // ✅ Listener للـ chats + تحديث live تلقائي
+    // Real-Time Listener
     LaunchedEffect(Unit) {
         db.collection("chats")
             .whereArrayContains("members", currentUserId)
-            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
+                    val updatedChats = chats.toMutableMap()
                     snapshot.documents.forEach { doc ->
                         val isGroup = doc.getBoolean("isGroup") ?: false
-                        val members = doc.get("members") as? List<*> ?: emptyList<Any>()
-                        val otherUserId = members.firstOrNull { it != currentUserId } as? String
+                        val members = doc.get("members") as? List<String> ?: emptyList()
+                        val lastMsg = doc.getString("lastMessage") ?: ""
+                        val lastTime = doc.getTimestamp("lastMessageTime")
 
-                        if (!isGroup && otherUserId != null) {
-                            db.collection("users").document(otherUserId).get()
-                                .addOnSuccessListener { userDoc ->
-                                    val username = userDoc.getString("username") ?: "Unknown"
-                                    val avatarBase64 = userDoc.getString("avatarBase64")
-                                    chats = (chats.filter { it.id != doc.id } + ChatItem(
-                                        id = doc.id,
-                                        name = username,
-                                        isGroup = false,
-                                        lastMessage = doc.getString("lastMessage") ?: "",
-                                        lastMessageTime = doc.getTimestamp("lastMessageTime"),
-                                        avatarBase64 = avatarBase64
-                                    )).sortedByDescending { it.lastMessageTime?.seconds ?: 0 }
-                                }
-                        } else {
-                            val groupItem = ChatItem(
+                        if (isGroup) {
+                            updatedChats[doc.id] = ChatItem(
                                 id = doc.id,
-                                name = doc.getString("name") ?: "Unknown Chat",
+                                name = doc.getString("name") ?: "Group",
                                 isGroup = true,
-                                lastMessage = doc.getString("lastMessage") ?: "",
-                                lastMessageTime = doc.getTimestamp("lastMessageTime"),
+                                lastMessage = lastMsg,
+                                lastMessageTime = lastTime,
                                 avatarBase64 = doc.getString("avatarBase64")
                             )
-                            chats = (chats.filter { it.id != doc.id } + groupItem)
-                                .sortedByDescending { it.lastMessageTime?.seconds ?: 0 }
+                        } else {
+                            val otherUserId = members.firstOrNull { it != currentUserId }
+                            if (otherUserId != null) {
+                                db.collection("users").document(otherUserId).get()
+                                    .addOnSuccessListener { userDoc ->
+                                        updatedChats[doc.id] = ChatItem(
+                                            id = doc.id,
+                                            name = userDoc.getString("username") ?: "Unknown",
+                                            isGroup = false,
+                                            lastMessage = lastMsg,
+                                            lastMessageTime = lastTime,
+                                            avatarBase64 = userDoc.getString("avatarBase64")
+                                        )
+                                        chats = updatedChats.toMap()
+                                    }
+                            }
                         }
                     }
+                    chats = updatedChats.toMap()
                 }
             }
     }
 
-    val filteredChats = chats.filter {
-        it.name.contains(searchText, ignoreCase = true)
-    }
+    val sortedChats = chats.values.sortedByDescending { it.lastMessageTime?.seconds ?: 0 }
+    val filteredChats = sortedChats.filter { it.name.contains(searchText, ignoreCase = true) }
 
     Scaffold(
         floatingActionButton = {
@@ -113,7 +114,7 @@ fun ChatsScreen(navController: NavController) {
                     onClick = { navController.navigate("newPrivateChat") },
                     containerColor = Color(0xFF9B5DE5)
                 ) {
-                    Icon(Icons.Default.Person, contentDescription = "Private Chat", tint = Color.White)
+                    Icon(Icons.Default.Person, contentDescription = "Private", tint = Color.White)
                 }
                 FloatingActionButton(
                     onClick = { navController.navigate("newGroup") },
@@ -133,8 +134,8 @@ fun ChatsScreen(navController: NavController) {
         ) {
             Text(
                 text = "Chats",
-                fontSize = 26.sp,
                 color = Color.White,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -161,9 +162,7 @@ fun ChatsScreen(navController: NavController) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) {
-                    Text("No chats found", color = Color.Gray)
-                }
+                ) { Text("No chats found", color = Color.Gray) }
             } else {
                 LazyColumn {
                     items(filteredChats) { chat ->
@@ -187,14 +186,14 @@ fun ChatsScreen(navController: NavController) {
                                     contentDescription = chat.name,
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .background(Color.Gray, shape = CircleShape)
+                                        .background(Color.Gray, CircleShape)
                                 )
                             } else {
                                 Box(
-                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .background(Color(0xFF9B5DE5), shape = CircleShape)
+                                        .background(Color(0xFF9B5DE5), CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = chat.name.firstOrNull()?.uppercase() ?: "?",
@@ -207,19 +206,16 @@ fun ChatsScreen(navController: NavController) {
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(chat.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                Text(chat.lastMessage, color = Color.Gray, fontSize = 14.sp, maxLines = 1)
+                                Text(chat.name, color = Color.White, fontSize = 18.sp)
+                                Text(chat.lastMessage, color = Color.Gray, fontSize = 14.sp)
                             }
 
-                            if (chat.isGroup) {
-                                Text("Group", color = Color(0xFF9B5DE5), fontSize = 14.sp)
-                            } else {
-                                Text("Private", color = Color(0xFF5DE59B), fontSize = 14.sp)
-                            }
+                            val badgeColor = if (chat.isGroup) Color(0xFF9B5DE5) else Color(0xFF5DE59B)
+                            Text(text = if (chat.isGroup) "Group" else "Private", color = badgeColor, fontSize = 14.sp)
 
                             chat.lastMessageTime?.let {
                                 Text(
-                                    text = TimestampUtils.format(it),
+                                    TimestampUtils.format(it),
                                     color = Color.Gray,
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(start = 8.dp)

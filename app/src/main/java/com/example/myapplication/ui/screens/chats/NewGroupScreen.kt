@@ -35,16 +35,18 @@ fun NewGroupScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
 
-    // تحميل الأصدقاء من Firestore (users collection)
+    // تحميل الأصدقاء من Firestore
     LaunchedEffect(Unit) {
         db.collection("users")
             .get()
             .addOnSuccessListener { snapshot ->
                 friends = snapshot.documents
-                    .filter { it.id != currentUserId } // استبعاد المستخدم نفسه
+                    .filter { it.id != currentUserId }
                     .map { doc ->
-                        val name = doc.getString("username") ?: "Unknown"
-                        FriendItem(doc.id, name)
+                        FriendItem(
+                            id = doc.id,
+                            name = doc.getString("username") ?: "Unknown"
+                        )
                     }
             }
     }
@@ -59,7 +61,7 @@ fun NewGroupScreen(navController: NavController) {
             .background(Color(0xFF121212))
             .padding(16.dp)
     ) {
-        // عنوان الصفحة مع Avatar أول حرف
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -98,7 +100,6 @@ fun NewGroupScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // سيرش عن الأصدقاء
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
@@ -115,6 +116,7 @@ fun NewGroupScreen(navController: NavController) {
         )
 
         Spacer(modifier = Modifier.height(12.dp))
+
         Text(
             text = "Select Friends",
             color = Color.White,
@@ -124,7 +126,6 @@ fun NewGroupScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // عرض الأصدقاء
         if (filteredFriends.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -135,7 +136,9 @@ fun NewGroupScreen(navController: NavController) {
                 Text("No friends found", color = Color.Gray)
             }
         } else {
-            LazyColumn(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
                 items(filteredFriends) { friend ->
                     Row(
                         modifier = Modifier
@@ -174,11 +177,11 @@ fun NewGroupScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // زر الإنشاء
         Button(
             onClick = {
                 if (groupName.isNotBlank() && selectedFriends.isNotEmpty()) {
                     isLoading = true
+
                     val members = (selectedFriends + currentUserId).toList()
 
                     val groupData = hashMapOf(
@@ -210,17 +213,19 @@ fun NewGroupScreen(navController: NavController) {
             enabled = !isLoading
         ) {
             if (isLoading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             } else {
                 Icon(Icons.Default.Group, contentDescription = "Group", tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Create Group", color = Color.White, fontSize = 16.sp)
+                Text("Create Group", color = Color.White, fontSize = 16.sp)
             }
         }
     }
 }
 
-// موديل بسيط للأصدقاء
 data class FriendItem(
     val id: String,
     val name: String

@@ -63,7 +63,8 @@ class MainActivity : ComponentActivity() {
                         "search",
                         "favorites",
                         "profile",
-                        "chats"
+                        "chats",
+                        "addFriend"
                     )
 
                     Scaffold(

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,15 +22,16 @@ import androidx.navigation.NavController
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.*
-
-
 
 data class UserData(
     val username: String,
     val avatarBase64: String? = null
 )
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,9 +40,9 @@ fun ChatListScreen(navController: NavController) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     var chats by remember { mutableStateOf<List<ChatItem>>(emptyList()) }
-    var usersMap by remember { mutableStateOf<Map<String, UserData>>(emptyMap()) } // id -> UserData
+    var usersMap by remember { mutableStateOf<Map<String, UserData>>(emptyMap()) }
 
-    // ✅ تحميل جميع المستخدمين مسبقًا عشان نجيب اسم العضو وصورته
+    // تحميل جميع المستخدمين مسبقًا
     LaunchedEffect(Unit) {
         db.collection("users").get().addOnSuccessListener { snapshot ->
             usersMap = snapshot.documents.associate { doc ->
@@ -54,11 +54,11 @@ fun ChatListScreen(navController: NavController) {
         }
     }
 
-    // ✅ تحميل الشاتات
-    LaunchedEffect(Unit) {
-        db.collection("chats")
+    // تحميل الشاتات وجلبها live مع أي تحديث في الوقت الفعلي
+    DisposableEffect(currentUserId) {
+        val listener = db.collection("chats")
             .whereArrayContains("members", currentUserId)
-            .orderBy("lastMessageTime")
+            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     chats = snapshot.documents.mapNotNull { doc ->
@@ -89,9 +89,13 @@ fun ChatListScreen(navController: NavController) {
                             isGroup = isGroup,
                             avatarBase64 = avatarBase64
                         )
-                    }.reversed()
+                    }
                 }
             }
+
+        onDispose {
+            listener.remove()
+        }
     }
 
     Column(
@@ -134,7 +138,6 @@ fun ChatListScreen(navController: NavController) {
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // ✅ الصورة أو أفاتار أول حرف
                         if (!chat.avatarBase64.isNullOrEmpty()) {
                             val bytes = Base64.decode(chat.avatarBase64, Base64.DEFAULT)
                             val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
@@ -178,10 +181,11 @@ fun ChatListScreen(navController: NavController) {
                         }
 
                         Text(
-                            text = chat.lastMessageTime?.let { formatTimestamp(it) } ?: "",
+                            text = chat.lastMessageTime?.let { formatTimestamp(it) } ?: "-",
                             color = Color.Gray,
                             fontSize = 12.sp
                         )
+
                     }
 
                     Divider(color = Color.DarkGray, thickness = 0.6.dp)
@@ -191,7 +195,7 @@ fun ChatListScreen(navController: NavController) {
     }
 }
 
-// ✅ دالة لتحويل Timestamp لوقت قابل للقراءة
+// تحويل Timestamp لوقت قابل للقراءة
 fun formatTimestamp(timestamp: Timestamp): String {
     val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
     return sdf.format(timestamp.toDate())

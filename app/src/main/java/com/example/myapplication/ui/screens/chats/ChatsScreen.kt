@@ -25,12 +25,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-// ✅ موديل الشات مع avatarBase64
+// ✅ موديل الشات
 data class ChatItem(
     val id: String,
     val name: String,
@@ -40,7 +39,7 @@ data class ChatItem(
     val avatarBase64: String? = null
 )
 
-// ✅ Utility object لتحويل Timestamp
+// ✅ تحويل Timestamp لوقت
 object TimestampUtils {
     fun format(timestamp: Timestamp): String {
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -57,7 +56,7 @@ fun ChatsScreen(navController: NavController) {
     var chats by remember { mutableStateOf<List<ChatItem>>(emptyList()) }
     var searchText by remember { mutableStateOf("") }
 
-    // ✅ تحميل كل الشاتات الخاصة بالمستخدم
+    // ✅ Listener للـ chats + تحديث live تلقائي
     LaunchedEffect(Unit) {
         db.collection("chats")
             .whereArrayContains("members", currentUserId)
@@ -70,22 +69,20 @@ fun ChatsScreen(navController: NavController) {
                         val otherUserId = members.firstOrNull { it != currentUserId } as? String
 
                         if (!isGroup && otherUserId != null) {
-                            // ✅ جلب اسم المستخدم من collection "users" مباشرة
                             db.collection("users").document(otherUserId).get()
                                 .addOnSuccessListener { userDoc ->
                                     val username = userDoc.getString("username") ?: "Unknown"
                                     val avatarBase64 = userDoc.getString("avatarBase64")
-                                    chats = chats.filter { it.id != doc.id } + ChatItem(
+                                    chats = (chats.filter { it.id != doc.id } + ChatItem(
                                         id = doc.id,
                                         name = username,
                                         isGroup = false,
                                         lastMessage = doc.getString("lastMessage") ?: "",
                                         lastMessageTime = doc.getTimestamp("lastMessageTime"),
                                         avatarBase64 = avatarBase64
-                                    )
+                                    )).sortedByDescending { it.lastMessageTime?.seconds ?: 0 }
                                 }
                         } else {
-                            // ✅ لو Group
                             val groupItem = ChatItem(
                                 id = doc.id,
                                 name = doc.getString("name") ?: "Unknown Chat",
@@ -94,7 +91,8 @@ fun ChatsScreen(navController: NavController) {
                                 lastMessageTime = doc.getTimestamp("lastMessageTime"),
                                 avatarBase64 = doc.getString("avatarBase64")
                             )
-                            chats = chats.filter { it.id != doc.id } + groupItem
+                            chats = (chats.filter { it.id != doc.id } + groupItem)
+                                .sortedByDescending { it.lastMessageTime?.seconds ?: 0 }
                         }
                     }
                 }

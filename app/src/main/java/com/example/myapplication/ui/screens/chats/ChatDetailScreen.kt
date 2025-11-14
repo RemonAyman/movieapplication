@@ -1,9 +1,14 @@
 package com.example.myapplication.ui.screens.chats
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -14,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -33,7 +39,7 @@ fun ChatDetailScreen(
     var messageText by remember { mutableStateOf("") }
     var messages by remember { mutableStateOf<List<MessageItem>>(emptyList()) }
 
-    // ✅ Real-time listener using DisposableEffect
+    // ✅ Real-time listener لأي رسالة جديدة
     DisposableEffect(chatId) {
         val listener = db.collection("chats")
             .document(chatId)
@@ -144,7 +150,7 @@ fun sendMessage(db: FirebaseFirestore, chatId: String, senderId: String, text: S
 
     chatRef.collection("messages").add(messageData)
         .addOnSuccessListener {
-            // ✅ Update last message info
+            // ✅ تحديث آخر رسالة فورًا
             chatRef.set(
                 mapOf(
                     "lastMessage" to text,

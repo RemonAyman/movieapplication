@@ -18,7 +18,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavHostController) {
+fun LoginScreen(
+    navController: NavHostController,
+    onLoginSuccess: () -> Unit // ✅ Callback بدل navigate مباشرة
+) {
     val context = LocalContext.current
     val sharedPref = context.getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
     val auth = remember { FirebaseAuth.getInstance() }
@@ -86,11 +89,9 @@ fun LoginScreen(navController: NavHostController) {
                             val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
                             val phonePattern = Regex("^01[0-9]{9}$")
 
-                            fun onLoginSuccess() {
+                            fun handleLoginSuccess() {
                                 sharedPref.edit().putBoolean("isLoggedIn", true).apply()
-                                navController.navigate("HomeScreen") {
-                                    popUpTo("login") { inclusive = true }
-                                }
+                                onLoginSuccess() // ✅ استخدم callback
                             }
 
                             when {
@@ -98,7 +99,7 @@ fun LoginScreen(navController: NavHostController) {
                                     auth.signInWithEmailAndPassword(identifier, password)
                                         .addOnCompleteListener { task ->
                                             loading = false
-                                            if (task.isSuccessful) onLoginSuccess()
+                                            if (task.isSuccessful) handleLoginSuccess()
                                             else {
                                                 error = task.exception?.localizedMessage ?: "Login failed"
                                                 showSnackbar = true
@@ -113,7 +114,7 @@ fun LoginScreen(navController: NavHostController) {
                                                 val email = result.documents[0].getString("email") ?: ""
                                                 auth.signInWithEmailAndPassword(email, password)
                                                     .addOnCompleteListener { task ->
-                                                        if (task.isSuccessful) onLoginSuccess()
+                                                        if (task.isSuccessful) handleLoginSuccess()
                                                         else {
                                                             error = "Invalid password or user"
                                                             showSnackbar = true
@@ -137,7 +138,7 @@ fun LoginScreen(navController: NavHostController) {
                                                 val email = result.documents[0].getString("email") ?: ""
                                                 auth.signInWithEmailAndPassword(email, password)
                                                     .addOnCompleteListener { task ->
-                                                        if (task.isSuccessful) onLoginSuccess()
+                                                        if (task.isSuccessful) handleLoginSuccess()
                                                         else {
                                                             error = "Invalid password or user"
                                                             showSnackbar = true

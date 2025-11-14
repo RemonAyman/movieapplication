@@ -29,7 +29,6 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("profile", Icons.Default.Person)
     )
 
-    // ✅ استخدم remember مع nullable String عشان نتجنب NullPointer
     var currentRoute by remember { mutableStateOf(navController.currentDestination?.route ?: "") }
 
     LaunchedEffect(navController) {

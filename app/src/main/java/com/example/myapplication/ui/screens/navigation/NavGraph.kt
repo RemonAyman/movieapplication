@@ -61,7 +61,15 @@ fun NavGraph(
         // ✅ Auth
         composable("login") {
             onDestinationChanged("login")
-            LoginScreen(navController)
+            LoginScreen(
+                navController = navController,
+                onLoginSuccess = {
+                    // لما تسجيل الدخول ينجح
+                    navController.navigate("HomeScreen") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
         }
         composable("signup") {
             onDestinationChanged("signup")

@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,11 +30,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.myapplication.data.FavoritesViewModel
 import com.example.myapplication.data.remote.*
 import com.example.myapplication.ui.theme.MovitoBackground
+import com.example.myapplication.ui.watchlist.WatchlistItem
+import com.example.myapplication.ui.watchlist.WatchlistViewModel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -46,20 +51,22 @@ fun MovieDetailsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // ===== Variables =====
-    var movie by remember { mutableStateOf<MovieApiModel?>(null) }  // استخدم MovieApiModel علشان فيه original_language
+    val watchlistViewModel: WatchlistViewModel = viewModel()
+    var isInWatchlist by remember { mutableStateOf(false) }
+
+    var movie by remember { mutableStateOf<MovieApiModel?>(null) }
     var trailerKey by remember { mutableStateOf<String?>(null) }
     var castList by remember { mutableStateOf<List<CastMember>>(emptyList()) }
     var isFavorite by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
-    // ===== تحميل بيانات الفيلم والتريلر والكاست =====
+    // ===== Load movie details =====
     LaunchedEffect(movieId) {
         scope.launch {
             try {
                 val movieDetails = apiService.getMovieDetails(movieId)
-                val movieForScreen = MovieApiModel(
+                movie = MovieApiModel(
                     id = movieDetails.id,
                     title = movieDetails.title,
                     overview = movieDetails.overview,
@@ -67,9 +74,8 @@ fun MovieDetailsScreen(
                     release_date = movieDetails.release_date,
                     vote_average = movieDetails.vote_average,
                     genre_ids = emptyList(),
-                    original_language = movieDetails.original_language ?: "ar" // لو عايز عربي بشكل افتراضي
+                    original_language = movieDetails.original_language ?: "ar"
                 )
-                movie = movieForScreen
 
                 val videos = apiService.getMovieVideos(movieId)
                 trailerKey = videos.results.find { it.site == "YouTube" && it.type == "Trailer" }?.key
@@ -78,6 +84,15 @@ fun MovieDetailsScreen(
                 castList = credits.cast
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    // ===== Watchlist collector =====
+    LaunchedEffect(movie) {
+        movie?.let { m ->
+            watchlistViewModel.watchlist.collectLatest { list ->
+                isInWatchlist = list.any { it.movieId == m.id.toString() }
             }
         }
     }
@@ -103,7 +118,7 @@ fun MovieDetailsScreen(
             .background(MovitoBackground)
             .padding(bottom = 16.dp)
     ) {
-        // ===== صورة الفيلم =====
+        // ===== Movie Poster =====
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,7 +134,6 @@ fun MovieDetailsScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Gradient Overlay
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,7 +146,6 @@ fun MovieDetailsScreen(
                     )
             )
 
-            // أيقونات رجوع وBookmark
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,15 +156,34 @@ fun MovieDetailsScreen(
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
                 }
-                IconButton(onClick = { /* Bookmark */ }) {
-                    Icon(Icons.Default.BookmarkBorder, contentDescription = null, tint = Color.White)
+
+                IconButton(
+                    onClick = {
+                        if (isInWatchlist) {
+                            watchlistViewModel.removeFromWatchlist(movieData.id.toString())
+                        } else {
+                            watchlistViewModel.addToWatchlist(
+                                WatchlistItem(
+                                    movieId = movieData.id.toString(),
+                                    title = movieData.title,
+                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
+                                )
+                            )
+                        }
+                    }
+                ) {
+                    Icon(
+                        if (isInWatchlist) Icons.Filled.Bookmark else Icons.Default.BookmarkBorder,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ===== تفاصيل الفيلم =====
+        // ===== Movie Details =====
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             Text(movieData.title, color = Color.White, fontSize = 26.sp)
             Spacer(modifier = Modifier.height(8.dp))
@@ -159,7 +191,7 @@ fun MovieDetailsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("⭐ ${movieData.vote_average}", color = Color.LightGray, fontSize = 14.sp)
                 Text(movieData.release_date ?: "N/A", color = Color.LightGray, fontSize = 14.sp)
-                Text(movieData.original_language.uppercase(), color = Color.LightGray, fontSize = 14.sp) // لغة الفيلم
+                Text(movieData.original_language.uppercase(), color = Color.LightGray, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -175,7 +207,6 @@ fun MovieDetailsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // زر تشغيل التريلر
                 Button(
                     onClick = {
                         trailerKey?.let { key ->
@@ -192,7 +223,6 @@ fun MovieDetailsScreen(
                     Text("Play Trailer", color = Color.White)
                 }
 
-                // زر المفضلة
                 Button(
                     onClick = {
                         isFavorite = !isFavorite
@@ -215,7 +245,6 @@ fun MovieDetailsScreen(
                 }
             }
 
-            // ===== Cast =====
             Spacer(modifier = Modifier.height(24.dp))
             Text("Cast", color = Color.White, fontSize = 20.sp)
             Spacer(modifier = Modifier.height(12.dp))
@@ -231,7 +260,6 @@ fun MovieDetailsScreen(
                                     modifier = Modifier
                                         .size(70.dp)
                                         .clip(CircleShape)
-                                        .clickable { }
                                 )
                             } else {
                                 Box(

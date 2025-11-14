@@ -32,23 +32,21 @@ import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfileMainScreen(
-    navController: NavHostController? = null,
+    navController: NavHostController,
     onEditProfile: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
     onFriendsClick: () -> Unit = {},
     onRequestsClick: () -> Unit = {},
-    onWatchlistClick: () -> Unit = {}
+    onWatchlistClick: () -> Unit = { navController.navigate("watchlist") }   // 🔥 مربوط بالـ NavController
 ) {
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     var username by remember { mutableStateOf("") }
     var avatarBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var loading by remember { mutableStateOf(true) }
 
-    // تحميل بيانات المستخدم + الصورة من Firestore أو SharedPreferences
     suspend fun loadUserData() {
         val uid = auth.currentUser?.uid ?: return
         try {
@@ -148,7 +146,7 @@ fun ProfileMainScreen(
                     ProfileCardItem("Favorites", Icons.Default.Favorite, onFavoritesClick)
                     ProfileCardItem("Friends", Icons.Default.Person, onFriendsClick)
                     ProfileCardItem("Friend Requests", Icons.Default.GroupAdd, onRequestsClick)
-                    ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)
+                    ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)  // 🔥 مربوط صح
                 }
             }
         }
@@ -192,5 +190,5 @@ fun ProfileCardItem(title: String, icon: androidx.compose.ui.graphics.vector.Ima
 @Preview(showBackground = true)
 @Composable
 fun ProfileModernScreenFirebasePreview() {
-    ProfileMainScreen()
+    // ⚠️ لازم تبعت navController حقيقي عشان ما يحصلش crash
 }

@@ -30,13 +30,13 @@ import com.example.myapplication.ui.screens.friends.FriendsViewModel
 import com.example.myapplication.ui.screens.friendDetail.FriendDetailScreen
 import com.example.myapplication.ui.screens.friendsRequest.FriendRequestsScreen
 import com.example.myapplication.ui.screens.profileMainScreen.ProfileMainScreen
-
-// ✅ import الشاشات الخاصة بالشات
 import com.example.myapplication.ui.screens.chats.ChatsScreen
 import com.example.myapplication.ui.screens.chats.ChatDetailScreen
 import com.example.myapplication.ui.screens.chats.NewGroupScreen
 import com.example.myapplication.ui.screens.chats.NewPrivateChatScreen
 import com.example.myapplication.ui.screens.chats.PrivateChatDetailScreen
+import com.example.myapplication.ui.watchlist.WatchlistScreen
+import com.example.myapplication.ui.watchlist.WatchlistViewModel
 
 @Composable
 fun NavGraph(
@@ -52,19 +52,18 @@ fun NavGraph(
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
-        // ✅ Splash
+        // Splash
         composable("splash") {
             onDestinationChanged("splash")
             SplashScreen(navController)
         }
 
-        // ✅ Auth
+        // Auth
         composable("login") {
             onDestinationChanged("login")
             LoginScreen(
                 navController = navController,
                 onLoginSuccess = {
-                    // لما تسجيل الدخول ينجح
                     navController.navigate("HomeScreen") {
                         popUpTo("login") { inclusive = true }
                     }
@@ -80,43 +79,44 @@ fun NavGraph(
             ResetPasswordScreen(navController)
         }
 
-        // ✅ Home
+        // Home
         composable("HomeScreen") {
             onDestinationChanged("HomeScreen")
             HomeScreen(navController, favoritesViewModel)
         }
 
-        // ✅ Favorites
+        // Favorites
         composable("favorites") {
             onDestinationChanged("favorites")
             FavoritesScreen(navController = navController, viewModel = favoritesViewModel)
         }
 
-        // ✅ Search
+        // Search
         composable("search") {
             onDestinationChanged("search")
             SearchScreen(navController)
         }
 
-        // ✅ Profile Main
+        // Profile Main
         composable("profile") {
             onDestinationChanged("profile")
             ProfileMainScreen(
+                navController = navController,
                 onEditProfile = { navController.navigate("profileEdit") },
                 onFavoritesClick = { navController.navigate("favorites") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist") }
+                onWatchlistClick = { navController.navigate("watchlist") } // 🔥 مربوط صح
             )
         }
 
-        // ✅ Edit Profile
+        // Edit Profile
         composable("profileEdit") {
             onDestinationChanged("profileEdit")
             editProfileScreen(navController)
         }
 
-        // ✅ Friends List
+        // Friends List
         composable("friends") {
             onDestinationChanged("friends")
             val friendsViewModel: FriendsViewModel = viewModel()
@@ -128,7 +128,7 @@ fun NavGraph(
             )
         }
 
-        // ✅ Friend Detail
+        // Friend Detail
         composable("friendDetail/{friendId}") { backStackEntry ->
             onDestinationChanged("friendDetail")
             val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
@@ -136,14 +136,14 @@ fun NavGraph(
             FriendDetailScreen(friendId = friendId, viewModel = friendsViewModel)
         }
 
-        // ✅ Friend Requests
+        // Friend Requests
         composable("friendRequests") {
             onDestinationChanged("friendRequests")
             val friendsViewModel: FriendsViewModel = viewModel()
             FriendRequestsScreen(viewModel = friendsViewModel)
         }
 
-        // ✅ Add Friend (Search Mode)
+        // Add Friend (Search Mode)
         composable("addFriend") {
             onDestinationChanged("addFriend")
             val friendsViewModel: FriendsViewModel = viewModel()
@@ -156,37 +156,37 @@ fun NavGraph(
             )
         }
 
-        // ✅ Chats (الشات العام أو الجروبات)
+        // Chats
         composable("chats") {
             onDestinationChanged("chats")
             ChatsScreen(navController)
         }
 
-        // ✅ Chat Details (شات عام أو جروب)
+        // Chat Details
         composable("chatDetail/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             ChatDetailScreen(navController, chatId)
         }
 
-        // ✅ New Group Chat
+        // New Group Chat
         composable("newGroup") {
             onDestinationChanged("newGroup")
             NewGroupScreen(navController)
         }
 
-        // ✅ Private Chat (بدء محادثة خاصة)
+        // Private Chat
         composable("newPrivateChat") {
             onDestinationChanged("newPrivateChat")
             NewPrivateChatScreen(navController)
         }
 
-        // ✅ Private Chat Detail (الشات الفردي بين شخصين)
+        // Private Chat Detail
         composable("privateChatDetail/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             PrivateChatDetailScreen(chatId, navController)
         }
 
-        // ✅ Movie Details
+        // Movie Details
         composable("details/{movieId}") { backStackEntry ->
             onDestinationChanged("details/{movieId}")
             val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull()
@@ -197,6 +197,19 @@ fun NavGraph(
                     Text("Invalid movie ID", color = Color.White, fontSize = 18.sp)
                 }
             }
+        }
+
+        // Watchlist Screen
+        composable("watchlist") {
+            onDestinationChanged("watchlist")
+            val watchlistViewModel: WatchlistViewModel = viewModel()
+            WatchlistScreen(
+                onBack = { navController.popBackStack() },
+                onMovieClick = { movieId ->
+                    navController.navigate("details/$movieId")
+                },
+                viewModel = watchlistViewModel
+            )
         }
     }
 }

@@ -39,7 +39,7 @@ fun ChatDetailScreen(
     var messageText by remember { mutableStateOf("") }
     var messages by remember { mutableStateOf<List<MessageItem>>(emptyList()) }
 
-    // ✅ Real-time listener لأي رسالة جديدة
+    // ✅ Listener للـ messages + تحديث live تلقائي
     DisposableEffect(chatId) {
         val listener = db.collection("chats")
             .document(chatId)
@@ -56,9 +56,7 @@ fun ChatDetailScreen(
                 }
             }
 
-        onDispose {
-            listener.remove()
-        }
+        onDispose { listener.remove() }
     }
 
     Scaffold(
@@ -150,7 +148,7 @@ fun sendMessage(db: FirebaseFirestore, chatId: String, senderId: String, text: S
 
     chatRef.collection("messages").add(messageData)
         .addOnSuccessListener {
-            // ✅ تحديث آخر رسالة فورًا
+            // ✅ تحديث آخر رسالة فورًا لجميع الأعضاء
             chatRef.set(
                 mapOf(
                     "lastMessage" to text,

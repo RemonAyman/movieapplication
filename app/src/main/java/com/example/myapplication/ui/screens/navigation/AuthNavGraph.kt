@@ -7,11 +7,18 @@ import androidx.navigation.compose.composable
 import com.example.myapplication.LoginScreen
 import com.example.myapplication.SignUpScreen
 import com.example.myapplication.ResetPasswordScreen
-
 @Composable
-fun AuthNavGraph(navController: NavHostController) {
+fun AuthNavGraph(
+    navController: NavHostController,
+    onLoginSuccess: (Boolean) -> Unit
+) {
     NavHost(navController = navController, startDestination = "login") {
-        composable("login") { LoginScreen(navController) }
+        composable("login") {
+            LoginScreen(navController) {
+                // عند تسجيل الدخول بنجاح
+                onLoginSuccess(true)
+            }
+        }
         composable("signup") { SignUpScreen(navController) }
         composable("resetPassword") { ResetPasswordScreen(navController) }
     }

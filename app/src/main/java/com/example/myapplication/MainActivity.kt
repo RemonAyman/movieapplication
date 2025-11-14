@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.myapplication.ui.navigation.AuthNavGraph
 import com.example.myapplication.ui.navigation.BottomNavigationBar
 import com.example.myapplication.ui.navigation.NavGraph
 import kotlinx.coroutines.launch
@@ -42,17 +43,19 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
-
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
+            var isLoggedIn by remember {
+                mutableStateOf(getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                    .getBoolean("isLoggedIn", false))
+            }
+
             MaterialTheme {
                 val navController = rememberNavController()
-                val sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                val isLoggedIn = sharedPref.getBoolean("isLoggedIn", false)
 
                 if (isLoggedIn) {
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -63,7 +66,8 @@ class MainActivity : ComponentActivity() {
                         "search",
                         "favorites",
                         "profile",
-                        "chats"
+                        "chats",
+                        "addFriend"
                     )
 
                     Scaffold(
@@ -76,12 +80,22 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 } else {
-                    // المستخدم مش عامل تسجيل دخول → يروح على صفحة اللوجين
-                    NavGraph(navController = navController)
+                    AuthNavGraph(navController = navController) { loginSuccess ->
+                        if (loginSuccess) {
+                            // حفظ الحالة في SharedPreferences
+                            getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                                .edit().putBoolean("isLoggedIn", true).apply()
+
+                            // تحديث State لإعادة بناء Compose → يظهر NavGraph الرئيسية
+                            isLoggedIn = true
+                        }
+                    }
                 }
             }
         }
     }
+}
+
 
     // ================= MODELS =================
     data class MovieResponse(val results: List<Movie>)
@@ -399,4 +413,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
+

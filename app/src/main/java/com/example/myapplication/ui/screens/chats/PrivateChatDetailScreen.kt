@@ -100,7 +100,7 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
 
             AvatarImage(targetUserAvatar, targetUserName) {
-                navController.navigate("profileMainScreen/$targetUserId") {
+                navController.navigate("FriendDetailScreen/$targetUserId") {
                     launchSingleTop = true
                     restoreState = true
                 }
@@ -131,7 +131,7 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                 ) {
                     if(!isMine){
                         AvatarImage(avatarBase64, senderName) {
-                            navController.navigate("profileMainScreen/${msg.senderId}") {
+                            navController.navigate("FriendDetailScreen/${msg.senderId}") {
                                 launchSingleTop = true
                                 restoreState = true
                             }

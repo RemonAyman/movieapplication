@@ -125,7 +125,7 @@ fun ChatDetailScreen(
                             avatarBase64 = avatarBase64,
                             onAvatarClick = {
                                 // Navigate to ProfileMainScreen of that user
-                                navController.navigate("profileMainScreen/${msg.senderId}")
+                                navController.navigate("FriendDetailScreen/${msg.senderId}")
                             }
                         )
                     }

@@ -22,11 +22,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.myapplication.data.FavoritesViewModel
 import com.example.myapplication.data.MoviesRepository
 import com.example.myapplication.data.remote.MovieApiModel
 import com.example.myapplication.data.remote.MovieApiService
 import com.example.myapplication.ui.theme.MovitoBackground
+import com.example.myapplication.viewmodel.FavoritesViewModel
 import com.example.myapplication.viewmodel.MoviesViewModel
 import com.example.myapplication.viewmodel.MoviesViewModelFactory
 

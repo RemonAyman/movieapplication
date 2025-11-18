@@ -1,35 +1,37 @@
 package com.example.myapplication.data
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import com.example.myapplication.data.remote.MovieApiModel
-import com.google.gson.Gson
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
-// ✅ لازم تكون خارج أي كلاس
-val Context.favoriteDataStore: DataStore<Preferences> by preferencesDataStore(name = "favorites_prefs")
+class FavoritesRepository {
 
-class FavoritesRepository(private val context: Context) {
+    private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
-    private val gson = Gson()
-    private val FAVORITES_KEY = stringSetPreferencesKey("favorites_movies")
+    private fun getFavoritesCollection() =
+        auth.currentUser?.uid?.let { userId ->
+            db.collection("users").document(userId).collection("favorites")
+        }
 
-    // ✅ استرجاع المفضلات
-    val favoritesFlow: Flow<List<MovieApiModel>> = context.favoriteDataStore.data.map { prefs ->
-        val set = prefs[FAVORITES_KEY] ?: emptySet()
-        set.map { gson.fromJson(it, MovieApiModel::class.java) }
+    suspend fun getFavorites(): List<FavoritesItem> {
+        val collection = getFavoritesCollection() ?: return emptyList()
+        return try {
+            val snapshot = collection.get().await()
+            snapshot.documents.mapNotNull { it.toObject(FavoritesItem::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
-    // ✅ حفظ المفضلات
-    suspend fun saveFavorites(favorites: List<MovieApiModel>) {
-        val set = favorites.map { gson.toJson(it) }.toSet()
-        context.favoriteDataStore.edit { prefs ->
-            prefs[FAVORITES_KEY] = set
-        }
+    suspend fun addFavorite(item: FavoritesItem) {
+        val collection = getFavoritesCollection() ?: return
+        collection.document(item.movieId).set(item).await()
+    }
+
+    suspend fun removeFavorite(movieId: String) {
+        val collection = getFavoritesCollection() ?: return
+        collection.document(movieId).delete().await()
     }
 }

@@ -1,199 +1,130 @@
-package com.example.myapplication.data
+package com.example.myapplication.ui.favorites
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import com.example.myapplication.data.remote.MovieApiModel
-import com.example.myapplication.ui.theme.MovitoBackground
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.example.myapplication.viewmodel.FavoritesViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
-    viewModel: FavoritesViewModel,
-    navController: NavController
+    onBack: () -> Unit,
+    onMovieClick: (String) -> Unit,
+    viewModel: FavoritesViewModel = viewModel()
 ) {
-    var movieToDelete by remember { mutableStateOf<MovieApiModel?>(null) }
-    val favorites by viewModel.favoritesFlow.collectAsState(emptyList())
+    val items by viewModel.favorites.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MovitoBackground)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        // 🔹 Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Favorites",
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Favorites", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = { onBack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF2A1B3D))
             )
-        }
-
-        // 🔹 Main Content
-        if (favorites.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No Favorites Yet", color = Color.White, fontSize = 16.sp)
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(favorites, key = { it.id }) { movie ->
-                    var visible by remember { mutableStateOf(true) }
-
-                    AnimatedVisibility(
-                        visible = visible,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
-                    ) {
-                        FavoriteMovieCard(
-                            movie = movie,
-                            onSwipe = {
-                                visible = false
-                                movieToDelete = movie
-                            },
-                            onClick = {
-                                navController.navigate("details/${movie.id}")
-                            }
-                        )
+        },
+        containerColor = Color(0xFF1B1330)
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Your favorites list is empty", color = Color.Gray, fontSize = 18.sp)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp)
+                ) {
+                    items(items, key = { it.movieId }) { item ->
+                        FavoritesItemCard(item, viewModel, onMovieClick)
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
             }
         }
     }
-
-    // 🔹 Confirm Delete Dialog
-    if (movieToDelete != null) {
-        ConfirmDeleteDialog(
-            onConfirm = {
-                viewModel.removeFromFavorites(movieToDelete!!)
-                movieToDelete = null
-            },
-            onCancel = { movieToDelete = null }
-        )
-    }
 }
 
 @Composable
-fun FavoriteMovieCard(
-    movie: MovieApiModel,
-    onSwipe: () -> Unit,
-    onClick: () -> Unit
+fun FavoritesItemCard(
+    item: FavoritesItem,
+    viewModel: FavoritesViewModel,
+    onMovieClick: (String) -> Unit
 ) {
-    var dragOffset by remember { mutableStateOf(0f) }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF2A1B3D))
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, dragAmount -> dragOffset += dragAmount },
-                    onDragEnd = {
-                        if (dragOffset > 120 || dragOffset < -120) onSwipe()
-                        dragOffset = 0f
-                    }
+            .shadow(6.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF3A2C58), Color(0xFF1B1330))
                 )
-            }
-            .clickable { onClick() }
-            .padding(12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
-                contentDescription = movie.title,
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(8.dp))
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    movie.title ?: "Unknown Title",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "⭐ ${movie.vote_average ?: "N/A"} | ${movie.release_date ?: "Unknown"}",
-                    color = Color.LightGray,
-                    fontSize = 13.sp
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ConfirmDeleteDialog(
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit
-) {
-    Dialog(onDismissRequest = onCancel) {
-        Surface(
-            color = Color(0xFF1E1E1E),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.padding(20.dp)
+            .clickable { onMovieClick(item.movieId) }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Image(
+                painter = rememberAsyncImagePainter(item.poster),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    "Are you sure you want to delete this movie?",
+                    text = item.title,
                     color = Color.White,
-                    fontSize = 16.sp
+                    fontSize = 18.sp,
+                    maxLines = 2
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onConfirm,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5))
-                    ) {
-                        Text("Yes", color = Color.White)
-                    }
-                    OutlinedButton(onClick = onCancel) {
-                        Text("Cancel", color = Color.White)
-                    }
-                }
+            }
+
+            IconButton(
+                onClick = { viewModel.removeFromFavorites(item.movieId) }
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = Color.Red
+                )
             }
         }
     }

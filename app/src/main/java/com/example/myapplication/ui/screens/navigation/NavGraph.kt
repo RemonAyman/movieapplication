@@ -2,6 +2,7 @@ package com.example.myapplication.ui.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,10 +18,8 @@ import com.example.myapplication.LoginScreen
 import com.example.myapplication.ResetPasswordScreen
 import com.example.myapplication.SignUpScreen
 import com.example.myapplication.data.FavoritesRepository
-import com.example.myapplication.data.FavoritesScreen
-import com.example.myapplication.data.FavoritesViewModel
-import com.example.myapplication.data.FavoritesViewModelFactory
 import com.example.myapplication.ui.details.MovieDetailsScreen
+import com.example.myapplication.ui.favorites.FavoritesScreen
 import com.example.myapplication.ui.home.HomeScreen
 import com.example.myapplication.ui.screens.editProfileScreen
 import com.example.myapplication.ui.screens.search.SearchScreen
@@ -37,18 +36,21 @@ import com.example.myapplication.ui.screens.chats.NewPrivateChatScreen
 import com.example.myapplication.ui.screens.chats.PrivateChatDetailScreen
 import com.example.myapplication.ui.watchlist.WatchlistScreen
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
+import com.example.myapplication.viewmodel.FavoritesViewModel
+import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    onDestinationChanged: (String?) -> Unit = {}
+    onDestinationChanged: (String?) -> Unit = {},
+
 ) {
     val context = LocalContext.current
 
-    val repository = FavoritesRepository(context)
-    val factory = FavoritesViewModelFactory(repository)
-    val favoritesViewModel: FavoritesViewModel = viewModel(factory = factory)
+    // ✅ Favorites MVVM setup
+    val favoritesRepository = FavoritesRepository(context)
+    val favoritesViewModel: FavoritesViewModel = viewModel()
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
@@ -88,7 +90,11 @@ fun NavGraph(
         // Favorites
         composable("favorites") {
             onDestinationChanged("favorites")
-            FavoritesScreen(navController = navController, viewModel = favoritesViewModel)
+            FavoritesScreen(
+                onBack = { navController.popBackStack() },
+                onMovieClick = { movieId -> navController.navigate("details/$movieId") },
+                viewModel = favoritesViewModel
+            )
         }
 
         // Search
@@ -106,7 +112,7 @@ fun NavGraph(
                 onFavoritesClick = { navController.navigate("favorites") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist") } // 🔥 مربوط صح
+                onWatchlistClick = { navController.navigate("watchlist") }
             )
         }
 
@@ -116,15 +122,13 @@ fun NavGraph(
             editProfileScreen(navController)
         }
 
-        // Friends List
+        // Friends
         composable("friends") {
             onDestinationChanged("friends")
             val friendsViewModel: FriendsViewModel = viewModel()
             FriendsScreen(
                 viewModel = friendsViewModel,
-                onFriendClick = { friendUid ->
-                    navController.navigate("friendDetail/$friendUid")
-                }
+                onFriendClick = { friendUid -> navController.navigate("friendDetail/$friendUid") }
             )
         }
 
@@ -143,15 +147,13 @@ fun NavGraph(
             FriendRequestsScreen(viewModel = friendsViewModel)
         }
 
-        // Add Friend (Search Mode)
+        // Add Friend
         composable("addFriend") {
             onDestinationChanged("addFriend")
             val friendsViewModel: FriendsViewModel = viewModel()
             FriendsScreen(
                 viewModel = friendsViewModel,
-                onFriendClick = { friendUid ->
-                    navController.navigate("friendDetail/$friendUid")
-                },
+                onFriendClick = { friendUid -> navController.navigate("friendDetail/$friendUid") },
                 isSearchMode = true
             )
         }
@@ -199,15 +201,13 @@ fun NavGraph(
             }
         }
 
-        // Watchlist Screen
+        // Watchlist
         composable("watchlist") {
             onDestinationChanged("watchlist")
             val watchlistViewModel: WatchlistViewModel = viewModel()
             WatchlistScreen(
                 onBack = { navController.popBackStack() },
-                onMovieClick = { movieId ->
-                    navController.navigate("details/$movieId")
-                },
+                onMovieClick = { movieId -> navController.navigate("details/$movieId") },
                 viewModel = watchlistViewModel
             )
         }

@@ -158,4 +158,7 @@ dependencies {
 
     // ⭐ Compose Animation (اللي انت طلبته)
     implementation("androidx.compose.animation:animation:1.6.7")
+
+    implementation("androidx.compose.material:material-icons-extended:1.7.2")
+
 }

@@ -25,16 +25,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.myapplication.ui.navigation.AuthNavGraph
 import com.example.myapplication.ui.navigation.BottomNavigationBar
 import com.example.myapplication.ui.navigation.NavGraph
+import com.example.myapplication.ui.theme.MovitoBackground
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -47,7 +51,7 @@ import retrofit2.http.Query
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             var isLoggedIn by remember {
                 mutableStateOf(getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
@@ -75,11 +79,14 @@ class MainActivity : ComponentActivity() {
                             if (showBottomBar) BottomNavigationBar(navController)
                         }
                     ) { innerPadding ->
+                        StatusBarBackground(MovitoBackground)
+
                         Box(modifier = Modifier.padding(innerPadding)) {
                             NavGraph(navController = navController)
                         }
                     }
                 } else {
+                    StatusBarBackground(MovitoBackground)
                     AuthNavGraph(navController = navController) { loginSuccess ->
                         if (loginSuccess) {
                             // حفظ الحالة في SharedPreferences
@@ -95,6 +102,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+// status bar
+@Composable
+fun StatusBarBackground(color: Color) {
+    val height = WindowInsets.statusBars
+        .asPaddingValues()
+        .calculateTopPadding()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(color)
+    )
+}
+
 
 
 // ================= MODELS =================

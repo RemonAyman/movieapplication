@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.example.myapplication.AppColors
 import com.google.firebase.auth.FirebaseAuth
@@ -33,30 +32,25 @@ import kotlinx.coroutines.tasks.await
 @Composable
 fun ProfileMainScreen(
     navController: NavHostController,
+    userId: String, // ✅ البروفايل اللي عايز تعرضه
     onEditProfile: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
     onFriendsClick: () -> Unit = {},
     onRequestsClick: () -> Unit = {},
-    onWatchlistClick: () -> Unit = { navController.navigate("watchlist") }   // 🔥 مربوط بالـ NavController
+    onWatchlistClick: () -> Unit = { navController.navigate("watchlist") }
 ) {
-    val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
-
     var username by remember { mutableStateOf("") }
     var avatarBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var loading by remember { mutableStateOf(true) }
 
+    // تحميل بيانات أي يوزر حسب userId
     suspend fun loadUserData() {
-        val uid = auth.currentUser?.uid ?: return
         try {
-            val snapshot = db.collection("users").document(uid).get().await()
+            val snapshot = db.collection("users").document(userId).get().await()
             if (snapshot.exists()) {
                 username = snapshot.getString("username") ?: "No Name"
                 val avatarBase64 = snapshot.getString("avatarBase64")
-                    ?: context.getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
-                        .getString("avatarBase64", null)
-
                 if (!avatarBase64.isNullOrEmpty()) {
                     val decodedBytes = Base64.decode(avatarBase64, Base64.DEFAULT)
                     avatarBitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
@@ -69,7 +63,7 @@ fun ProfileMainScreen(
         }
     }
 
-    LaunchedEffect(Unit) { loadUserData() }
+    LaunchedEffect(userId) { loadUserData() }
 
     Box(
         modifier = Modifier
@@ -124,19 +118,21 @@ fun ProfileMainScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // زر تعديل البروفايل
-                Button(
-                    onClick = onEditProfile,
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow),
-                    shape = MaterialTheme.shapes.large,
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(48.dp)
-                ) {
-                    Text("Edit Profile", color = AppColors.TextColor, fontWeight = FontWeight.SemiBold)
-                }
+                // زر تعديل البروفايل بس يظهر لو ده المستخدم نفسه
+                if(userId == FirebaseAuth.getInstance().currentUser?.uid) {
+                    Button(
+                        onClick = onEditProfile,
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow),
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(48.dp)
+                    ) {
+                        Text("Edit Profile", color = AppColors.TextColor, fontWeight = FontWeight.SemiBold)
+                    }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
 
                 // الأقسام
                 Column(
@@ -146,7 +142,7 @@ fun ProfileMainScreen(
                     ProfileCardItem("Favorites", Icons.Default.Favorite, onFavoritesClick)
                     ProfileCardItem("Friends", Icons.Default.Person, onFriendsClick)
                     ProfileCardItem("Friend Requests", Icons.Default.GroupAdd, onRequestsClick)
-                    ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)  // 🔥 مربوط صح
+                    ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)
                 }
             }
         }
@@ -190,5 +186,5 @@ fun ProfileCardItem(title: String, icon: androidx.compose.ui.graphics.vector.Ima
 @Preview(showBackground = true)
 @Composable
 fun ProfileModernScreenFirebasePreview() {
-    // ⚠️ لازم تبعت navController حقيقي عشان ما يحصلش crash
+    // ⚠️ Preview: لازم تبعت navController حقيقي عشان ما يحصلش crash
 }

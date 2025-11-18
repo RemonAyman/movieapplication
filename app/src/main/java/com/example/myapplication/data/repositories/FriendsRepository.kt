@@ -13,11 +13,12 @@ class FriendsRepository {
 
     // ===================== Fetch Lists =====================
 
-    suspend fun getFriendsList(): List<UserDataModel> {
-        if (currentUserId.isEmpty()) return emptyList()
+    suspend fun getFriendsList(userId: String? = null): List<UserDataModel> {
+        val uid = userId ?: currentUserId
+        if (uid.isEmpty()) return emptyList()
         return try {
             val friendsSnapshot = db.collection("users")
-                .document(currentUserId)
+                .document(uid)
                 .collection("friends")
                 .get()
                 .await()
@@ -42,15 +43,16 @@ class FriendsRepository {
         } catch (e: Exception) { emptyList() }
     }
 
-    suspend fun getAllUsers(): List<UserDataModel> {
-        if (currentUserId.isEmpty()) return emptyList()
+    suspend fun getAllUsers(userId: String? = null): List<UserDataModel> {
+        val uid = userId ?: currentUserId
+        if (uid.isEmpty()) return emptyList()
         return try {
             val snapshot = db.collection("users").get().await()
             snapshot.mapNotNull { doc ->
-                val uid = doc.getString("uid") ?: return@mapNotNull null
-                if (uid == currentUserId) return@mapNotNull null
+                val userUid = doc.getString("uid") ?: return@mapNotNull null
+                if (userUid == uid) return@mapNotNull null
                 UserDataModel(
-                    uid = uid,
+                    uid = userUid,
                     username = doc.getString("username") ?: "",
                     email = doc.getString("email") ?: "",
                     phone = doc.getString("phone") ?: "",
@@ -62,12 +64,12 @@ class FriendsRepository {
 
     // ===================== Friend Requests =====================
 
-    // Incoming requests (الطلبات اللي جت للمستخدم الحالي)
-    suspend fun getFriendRequests(): List<UserDataModel> {
-        if (currentUserId.isEmpty()) return emptyList()
+    suspend fun getFriendRequests(userId: String? = null): List<UserDataModel> {
+        val uid = userId ?: currentUserId
+        if (uid.isEmpty()) return emptyList()
         return try {
             val snapshot = db.collection("users")
-                .document(currentUserId)
+                .document(uid)
                 .collection("friendRequests")
                 .whereEqualTo("status", "pending")
                 .get()
@@ -93,12 +95,12 @@ class FriendsRepository {
         } catch (e: Exception) { emptyList() }
     }
 
-    // Outgoing requests (الطلبات اللي أرسلها المستخدم)
-    suspend fun getSentFriendRequests(): List<UserDataModel> {
-        if (currentUserId.isEmpty()) return emptyList()
+    suspend fun getSentFriendRequests(userId: String? = null): List<UserDataModel> {
+        val uid = userId ?: currentUserId
+        if (uid.isEmpty()) return emptyList()
         return try {
             val snapshot = db.collection("users")
-                .document(currentUserId)
+                .document(uid)
                 .collection("friendRequests")
                 .whereEqualTo("status", "sent")
                 .get()
@@ -124,8 +126,6 @@ class FriendsRepository {
         } catch (e: Exception) { emptyList() }
     }
 
-
-
     suspend fun getUserById(friendId: String): UserDataModel? {
         return try {
             val doc = db.collection("users").document(friendId).get().await()
@@ -143,7 +143,6 @@ class FriendsRepository {
 
     // ===================== Actions =====================
 
-    // إرسال طلب صداقة
     suspend fun sendFriendRequest(targetId: String): Boolean {
         if (currentUserId.isEmpty() || targetId == currentUserId) return false
         return try {
@@ -172,7 +171,6 @@ class FriendsRepository {
         } catch (e: Exception) { false }
     }
 
-    // إلغاء طلب الصداقة
     suspend fun cancelFriendRequest(targetId: String): Boolean {
         if (currentUserId.isEmpty()) return false
         return try {
@@ -189,13 +187,11 @@ class FriendsRepository {
         } catch (e: Exception) { false }
     }
 
-    // قبول الطلب → ينضاف في friends ويُحذف من friendRequests
     suspend fun acceptFriendRequest(friendId: String): Boolean {
         if (currentUserId.isEmpty()) return false
         return try {
             val batch = db.batch()
 
-            // حذف الريكويست
             val myReq = db.collection("users").document(currentUserId)
                 .collection("friendRequests").document(friendId)
             val theirReq = db.collection("users").document(friendId)
@@ -203,7 +199,6 @@ class FriendsRepository {
             batch.delete(myReq)
             batch.delete(theirReq)
 
-            // إضافة الأصدقاء
             val myFriend = db.collection("users").document(currentUserId)
                 .collection("friends").document(friendId)
             val theirFriend = db.collection("users").document(friendId)
@@ -217,10 +212,8 @@ class FriendsRepository {
         } catch (e: Exception) { false }
     }
 
-    // رفض الطلب / إزالة
     suspend fun declineFriendRequest(friendId: String): Boolean = cancelFriendRequest(friendId)
 
-    // إزالة صديق
     suspend fun removeFriend(friendId: String): Boolean {
         if (currentUserId.isEmpty()) return false
         return try {

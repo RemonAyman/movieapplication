@@ -10,13 +10,13 @@ class FavoritesRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    private fun getFavoritesCollection() =
-        auth.currentUser?.uid?.let { userId ->
-            db.collection("users").document(userId).collection("favorites")
+    private fun getFavoritesCollection(userId: String? = null) =
+        (userId ?: auth.currentUser?.uid)?.let { uid ->
+            db.collection("users").document(uid).collection("favorites")
         }
 
-    suspend fun getFavorites(): List<FavoritesItem> {
-        val collection = getFavoritesCollection() ?: return emptyList()
+    suspend fun getFavorites(userId: String? = null): List<FavoritesItem> {
+        val collection = getFavoritesCollection(userId) ?: return emptyList()
         return try {
             val snapshot = collection.get().await()
             snapshot.documents.mapNotNull { it.toObject(FavoritesItem::class.java) }
@@ -25,13 +25,13 @@ class FavoritesRepository {
         }
     }
 
-    suspend fun addFavorite(item: FavoritesItem) {
-        val collection = getFavoritesCollection() ?: return
+    suspend fun addFavorite(item: FavoritesItem, userId: String? = null) {
+        val collection = getFavoritesCollection(userId) ?: return
         collection.document(item.movieId).set(item).await()
     }
 
-    suspend fun removeFavorite(movieId: String) {
-        val collection = getFavoritesCollection() ?: return
+    suspend fun removeFavorite(movieId: String, userId: String? = null) {
+        val collection = getFavoritesCollection(userId) ?: return
         collection.document(movieId).delete().await()
     }
 }

@@ -20,15 +20,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchlistScreen(
+    viewModel: WatchlistViewModel,
     onBack: () -> Unit,
-    onMovieClick: (String) -> Unit,
-    viewModel: WatchlistViewModel = viewModel()
+    onMovieClick: (String) -> Unit
 ) {
     val items by viewModel.watchlist.collectAsState()
 
@@ -37,7 +36,7 @@ fun WatchlistScreen(
             TopAppBar(
                 title = { Text("Watchlist", color = Color.White) },
                 navigationIcon = {
-                    IconButton(onClick = { onBack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                     }
                 },
@@ -49,8 +48,7 @@ fun WatchlistScreen(
         Box(modifier = Modifier.padding(padding)) {
             if (items.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("Your watchlist is empty", color = Color.Gray, fontSize = 18.sp)
@@ -62,7 +60,11 @@ fun WatchlistScreen(
                         .padding(horizontal = 12.dp)
                 ) {
                     items(items, key = { it.movieId }) { item ->
-                        WatchlistItemCard(item, viewModel, onMovieClick)
+                        WatchlistItemCard(
+                            item = item,
+                            onMovieClick = onMovieClick,
+                            onRemove = { viewModel.removeFromWatchlist(it) }
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
@@ -74,8 +76,8 @@ fun WatchlistScreen(
 @Composable
 fun WatchlistItemCard(
     item: WatchlistItem,
-    viewModel: WatchlistViewModel,
-    onMovieClick: (String) -> Unit
+    onMovieClick: (String) -> Unit,
+    onRemove: (String) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -98,32 +100,22 @@ fun WatchlistItemCard(
             Image(
                 painter = rememberAsyncImagePainter(item.poster),
                 contentDescription = null,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp))
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     maxLines = 2
                 )
             }
 
-            IconButton(
-                onClick = { viewModel.removeFromWatchlist(item.movieId) }
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = Color.Red
-                )
+            IconButton(onClick = { onRemove(item.movieId) }) {
+                Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
             }
         }
     }

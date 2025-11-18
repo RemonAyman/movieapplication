@@ -7,6 +7,7 @@ import com.example.myapplication.data.remote.firebase.repository.FriendsReposito
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
 class FriendsViewModel : ViewModel() {
 
     private val repository = FriendsRepository()
@@ -17,10 +18,10 @@ class FriendsViewModel : ViewModel() {
     private val _friendDetail = MutableStateFlow<UserDataModel?>(null)
     val friendDetail: StateFlow<UserDataModel?> = _friendDetail
 
-    private val _friendRequests = MutableStateFlow<List<UserDataModel>>(emptyList()) // incoming
+    private val _friendRequests = MutableStateFlow<List<UserDataModel>>(emptyList())
     val friendRequests: StateFlow<List<UserDataModel>> = _friendRequests
 
-    private val _sentFriendRequests = MutableStateFlow<List<UserDataModel>>(emptyList()) // outgoing
+    private val _sentFriendRequests = MutableStateFlow<List<UserDataModel>>(emptyList())
     val sentFriendRequests: StateFlow<List<UserDataModel>> = _sentFriendRequests
 
     private val _allUsers = MutableStateFlow<List<UserDataModel>>(emptyList())
@@ -33,35 +34,53 @@ class FriendsViewModel : ViewModel() {
     val errorState: StateFlow<String?> = _errorState
 
     // ===================== Loaders =====================
-    fun loadFriendsList() = viewModelScope.launch {
-        _loadingState.value = true
-        try { _friendsList.value = repository.getFriendsList(); _errorState.value = null }
-        catch(e: Exception) { _errorState.value = e.message }
-        finally { _loadingState.value = false }
-    }
-
-    fun loadAllUsers() = viewModelScope.launch {
-        _loadingState.value = true
-        try { _allUsers.value = repository.getAllUsers(); _errorState.value = null }
-        catch(e: Exception) { _errorState.value = e.message }
-        finally { _loadingState.value = false }
-    }
-
-    fun loadFriendRequests() = viewModelScope.launch {
+    fun loadFriendsList(userId: String = currentUserId()) = viewModelScope.launch {
         _loadingState.value = true
         try {
-            _friendRequests.value = repository.getFriendRequests()
-            _sentFriendRequests.value = repository.getSentFriendRequests()
+            _friendsList.value = repository.getFriendsList(userId)
             _errorState.value = null
-        } catch(e: Exception) { _errorState.value = e.message }
-        finally { _loadingState.value = false }
+        } catch(e: Exception) {
+            _errorState.value = e.message
+        } finally {
+            _loadingState.value = false
+        }
+    }
+
+    fun loadAllUsers(userId: String = currentUserId()) = viewModelScope.launch {
+        _loadingState.value = true
+        try {
+            _allUsers.value = repository.getAllUsers(userId)
+            _errorState.value = null
+        } catch(e: Exception) {
+            _errorState.value = e.message
+        } finally {
+            _loadingState.value = false
+        }
+    }
+
+    fun loadFriendRequests(userId: String = currentUserId()) = viewModelScope.launch {
+        _loadingState.value = true
+        try {
+            _friendRequests.value = repository.getFriendRequests(userId)
+            _sentFriendRequests.value = repository.getSentFriendRequests(userId)
+            _errorState.value = null
+        } catch(e: Exception) {
+            _errorState.value = e.message
+        } finally {
+            _loadingState.value = false
+        }
     }
 
     fun loadFriendDetail(friendId: String) = viewModelScope.launch {
         _loadingState.value = true
-        try { _friendDetail.value = repository.getUserById(friendId); _errorState.value = null }
-        catch(e: Exception) { _errorState.value = e.message }
-        finally { _loadingState.value = false }
+        try {
+            _friendDetail.value = repository.getUserById(friendId)
+            _errorState.value = null
+        } catch(e: Exception) {
+            _errorState.value = e.message
+        } finally {
+            _loadingState.value = false
+        }
     }
 
     // ===================== Actions =====================
@@ -70,36 +89,55 @@ class FriendsViewModel : ViewModel() {
         try {
             repository.sendFriendRequest(friendId)
             _errorState.value = null
-            loadFriendRequests(); loadAllUsers()
+            loadFriendRequests()
+            loadAllUsers()
         } catch(e: Exception) { _errorState.value = e.message }
         finally { _loadingState.value = false }
     }
 
     fun cancelFriendRequest(friendId: String) = viewModelScope.launch {
         _loadingState.value = true
-        try { repository.cancelFriendRequest(friendId); _errorState.value = null; loadFriendRequests(); loadAllUsers() }
-        catch(e: Exception) { _errorState.value = e.message }
+        try {
+            repository.cancelFriendRequest(friendId)
+            _errorState.value = null
+            loadFriendRequests()
+            loadAllUsers()
+        } catch(e: Exception) { _errorState.value = e.message }
         finally { _loadingState.value = false }
     }
 
     fun acceptFriendRequest(friendId: String) = viewModelScope.launch {
         _loadingState.value = true
-        try { repository.acceptFriendRequest(friendId); _errorState.value = null; loadFriendsList(); loadFriendRequests(); loadAllUsers() }
-        catch(e: Exception) { _errorState.value = e.message }
+        try {
+            repository.acceptFriendRequest(friendId)
+            _errorState.value = null
+            loadFriendsList()
+            loadFriendRequests()
+            loadAllUsers()
+        } catch(e: Exception) { _errorState.value = e.message }
         finally { _loadingState.value = false }
     }
 
     fun declineFriendRequest(friendId: String) = viewModelScope.launch {
         _loadingState.value = true
-        try { repository.declineFriendRequest(friendId); _errorState.value = null; loadFriendRequests(); loadAllUsers() }
-        catch(e: Exception) { _errorState.value = e.message }
+        try {
+            repository.declineFriendRequest(friendId)
+            _errorState.value = null
+            loadFriendRequests()
+            loadAllUsers()
+        } catch(e: Exception) { _errorState.value = e.message }
         finally { _loadingState.value = false }
     }
 
     fun removeFriend(friendId: String) = viewModelScope.launch {
         _loadingState.value = true
-        try { repository.removeFriend(friendId); _errorState.value = null; loadFriendsList(); loadFriendRequests(); loadAllUsers() }
-        catch(e: Exception) { _errorState.value = e.message }
+        try {
+            repository.removeFriend(friendId)
+            _errorState.value = null
+            loadFriendsList()
+            loadFriendRequests()
+            loadAllUsers()
+        } catch(e: Exception) { _errorState.value = e.message }
         finally { _loadingState.value = false }
     }
 
@@ -109,5 +147,9 @@ class FriendsViewModel : ViewModel() {
         if (_sentFriendRequests.value.any { it.uid == userId }) return "sent"
         if (_friendRequests.value.any { it.uid == userId }) return "incoming"
         return ""
+    }
+
+    private fun currentUserId(): String {
+        return com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
     }
 }

@@ -2,7 +2,6 @@ package com.example.myapplication.ui.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,20 +36,18 @@ import com.example.myapplication.ui.screens.chats.PrivateChatDetailScreen
 import com.example.myapplication.ui.watchlist.WatchlistScreen
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
 import com.example.myapplication.viewmodel.FavoritesViewModel
-import kotlinx.coroutines.CoroutineScope
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     onDestinationChanged: (String?) -> Unit = {},
-
-    ) {
+) {
     val context = LocalContext.current
 
-    // ✅ Favorites MVVM setup
-    val favoritesRepository = FavoritesRepository()
     val favoritesViewModel: FavoritesViewModel = viewModel()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
@@ -72,10 +69,12 @@ fun NavGraph(
                 }
             )
         }
+
         composable("signup") {
             onDestinationChanged("signup")
             SignUpScreen(navController)
         }
+
         composable("resetPassword") {
             onDestinationChanged("resetPassword")
             ResetPasswordScreen(navController)
@@ -103,11 +102,26 @@ fun NavGraph(
             SearchScreen(navController)
         }
 
-        // Profile Main
+        // Profile Main (current user)
         composable("profile") {
             onDestinationChanged("profile")
             ProfileMainScreen(
                 navController = navController,
+                userId = currentUserId,
+                onEditProfile = { navController.navigate("profileEdit") },
+                onFavoritesClick = { navController.navigate("favorites") },
+                onFriendsClick = { navController.navigate("friends") },
+                onRequestsClick = { navController.navigate("friendRequests") },
+                onWatchlistClick = { navController.navigate("watchlist") }
+            )
+        }
+
+        // Profile Main (other users)
+        composable("profileMainScreen/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ProfileMainScreen(
+                navController = navController,
+                userId = userId,
                 onEditProfile = { navController.navigate("profileEdit") },
                 onFavoritesClick = { navController.navigate("favorites") },
                 onFriendsClick = { navController.navigate("friends") },

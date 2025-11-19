@@ -30,7 +30,8 @@ import com.example.myapplication.viewmodel.FavoritesViewModel
 fun FavoritesScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    viewModel: FavoritesViewModel = viewModel()
+    viewModel: FavoritesViewModel = viewModel(),
+    userID: String?=null
 ) {
     val items by viewModel.favorites.collectAsState()
 
@@ -76,7 +77,8 @@ fun FavoritesScreen(
 fun FavoritesItemCard(
     item: FavoritesItem,
     viewModel: FavoritesViewModel,
-    onMovieClick: (String) -> Unit
+    onMovieClick: (String) -> Unit,
+
 ) {
     Box(
         modifier = Modifier

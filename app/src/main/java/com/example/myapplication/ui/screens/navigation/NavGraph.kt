@@ -11,12 +11,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.myapplication.LoginScreen
 import com.example.myapplication.ResetPasswordScreen
 import com.example.myapplication.SignUpScreen
-import com.example.myapplication.data.FavoritesRepository
 import com.example.myapplication.ui.details.MovieDetailsScreen
 import com.example.myapplication.ui.favorites.FavoritesScreen
 import com.example.myapplication.ui.home.HomeScreen
@@ -35,7 +36,9 @@ import com.example.myapplication.ui.screens.chats.NewPrivateChatScreen
 import com.example.myapplication.ui.screens.chats.PrivateChatDetailScreen
 import com.example.myapplication.ui.watchlist.WatchlistScreen
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
+import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.FavoritesViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -87,14 +90,26 @@ fun NavGraph(
         }
 
         // Favorites
-        composable("favorites") {
+        // Favorites
+        composable("favorites/{userId}") { backStackEntry ->
+
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+
+            // استدعاء ViewModel بالفكتوري
+            val favoritesViewModel: FavoritesViewModel = viewModel(
+                factory = FavoritesViewModelFactory(userId)
+            )
+
             onDestinationChanged("favorites")
+
             FavoritesScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { movieId -> navController.navigate("details/$movieId") },
-                viewModel = favoritesViewModel
+                viewModel = favoritesViewModel,
+                userID = userId
             )
         }
+
 
         // Search
         composable("search") {
@@ -109,10 +124,10 @@ fun NavGraph(
                 navController = navController,
                 userId = currentUserId,
                 onEditProfile = { navController.navigate("profileEdit") },
-                onFavoritesClick = { navController.navigate("favorites") },
+                onFavoritesClick = { navController.navigate("favorites/$currentUserId") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist") }
+                onWatchlistClick = { navController.navigate("watchlist/$currentUserId") }
             )
         }
 
@@ -123,10 +138,10 @@ fun NavGraph(
                 navController = navController,
                 userId = userId,
                 onEditProfile = { navController.navigate("profileEdit") },
-                onFavoritesClick = { navController.navigate("favorites") },
+                onFavoritesClick = { navController.navigate("favorites/$currentUserId") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist") }
+                onWatchlistClick = { navController.navigate("watchlist/$currentUserId") }
             )
         }
 
@@ -151,7 +166,13 @@ fun NavGraph(
             onDestinationChanged("friendDetail")
             val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
             val friendsViewModel: FriendsViewModel = viewModel()
-            FriendDetailScreen(friendId = friendId, viewModel = friendsViewModel)
+            FriendDetailScreen(
+                UserId = friendId, viewModel = friendsViewModel,
+                onLikesClick = {navController.navigate("favorites/$friendId")},
+                onWatchedClick = {},
+                onWatchListClick = { navController.navigate("watchlist/$friendId")},
+                onRatingsClick = {  },
+            )
         }
 
         // Friend Requests
@@ -216,14 +237,29 @@ fun NavGraph(
         }
 
         // Watchlist
-        composable("watchlist") {
-            onDestinationChanged("watchlist")
-            val watchlistViewModel: WatchlistViewModel = viewModel()
+        composable(
+            route = "watchlist/{userId}",
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+
+            val userId = backStackEntry.arguments?.getString("userId")
+
+            val watchlistViewModel: WatchlistViewModel = viewModel(
+                factory = WatchlistViewModelFactory(userId)
+            )
+
             WatchlistScreen(
+                viewModel = watchlistViewModel,
                 onBack = { navController.popBackStack() },
-                onMovieClick = { movieId -> navController.navigate("details/$movieId") },
-                viewModel = watchlistViewModel
+                onMovieClick = { movieId -> navController.navigate("details/$movieId") }
             )
         }
+
     }
 }

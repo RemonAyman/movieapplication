@@ -50,7 +50,9 @@ import com.example.myapplication.ui.screens.favorites.FavoritesItem
 import com.example.myapplication.ui.theme.MovitoBackground
 import com.example.myapplication.ui.watchlist.WatchlistItem
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
+import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +66,10 @@ fun MovieDetailsScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val watchlistViewModel: WatchlistViewModel = viewModel()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    val watchlistViewModel: WatchlistViewModel = viewModel(
+        factory = WatchlistViewModelFactory(currentUserId)
+    )
 
     var isWatched by remember { mutableStateOf(false) } // متغير لتتبع حالة الـ Watch
     var isInWatchlist by remember { mutableStateOf(false) }

@@ -28,10 +28,17 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendDetailScreen(
-    friendId: String,
+    UserId: String,
     viewModel: FriendsViewModel,
-    onBack: (() -> Unit)? = null
-) {
+    onBack: (() -> Unit)? = null,
+    onLikesClick: (String) -> Unit,
+    onWatchedClick: (String) -> Unit,
+    onWatchListClick: (String) -> Unit,
+    onRatingsClick: (String) -> Unit,
+
+
+
+    ) {
     val friend by viewModel.friendDetail.collectAsState()
     val friends by viewModel.friendsList.collectAsState()
     val friendRequests by viewModel.friendRequests.collectAsState()
@@ -41,8 +48,8 @@ fun FriendDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Load friend detail and lists
-    LaunchedEffect(friendId) {
-        viewModel.loadFriendDetail(friendId)
+    LaunchedEffect(UserId) {
+        viewModel.loadFriendDetail(UserId)
         viewModel.loadFriendsList()
         viewModel.loadFriendRequests()
         viewModel.loadAllUsers()
@@ -221,6 +228,53 @@ fun FriendDetailScreen(
                                 ) { Text("Add Friend", color = Color.White) }
                             }
                         }
+                        // =======================
+                        // Extra Profile Actions
+                        // =======================
+                        Spacer(modifier = Modifier.height(28.dp))
+
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(0.85f),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Favorites
+                            Button(
+                                onClick = { onLikesClick(UserId) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5E60CE)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Favorites", color = Color.White)
+                            }
+
+                            // Watchlist
+                            Button(
+                                onClick = { onWatchListClick(UserId) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6930C3)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Watchlist", color = Color.White)
+                            }
+
+                            // Ratings
+                            Button(
+                                onClick = {onRatingsClick(UserId)},
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7400B8)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Ratings", color = Color.White)
+                            }
+
+                            // Watched
+                            Button(
+                                onClick = { onWatchedClick(UserId) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A0CA3)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Watched", color = Color.White)
+                            }
+                        }
+
                     }
                 } ?: run {
                     Text("Friend not found", color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)

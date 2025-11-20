@@ -22,7 +22,6 @@ fun BottomNavigationBar(navController: NavHostController) {
 
     val items = listOf(
         BottomNavItem("HomeScreen", Icons.Default.Home),
-        BottomNavItem("favorites", Icons.Default.Favorite),
         BottomNavItem("search", Icons.Default.Search),
         BottomNavItem("chats", Icons.Default.Chat),
         BottomNavItem("addFriend", Icons.Default.PersonAdd),

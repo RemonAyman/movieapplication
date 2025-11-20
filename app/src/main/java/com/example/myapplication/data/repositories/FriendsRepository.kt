@@ -1,15 +1,18 @@
 package com.example.myapplication.data.remote.firebase.repository
 
+import com.example.myapplication.data.FavoritesRepository
 import com.example.myapplication.data.remote.firebase.models.UserDataModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-class FriendsRepository {
+class FriendsRepository() {
 
     private val db = FirebaseFirestore.getInstance()
     private val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+    private val repository: FavoritesRepository = FavoritesRepository()
 
     // ===================== Fetch Lists =====================
 
@@ -37,7 +40,7 @@ class FriendsRepository {
                     username = doc.getString("username") ?: "",
                     email = doc.getString("email") ?: "",
                     phone = doc.getString("phone") ?: "",
-                    avatarBase64 = doc.getString("avatarBase64") ?: ""
+                    avatarBase64 = doc.getString("avatarBase64") ?: "",
                 )
             }
         } catch (e: Exception) { emptyList() }
@@ -56,7 +59,7 @@ class FriendsRepository {
                     username = doc.getString("username") ?: "",
                     email = doc.getString("email") ?: "",
                     phone = doc.getString("phone") ?: "",
-                    avatarBase64 = doc.getString("avatarBase64") ?: ""
+                    avatarBase64 = doc.getString("avatarBase64") ?: "",
                 )
             }
         } catch (e: Exception) { emptyList() }
@@ -89,7 +92,7 @@ class FriendsRepository {
                     username = doc.getString("username") ?: "",
                     email = doc.getString("email") ?: "",
                     phone = doc.getString("phone") ?: "",
-                    avatarBase64 = doc.getString("avatarBase64") ?: ""
+                    avatarBase64 = doc.getString("avatarBase64") ?: "",
                 )
             }
         } catch (e: Exception) { emptyList() }
@@ -120,8 +123,9 @@ class FriendsRepository {
                     username = doc.getString("username") ?: "",
                     email = doc.getString("email") ?: "",
                     phone = doc.getString("phone") ?: "",
-                    avatarBase64 = doc.getString("avatarBase64") ?: ""
-                )
+                    avatarBase64 = doc.getString("avatarBase64") ?: "",
+
+                    )
             }
         } catch (e: Exception) { emptyList() }
     }
@@ -129,13 +133,15 @@ class FriendsRepository {
     suspend fun getUserById(friendId: String): UserDataModel? {
         return try {
             val doc = db.collection("users").document(friendId).get().await()
+            val favorites = repository.getFavorites(friendId)
             if (doc.exists()) {
                 UserDataModel(
                     uid = doc.getString("uid") ?: "",
                     username = doc.getString("username") ?: "",
                     email = doc.getString("email") ?: "",
                     phone = doc.getString("phone") ?: "",
-                    avatarBase64 = doc.getString("avatarBase64") ?: ""
+                    avatarBase64 = doc.getString("avatarBase64") ?: "",
+                    favoriest = favorites
                 )
             } else null
         } catch (e: Exception) { null }

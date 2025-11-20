@@ -14,6 +14,15 @@ class FavoritesRepository {
         (userId ?: auth.currentUser?.uid)?.let { uid ->
             db.collection("users").document(uid).collection("favorites")
         }
+    suspend fun getFirst5Favorites(userId: String? = null): List<FavoritesItem> {
+        val collection = getFavoritesCollection(userId) ?: return emptyList()
+        return try {
+            val snapshot = collection.limit(5).get().await() // جلب أول 4 مستندات فقط
+            snapshot.documents.mapNotNull { it.toObject(FavoritesItem::class.java) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 
     suspend fun getFavorites(userId: String? = null): List<FavoritesItem> {
         val collection = getFavoritesCollection(userId) ?: return emptyList()

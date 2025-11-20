@@ -27,8 +27,9 @@ import coil.compose.rememberAsyncImagePainter
 fun WatchlistScreen(
     viewModel: WatchlistViewModel,
     onBack: () -> Unit,
-    onMovieClick: (String) -> Unit
-) {
+    onMovieClick: (String) -> Unit,
+
+    ) {
     val items by viewModel.watchlist.collectAsState()
 
     Scaffold(

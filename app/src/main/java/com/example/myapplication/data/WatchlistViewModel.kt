@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.watchlist
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,7 +24,7 @@ data class WatchlistItem(
     val poster: String = ""
 )
 
-class WatchlistViewModel : ViewModel() {
+class WatchlistViewModel(userID: String?=null) : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
@@ -34,16 +35,15 @@ class WatchlistViewModel : ViewModel() {
     private fun currentUserId(): String? = auth.currentUser?.uid
 
     init {
-        loadWatchlist()
+        loadWatchlist(userID)
     }
 
-    private fun loadWatchlist() {
-        val userId = currentUserId() ?: return
+    private fun loadWatchlist(userId: String? = null) {
 
         // تحويل الـ snapshot إلى Flow ليبقى Coroutine-friendly
         viewModelScope.launch {
             db.collection("users")
-                .document(userId)
+                .document(userId!!)
                 .collection("watchlist")
                 .snapshotsFlow()
                 .collect { snapshot ->
@@ -79,6 +79,17 @@ class WatchlistViewModel : ViewModel() {
         }
     }
 }
+class WatchlistViewModelFactory(
+    private val userId: String?
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(WatchlistViewModel::class.java)) {
+            return WatchlistViewModel(userID = userId) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 
 
 

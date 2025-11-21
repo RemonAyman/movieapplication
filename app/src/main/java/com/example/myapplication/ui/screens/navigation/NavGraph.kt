@@ -40,6 +40,7 @@ import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
 import com.example.myapplication.viewmodel.FavoritesViewModel
 import com.example.myapplication.viewmodel.FavoritesViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import androidx.navigation.compose.rememberNavController
 
 @Composable
 fun NavGraph(
@@ -48,19 +49,16 @@ fun NavGraph(
     onDestinationChanged: (String?) -> Unit = {},
 ) {
     val context = LocalContext.current
-
     val favoritesViewModel: FavoritesViewModel = viewModel()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
-        // Splash
         composable("splash") {
             onDestinationChanged("splash")
             SplashScreen(navController)
         }
 
-        // Auth
         composable("login") {
             onDestinationChanged("login")
             LoginScreen(
@@ -83,41 +81,27 @@ fun NavGraph(
             ResetPasswordScreen(navController)
         }
 
-        // Home
         composable("HomeScreen") {
             onDestinationChanged("HomeScreen")
             HomeScreen(navController, favoritesViewModel)
         }
 
-        // Favorites
-        // Favorites
         composable("favorites/{userId}") { backStackEntry ->
-
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-
-            // استدعاء ViewModel بالفكتوري
-            val favoritesViewModel: FavoritesViewModel = viewModel(
-                factory = FavoritesViewModelFactory(userId)
-            )
-
-            onDestinationChanged("favorites")
-
+            val favVM: FavoritesViewModel = viewModel(factory = FavoritesViewModelFactory(userId))
             FavoritesScreen(
                 onBack = { navController.popBackStack() },
-                onMovieClick = { movieId -> navController.navigate("details/$movieId") },
-                viewModel = favoritesViewModel,
+                onMovieClick = { id -> navController.navigate("details/$id") },
+                viewModel = favVM,
                 userID = userId
             )
         }
 
-
-        // Search
         composable("search") {
             onDestinationChanged("search")
             SearchScreen(navController)
         }
 
-        // Profile Main (current user)
         composable("profile") {
             onDestinationChanged("profile")
             ProfileMainScreen(
@@ -131,7 +115,6 @@ fun NavGraph(
             )
         }
 
-        // Profile Main (other users)
         composable("profileMainScreen/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             ProfileMainScreen(
@@ -145,7 +128,6 @@ fun NavGraph(
             )
         }
 
-        // Edit Profile
         composable("profileEdit") {
             onDestinationChanged("profileEdit")
             editProfileScreen(navController)
@@ -154,76 +136,78 @@ fun NavGraph(
         // Friends
         composable("friends") {
             onDestinationChanged("friends")
-            val friendsViewModel: FriendsViewModel = viewModel()
+            val friendsVM: FriendsViewModel = viewModel()
             FriendsScreen(
-                viewModel = friendsViewModel,
-                onFriendClick = { friendUid -> navController.navigate("friendDetail/$friendUid") }
+                viewModel = friendsVM,
+                navController = navController,
+                onFriendClick = { uid -> navController.navigate("friendDetail/$uid") },
+                isSearchMode = false,
+                onBack = { navController.navigate("profile") }
             )
         }
 
-        // Friend Detail
         composable("friendDetail/{friendId}") { backStackEntry ->
             onDestinationChanged("friendDetail")
             val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
-            val friendsViewModel: FriendsViewModel = viewModel()
+            val friendsVM: FriendsViewModel = viewModel()
             FriendDetailScreen(
-                UserId = friendId, viewModel = friendsViewModel,
-                onLikesClick = {navController.navigate("favorites/$friendId")},
+                UserId = friendId,
+                viewModel = friendsVM,
+                onBack = { navController.popBackStack() },
+                onLikesClick = { navController.navigate("favorites/$friendId") },
                 onWatchedClick = {},
-                onWatchListClick = { navController.navigate("watchlist/$friendId")},
-                onRatingsClick = {  },
+                onWatchListClick = { navController.navigate("watchlist/$friendId") },
+                onRatingsClick = {}
             )
         }
 
-        // Friend Requests
         composable("friendRequests") {
             onDestinationChanged("friendRequests")
-            val friendsViewModel: FriendsViewModel = viewModel()
-            FriendRequestsScreen(viewModel = friendsViewModel)
-        }
-
-        // Add Friend
-        composable("addFriend") {
-            onDestinationChanged("addFriend")
-            val friendsViewModel: FriendsViewModel = viewModel()
-            FriendsScreen(
-                viewModel = friendsViewModel,
-                onFriendClick = { friendUid -> navController.navigate("friendDetail/$friendUid") },
-                isSearchMode = true
+            val friendsVM: FriendsViewModel = viewModel()
+            FriendRequestsScreen(
+                viewModel = friendsVM,
+                navController = navController
             )
         }
 
-        // Chats
+        // Add Friend (search mode)
+        composable("addFriend") {
+            onDestinationChanged("addFriend")
+            val friendsVM: FriendsViewModel = viewModel()
+            FriendsScreen(
+                viewModel = friendsVM,
+                navController = navController,
+                onFriendClick = { uid -> navController.navigate("friendDetail/$uid") },
+                isSearchMode = true,
+                onBack = { navController.navigate("profile") }
+            )
+        }
+
         composable("chats") {
             onDestinationChanged("chats")
             ChatsScreen(navController)
         }
 
-        // Chat Details
         composable("chatDetail/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             ChatDetailScreen(navController, chatId)
         }
 
-        // New Group Chat
         composable("newGroup") {
             onDestinationChanged("newGroup")
             NewGroupScreen(navController)
         }
 
-        // Private Chat
         composable("newPrivateChat") {
             onDestinationChanged("newPrivateChat")
             NewPrivateChatScreen(navController)
         }
 
-        // Private Chat Detail
         composable("privateChatDetail/{chatId}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             PrivateChatDetailScreen(chatId, navController)
         }
 
-        // Movie Details
         composable("details/{movieId}") { backStackEntry ->
             onDestinationChanged("details/{movieId}")
             val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull()
@@ -236,7 +220,6 @@ fun NavGraph(
             }
         }
 
-        // Watchlist
         composable(
             route = "watchlist/{userId}",
             arguments = listOf(
@@ -247,19 +230,13 @@ fun NavGraph(
                 }
             )
         ) { backStackEntry ->
-
             val userId = backStackEntry.arguments?.getString("userId")
-
-            val watchlistViewModel: WatchlistViewModel = viewModel(
-                factory = WatchlistViewModelFactory(userId)
-            )
-
+            val watchlistVM: WatchlistViewModel = viewModel(factory = WatchlistViewModelFactory(userId))
             WatchlistScreen(
-                viewModel = watchlistViewModel,
+                viewModel = watchlistVM,
                 onBack = { navController.popBackStack() },
-                onMovieClick = { movieId -> navController.navigate("details/$movieId") }
+                onMovieClick = { id -> navController.navigate("details/$id") }
             )
         }
-
     }
 }

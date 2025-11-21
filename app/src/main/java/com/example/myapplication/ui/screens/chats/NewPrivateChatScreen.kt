@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,7 +37,6 @@ fun NewPrivateChatScreen(navController: NavController) {
     var users by remember { mutableStateOf<List<UserItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
 
-    // ✅ تحميل جميع المستخدمين من Firestore (باستثناء المستخدم الحالي)
     LaunchedEffect(Unit) {
         db.collection("users")
             .get()
@@ -45,7 +45,7 @@ fun NewPrivateChatScreen(navController: NavController) {
                     .filter { it.id != currentUserId }
                     .map { doc ->
                         val name = doc.getString("username") ?: "Unknown"
-                        val avatarBase64 = doc.getString("avatarBase64") // تعديل هنا
+                        val avatarBase64 = doc.getString("avatarBase64")
                         UserItem(doc.id, name, avatarBase64)
                     }
             }
@@ -55,129 +55,133 @@ fun NewPrivateChatScreen(navController: NavController) {
         it.name.contains(searchText, ignoreCase = true)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Start Private Chat",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Start Private Chat", color = Color.White, fontSize = 18.sp) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
+            )
+        },
+        containerColor = Color(0xFF121212)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121212))
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(4.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                placeholder = { Text("Search user by name...", color = Color.Gray) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFF1E1E1E),
+                    unfocusedContainerColor = Color(0xFF1E1E1E),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
 
-        // ✅ مربع البحث
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
-            placeholder = { Text("Search user by name...", color = Color.Gray) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF1E1E1E),
-                unfocusedContainerColor = Color(0xFF1E1E1E),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = Color.White
-            ),
-            shape = RoundedCornerShape(12.dp)
-        )
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ✅ عرض المستخدمين
-        if (filteredUsers.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No users found", color = Color.Gray)
-            }
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                items(filteredUsers) { user ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (!isLoading) {
-                                    isLoading = true
-                                    createPrivateChat(
-                                        db = db,
-                                        navController = navController,
-                                        currentUserId = currentUserId,
-                                        targetUser = user,
-                                        onFinish = { isLoading = false }
+            if (filteredUsers.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No users found", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(filteredUsers) { user ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (!isLoading) {
+                                        isLoading = true
+                                        createPrivateChat(
+                                            db = db,
+                                            navController = navController,
+                                            currentUserId = currentUserId,
+                                            targetUser = user,
+                                            onFinish = { isLoading = false }
+                                        )
+                                    }
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (!user.avatarBase64.isNullOrEmpty()) {
+                                val bytes = Base64.decode(user.avatarBase64, Base64.DEFAULT)
+                                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                Image(
+                                    bitmap = bmp.asImageBitmap(),
+                                    contentDescription = user.name,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color.Gray, shape = CircleShape)
+                                )
+                            } else {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color(0xFF9B5DE5), shape = CircleShape)
+                                ) {
+                                    Text(
+                                        text = user.name.firstOrNull()?.uppercase() ?: "?",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // ✅ الصورة أو أفاتار أول حرف
-                        if (!user.avatarBase64.isNullOrEmpty()) {
-                            val bytes = Base64.decode(user.avatarBase64, Base64.DEFAULT)
-                            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                            Image(
-                                bitmap = bmp.asImageBitmap(),
-                                contentDescription = user.name,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(Color.Gray, shape = CircleShape)
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = user.name,
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                modifier = Modifier.weight(1f)
                             )
-                        } else {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(Color(0xFF9B5DE5), shape = CircleShape)
-                            ) {
-                                Text(
-                                    text = user.name.firstOrNull()?.uppercase() ?: "?",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+
+                            Icon(
+                                Icons.Default.PersonAdd,
+                                contentDescription = "Start Chat",
+                                tint = Color(0xFF9B5DE5)
+                            )
                         }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Text(
-                            text = user.name,
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        Icon(
-                            Icons.Default.PersonAdd,
-                            contentDescription = "Start Chat",
-                            tint = Color(0xFF9B5DE5)
-                        )
+                        Divider(color = Color.DarkGray, thickness = 0.6.dp)
                     }
-                    Divider(color = Color.DarkGray, thickness = 0.6.dp)
                 }
             }
-        }
 
-        // ✅ شريط التحميل عند الإنشاء
-        if (isLoading) {
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                color = Color(0xFF9B5DE5)
-            )
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    color = Color(0xFF9B5DE5)
+                )
+            }
         }
     }
 }
 
-// ✅ دالة إنشاء شات فردي جديد أو فتح الموجود
 fun createPrivateChat(
     db: FirebaseFirestore,
     navController: NavController,
@@ -187,7 +191,6 @@ fun createPrivateChat(
 ) {
     val members = listOf(currentUserId, targetUser.id)
 
-    // أولًا: التأكد هل فيه شات خاص موجود بالفعل
     db.collection("chats")
         .whereEqualTo("isGroup", false)
         .whereArrayContains("members", currentUserId)
@@ -195,7 +198,7 @@ fun createPrivateChat(
         .addOnSuccessListener { snapshot ->
             val existingChat = snapshot.documents.find { doc ->
                 val membersList = doc.get("members") as? List<*> ?: emptyList<Any>()
-                membersList.containsAll(members)
+                membersList.containsAll(members) && members.size == membersList.size
             }
 
             if (existingChat != null) {
@@ -222,7 +225,6 @@ fun createPrivateChat(
         .addOnFailureListener { onFinish() }
 }
 
-// ✅ موديل المستخدم
 data class UserItem(
     val id: String,
     val name: String,

@@ -162,7 +162,7 @@ fun NavGraph(
         }
 
         // Friend Detail
-        composable("friendDetail/{friendId}") { backStackEntry ->
+        composable("FriendDetailScreen/{friendId}") { backStackEntry ->
             onDestinationChanged("friendDetail")
             val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
             val friendsViewModel: FriendsViewModel = viewModel()

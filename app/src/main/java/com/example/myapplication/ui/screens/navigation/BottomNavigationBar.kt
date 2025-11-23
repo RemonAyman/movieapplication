@@ -39,10 +39,7 @@ fun BottomNavigationBar(navController: NavHostController) {
     NavigationBar(containerColor = Color(0xFF1A1A1A)) {
         items.forEach { item ->
             val isSelected = currentRoute == item.route
-            val scale by animateFloatAsState(
-                targetValue = if (isSelected) 1.35f else 1f,
-                label = ""
-            )
+            val scale by animateFloatAsState(targetValue = if (isSelected) 1.35f else 1f, label = "")
 
             Box(
                 modifier = Modifier

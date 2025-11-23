@@ -23,12 +23,14 @@ import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.firebase.models.UserDataModel
 import com.example.myapplication.ui.screens.friends.FriendsViewModel
 import kotlinx.coroutines.launch
+import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendRequestsScreen(
     viewModel: FriendsViewModel,
-    onBack: (() -> Unit)? = null
+    navController: NavController
 ) {
     val incoming by viewModel.friendRequests.collectAsState()
     val outgoing by viewModel.sentFriendRequests.collectAsState()
@@ -36,20 +38,25 @@ fun FriendRequestsScreen(
 
     LaunchedEffect(Unit) { viewModel.loadFriendRequests() }
 
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Friend Requests", color = Color.White) },
                 navigationIcon = {
-                    onBack?.let {
-                        IconButton(onClick = it) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    IconButton(onClick = {
+                        navController.navigate("profileMainScreen/$currentUserId") {
+                            popUpTo("profileMainScreen/$currentUserId") { inclusive = false }
                         }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
             )
-        }
+        },
+        containerColor = Color(0xFF0F0820)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -133,7 +140,12 @@ fun FriendRequestCard(
                     contentAlignment = Alignment.Center
                 ) {
                     if (friend.avatarBase64.isNotEmpty()) {
-                        AsyncImage(model = friend.avatarBase64, contentDescription = "avatar", modifier = Modifier.fillMaxSize())
+                        AsyncImage(
+                            model = friend.avatarBase64,
+                            contentDescription = "avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
                     } else {
                         Text(friend.username.firstOrNull()?.uppercase() ?: "?", color = Color(0xFF9B5DE5), fontSize = 20.sp)
                     }

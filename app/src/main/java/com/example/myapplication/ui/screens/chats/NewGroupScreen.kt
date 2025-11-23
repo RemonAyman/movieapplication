@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.*
@@ -35,7 +36,6 @@ fun NewGroupScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
 
-    // تحميل الأصدقاء من Firestore
     LaunchedEffect(Unit) {
         db.collection("users")
             .get()
@@ -55,175 +55,187 @@ fun NewGroupScreen(navController: NavController) {
         it.name.contains(searchText, ignoreCase = true)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(16.dp)
-    ) {
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color(0xFF9B5DE5), shape = CircleShape)
-            ) {
-                Text(
-                    text = groupName.firstOrNull()?.uppercase() ?: "G",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            OutlinedTextField(
-                value = groupName,
-                onValueChange = { groupName = it },
-                placeholder = { Text("Group Name", color = Color.Gray) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
-                ),
-                shape = RoundedCornerShape(12.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "New Group", color = Color.White, fontSize = 18.sp) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
             )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
-            placeholder = { Text("Search friends...", color = Color.Gray) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF1E1E1E),
-                unfocusedContainerColor = Color(0xFF1E1E1E),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                cursorColor = Color.White
-            ),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Select Friends",
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (filteredFriends.isEmpty()) {
-            Box(
+        },
+        containerColor = Color(0xFF121212),
+        content = { padding ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .background(Color(0xFF121212))
+                    .padding(padding)
+                    .padding(16.dp)
             ) {
-                Text("No friends found", color = Color.Gray)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f)
-            ) {
-                items(filteredFriends) { friend ->
-                    Row(
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (selectedFriends.contains(friend.id)) {
-                                    selectedFriends.remove(friend.id)
-                                } else {
-                                    selectedFriends.add(friend.id)
-                                }
-                            }
-                            .background(
-                                if (selectedFriends.contains(friend.id)) Color(0xFF2A1B3D)
-                                else Color.Transparent,
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .padding(vertical = 10.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .size(48.dp)
+                            .background(Color(0xFF9B5DE5), shape = CircleShape)
                     ) {
                         Text(
-                            text = friend.name,
+                            text = groupName.firstOrNull()?.uppercase() ?: "G",
                             color = Color.White,
-                            modifier = Modifier.weight(1f)
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
                         )
-                        if (selectedFriends.contains(friend.id)) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = Color(0xFF9B5DE5)
-                            )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    OutlinedTextField(
+                        value = groupName,
+                        onValueChange = { groupName = it },
+                        placeholder = { Text("Group Name", color = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFF1E1E1E),
+                            unfocusedContainerColor = Color(0xFF1E1E1E),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { searchText = it },
+                    placeholder = { Text("Search friends...", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFF1E1E1E),
+                        unfocusedContainerColor = Color(0xFF1E1E1E),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Select Friends",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (filteredFriends.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No friends found", color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(filteredFriends) { friend ->
+                            val selected = selectedFriends.contains(friend.id)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (selected) selectedFriends.remove(friend.id)
+                                        else selectedFriends.add(friend.id)
+                                    }
+                                    .background(
+                                        if (selected) Color(0xFF2A1B3D)
+                                        else Color.Transparent,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = friend.name,
+                                    color = Color.White,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (selected) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color(0xFF9B5DE5)
+                                    )
+                                }
+                            }
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        if (groupName.isNotBlank() && selectedFriends.isNotEmpty()) {
+                            isLoading = true
+                            val members = (selectedFriends + currentUserId).toList()
+                            val groupData = hashMapOf(
+                                "name" to groupName,
+                                "isGroup" to true,
+                                "members" to members,
+                                "lastMessage" to "",
+                                "lastMessageTime" to Timestamp.now()
+                            )
+                            db.collection("chats")
+                                .add(groupData)
+                                .addOnSuccessListener { docRef ->
+                                    isLoading = false
+                                    navController.navigate("chatDetail/${docRef.id}") {
+                                        popUpTo("chats") { inclusive = false }
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    isLoading = false
+                                }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else {
+                        Icon(Icons.Default.Group, contentDescription = "Group", tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Create Group", color = Color.White, fontSize = 16.sp)
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (groupName.isNotBlank() && selectedFriends.isNotEmpty()) {
-                    isLoading = true
-
-                    val members = (selectedFriends + currentUserId).toList()
-
-                    val groupData = hashMapOf(
-                        "name" to groupName,
-                        "isGroup" to true,
-                        "members" to members,
-                        "lastMessage" to "",
-                        "lastMessageTime" to Timestamp.now()
-                    )
-
-                    db.collection("chats")
-                        .add(groupData)
-                        .addOnSuccessListener { docRef ->
-                            isLoading = false
-                            navController.navigate("chatDetail/${docRef.id}") {
-                                popUpTo("chats") { inclusive = false }
-                            }
-                        }
-                        .addOnFailureListener {
-                            isLoading = false
-                        }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            } else {
-                Icon(Icons.Default.Group, contentDescription = "Group", tint = Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Create Group", color = Color.White, fontSize = 16.sp)
-            }
-        }
-    }
+    )
 }
 
 data class FriendItem(

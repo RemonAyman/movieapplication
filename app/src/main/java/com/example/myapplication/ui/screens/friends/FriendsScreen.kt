@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,13 +24,16 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.firebase.models.UserDataModel
 import kotlinx.coroutines.launch
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel,
+    navController: NavController,
     onFriendClick: (String) -> Unit,
-    isSearchMode: Boolean = false
+    isSearchMode: Boolean = false,
+    onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
 
@@ -56,89 +61,98 @@ fun FriendsScreen(
         viewModel.loadFriendRequests()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F0820))
-            .padding(16.dp)
-    ) {
-        Text(
-            text = if (isSearchMode) "Find Users" else "Your Friends",
-            color = Color.White,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (isSearchMode) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search by username", color = Color.LightGray) },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF1B1330),
-                    unfocusedContainerColor = Color(0xFF1B1330),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
-                )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = if (isSearchMode) "Find Users" else "Your Friends", color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
             )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
+        },
+        containerColor = Color(0xFF0F0820)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0F0820))
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
 
-        if (displayList.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (isSearchMode) "No users match your search." else "You have no friends yet.",
-                    color = Color(0xFFBDBDBD),
-                    fontSize = 16.sp
+            if (isSearchMode) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search by username", color = Color.LightGray) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFF1B1330),
+                        unfocusedContainerColor = Color(0xFF1B1330),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color.White
+                    )
                 )
+                Spacer(modifier = Modifier.height(12.dp))
             }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(displayList) { user ->
-                    val status = viewModel.computeRequestStatusFor(user.uid)
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(8.dp, shape = RoundedCornerShape(14.dp))
-                            .clickable { onFriendClick(user.uid) },
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Row(
+            if (displayList.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (isSearchMode) "No users match your search." else "You have no friends yet.",
+                        color = Color(0xFFBDBDBD),
+                        fontSize = 16.sp
+                    )
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(displayList) { user ->
+                        val status = viewModel.computeRequestStatusFor(user.uid)
+
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .shadow(8.dp, shape = RoundedCornerShape(14.dp))
+                                .clickable { onFriendClick(user.uid) },
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
+                            shape = RoundedCornerShape(14.dp)
                         ) {
-                            AvatarSmall(user)
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AvatarSmall(user)
+                                Spacer(modifier = Modifier.width(12.dp))
 
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(user.username, color = Color.White, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(user.email, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(user.username, color = Color.White, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(user.email, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
 
-                            when (status) {
-                                "friend" -> Text("Friend", color = Color(0xFFBDBDBD), fontSize = 13.sp)
-                                "sent" -> OutlinedButton(
-                                    onClick = { scope.launch { viewModel.cancelFriendRequest(user.uid) } },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5))
-                                ) { Text("Cancel", color = Color.White) }
+                                when (status) {
+                                    "friend" -> Text("Friend", color = Color(0xFFBDBDBD), fontSize = 13.sp)
+                                    "sent" -> OutlinedButton(
+                                        onClick = { scope.launch { viewModel.cancelFriendRequest(user.uid) } },
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5))
+                                    ) { Text("Cancel", color = Color.White) }
 
-                                "incoming" -> Text("Incoming", color = Color(0xFFBDBDBD), fontSize = 13.sp)
-                                else -> Button(
-                                    onClick = { scope.launch { viewModel.sendFriendRequest(user.uid) } },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5))
-                                ) { Text("Add Friend", color = Color.White) }
+                                    "incoming" -> Text("Incoming", color = Color(0xFFBDBDBD), fontSize = 13.sp)
+                                    else -> Button(
+                                        onClick = { scope.launch { viewModel.sendFriendRequest(user.uid) } },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5))
+                                    ) { Text("Add Friend", color = Color.White) }
+                                }
                             }
                         }
                     }

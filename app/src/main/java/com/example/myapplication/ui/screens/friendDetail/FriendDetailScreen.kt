@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.screens.friendDetail
 
+import android.app.Activity
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.foundation.Image
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,10 +37,8 @@ fun FriendDetailScreen(
     onWatchedClick: (String) -> Unit,
     onWatchListClick: (String) -> Unit,
     onRatingsClick: (String) -> Unit,
-
-
-
-    ) {
+) {
+    val context = LocalContext.current
     val friend by viewModel.friendDetail.collectAsState()
     val friends by viewModel.friendsList.collectAsState()
     val friendRequests by viewModel.friendRequests.collectAsState()
@@ -61,10 +61,10 @@ fun FriendDetailScreen(
             TopAppBar(
                 title = { Text("Profile", color = Color.White) },
                 navigationIcon = {
-                    onBack?.let {
-                        IconButton(onClick = it) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                        }
+                    IconButton(onClick = {
+                        onBack?.invoke() ?: (context as? Activity)?.onBackPressed()
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
@@ -233,7 +233,6 @@ fun FriendDetailScreen(
                         // =======================
                         Spacer(modifier = Modifier.height(28.dp))
 
-
                         Column(
                             modifier = Modifier.fillMaxWidth(0.85f),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -258,7 +257,7 @@ fun FriendDetailScreen(
 
                             // Ratings
                             Button(
-                                onClick = {onRatingsClick(UserId)},
+                                onClick = { onRatingsClick(UserId) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7400B8)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {

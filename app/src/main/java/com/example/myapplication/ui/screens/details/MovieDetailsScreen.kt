@@ -1,13 +1,8 @@
 package com.example.myapplication.ui.details
 
 import com.example.myapplication.R
-
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,6 +49,12 @@ import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
 import com.example.myapplication.viewmodel.FavoritesViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,27 +64,24 @@ fun MovieDetailsScreen(
     favoritesViewModel: FavoritesViewModel,
 ) {
     val apiService = remember { MovieApiService.create() }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     val watchlistViewModel: WatchlistViewModel = viewModel(
         factory = WatchlistViewModelFactory(currentUserId)
     )
 
-    var isWatched by remember { mutableStateOf(false) } // متغير لتتبع حالة الـ Watch
+    var isWatched by remember { mutableStateOf(false) }
     var isInWatchlist by remember { mutableStateOf(false) }
     var isFavorite by remember { mutableStateOf(false) }
-
     var movie by remember { mutableStateOf<MovieApiModel?>(null) }
     var trailerKey by remember { mutableStateOf<String?>(null) }
     var castList by remember { mutableStateOf<List<CastMember>>(emptyList()) }
 
     val scrollState = rememberScrollState()
-
-    // ====== BOTTOM SHEET STATE ======
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showSheet by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
 
     // ===== Load movie details =====
     LaunchedEffect(movieId) {
@@ -133,9 +131,7 @@ fun MovieDetailsScreen(
 
     val movieData = movie!!
 
-    // ===== Animated Helpers =====
-    val haptics = LocalHapticFeedback.current
-
+    // ===== Animated Icon Button =====
     @Composable
     fun AnimatedIconButton(
         isActive: Boolean,
@@ -148,7 +144,6 @@ fun MovieDetailsScreen(
             targetValue = if (isActive) 1.2f else 1f,
             animationSpec = tween(300)
         )
-
         val tint by animateColorAsState(
             targetValue = if (isActive) activeColor else inactiveColor,
             animationSpec = tween(300)
@@ -167,38 +162,8 @@ fun MovieDetailsScreen(
         }
     }
 
-    @Composable
-    fun AnimatedStar(
-        filled: Boolean,
-        onClick: () -> Unit,
-    ) {
-        val scale by animateFloatAsState(
-            targetValue = if (filled) 1.3f else 1f,
-            animationSpec = spring(dampingRatio = 0.4f, stiffness = 200f)
-        )
-
-        val tint by animateColorAsState(
-            targetValue = if (filled) Color.Yellow else Color.LightGray,
-            animationSpec = tween(250)
-        )
-
-        IconButton(
-            modifier = Modifier.scale(scale),
-            onClick = {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Star,
-                contentDescription = null,
-                tint = tint
-            )
-        }
-    }
-
     // ============================
-    //      Bottom Sheet
+    // Bottom Sheet
     // ============================
     if (showSheet) {
         ModalBottomSheet(
@@ -206,7 +171,7 @@ fun MovieDetailsScreen(
             containerColor = Color(0xFF2A1B3D),
             onDismissRequest = { showSheet = false }
         ) {
-            // Row 1
+            // Row 1: Watchlist / Favorites / Watched
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -227,16 +192,14 @@ fun MovieDetailsScreen(
                             )
                         }
                     ) {
-                        if (isInWatchlist)
-                            watchlistViewModel.removeFromWatchlist(movieData.id.toString())
-                        else
-                            watchlistViewModel.addToWatchlist(
-                                WatchlistItem(
-                                    movieId = movieData.id.toString(),
-                                    title = movieData.title,
-                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
-                                )
+                        if (isInWatchlist) watchlistViewModel.removeFromWatchlist(movieData.id.toString())
+                        else watchlistViewModel.addToWatchlist(
+                            WatchlistItem(
+                                movieId = movieData.id.toString(),
+                                title = movieData.title,
+                                poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
                             )
+                        )
                     }
                     Text("Watchlist", color = Color.White, fontSize = 13.sp)
                 }
@@ -252,10 +215,8 @@ fun MovieDetailsScreen(
                                 else Icons.Outlined.FavoriteBorder,
                                 contentDescription = null,
                                 modifier = Modifier.size(34.dp)
-
                             )
                         }
-
                     ) {
                         isFavorite = !isFavorite
                         val favItem = FavoritesItem(
@@ -269,11 +230,11 @@ fun MovieDetailsScreen(
                     Text(if (isFavorite) "Liked" else "Like", color = Color.White, fontSize = 13.sp)
                 }
 
-                // Watch
+                // Watched
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     AnimatedIconButton(
-                        isActive = isWatched, // استخدم المتغير الجديد
-                        activeColor = Color.Green, // اللون الأخضر عند الضغط
+                        isActive = isWatched,
+                        activeColor = Color.Green,
                         icon = {
                             Icon(
                                 Icons.Default.Visibility,
@@ -281,66 +242,82 @@ fun MovieDetailsScreen(
                                 modifier = Modifier.size(34.dp)
                             )
                         },
-                        onClick = {
-                            isWatched = !isWatched
-                            // أي أكشن إضافي هنا لو حابب
-                        }
+                        onClick = { isWatched = !isWatched }
                     )
                     Text(if (isWatched) "Watched" else "Watch", color = Color.White, fontSize = 13.sp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
-
-            // Row 2: Rating
-            var rating by remember { mutableStateOf(0f) } // Float عشان نص نجمة
+            // ===== Rating Section =====
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp)
             ) {
-                Text("Rate", color = Color.White, fontSize = 20.sp)
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    repeat(5) { index ->
-                        val starFilled = when {
-                            rating >= index + 1 -> 1f // كاملة
-                            rating >= index + 0.5f -> 0.5f // نص نجمة
-                            else -> 0f // فاضية
-                        }
+                var rating by remember { mutableStateOf(0f) }
 
-                        IconButton(
-                            onClick = {
-                                rating = if (starFilled == 1f) index + 0.5f else index + 1f
+                // Container للنجوم مع الـ Slider
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f) // نخلي النجوم في 85% من العرض
+                        .height(50.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures { offset ->
+                                // حساب نسبة المكان المضغوط
+                                val newRating = (offset.x / size.width) * 5f
+                                rating = ((newRating * 2).toInt() / 2f).coerceIn(0f, 5f)
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            },
-                            modifier = Modifier.scale(1.3f)
-                        ) {
-                            when (starFilled) {
-                                1f -> Icon(
-                                    Icons.Rounded.Star,
-                                    contentDescription = null,
-                                    tint = Color.Yellow
-                                )
-
-                                0.5f -> Icon(
-                                    Icons.Rounded.StarHalf,
-                                    contentDescription = null,
-                                    tint = Color.Yellow
-                                )
-
-                                else -> Icon(
-                                    Icons.Rounded.StarOutline,
-                                    contentDescription = null,
-                                    tint = Color.Yellow
-                                )
                             }
+                        }
+                ) {
+                    // Slider شفاف
+                    Slider(
+                        value = rating,
+                        onValueChange = {
+                            rating = ((it * 2).toInt() / 2f).coerceIn(0f, 5f)
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        },
+                        valueRange = 0f..5f,
+                        steps = 9, // 10 خطوات (0, 0.5, 1, 1.5, ..., 5)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .alpha(0f)
+                    )
+
+                    // Stars Row
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        for (i in 1..5) {
+                            val icon = when {
+                                rating >= i -> Icons.Rounded.Star
+                                rating >= i - 0.5f -> Icons.Rounded.StarHalf
+                                else -> Icons.Rounded.StarOutline
+                            }
+
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = if (rating >= i - 0.5f) Color(0xFFFFD700) else Color.Gray,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .padding(horizontal = 4.dp)
+                            )
                         }
                     }
                 }
+
+
             }
+
+            Spacer(modifier = Modifier.height(30.dp))
 
             // DONE Button
             Button(
@@ -349,7 +326,8 @@ fun MovieDetailsScreen(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 20.dp)
             ) {
                 Text("Done", color = Color.White)
             }
@@ -357,7 +335,7 @@ fun MovieDetailsScreen(
     }
 
     // ============================
-    //      Main Movie Details
+    // Main Movie Details
     // ============================
     Column(
         modifier = Modifier
@@ -439,7 +417,7 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Full Width Play Trailer Button
+            // Play Trailer Button
             Button(
                 onClick = {
                     trailerKey?.let { key ->
@@ -463,6 +441,7 @@ fun MovieDetailsScreen(
 
             // CAST
             Text("Cast", color = Color.White, fontSize = 20.sp)
+
             Spacer(modifier = Modifier.height(12.dp))
 
             if (castList.isNotEmpty()) {

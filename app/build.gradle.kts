@@ -93,12 +93,13 @@ dependencies {
 
     // Material Icons
     implementation("androidx.compose.material:material-icons-core:1.7.0")
-    implementation("androidx.compose.material:material-icons-extended:1.7.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.2")
 
-    // Navigation (اللي انت طلبته 2.7.7)
+    // ⭐ Material (للـ Pull to Refresh)
+    implementation("androidx.compose.material:material:1.7.2")
+
+    // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
-
-    // Navigation Runtime (لو محتاجه)
     implementation("androidx.navigation:navigation-runtime-ktx:2.8.0")
 
     // Retrofit + Gson + OkHttp
@@ -156,9 +157,6 @@ dependencies {
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.09.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
-    // ⭐ Compose Animation (اللي انت طلبته)
+    // Compose Animation
     implementation("androidx.compose.animation:animation:1.6.7")
-
-    implementation("androidx.compose.material:material-icons-extended:1.7.2")
-
 }

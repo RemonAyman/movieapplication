@@ -41,6 +41,7 @@ import com.example.myapplication.viewmodel.FavoritesViewModel
 import com.example.myapplication.viewmodel.FavoritesViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import androidx.navigation.compose.rememberNavController
+import com.example.myapplication.ui.screens.details.ActorDetailsScreen
 
 @Composable
 fun NavGraph(
@@ -208,6 +209,7 @@ fun NavGraph(
             PrivateChatDetailScreen(chatId, navController)
         }
 
+        // Movie Details Screen
         composable("details/{movieId}") { backStackEntry ->
             onDestinationChanged("details/{movieId}")
             val movieId = backStackEntry.arguments?.getString("movieId")?.toIntOrNull()
@@ -220,6 +222,24 @@ fun NavGraph(
             }
         }
 
+        // ✅ Actor Details Screen (NEW)
+        composable(
+            route = "actorDetails/{actorId}",
+            arguments = listOf(
+                navArgument("actorId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            onDestinationChanged("actorDetails")
+            val actorId = backStackEntry.arguments?.getInt("actorId") ?: 0
+            ActorDetailsScreen(
+                navController = navController,
+                actorId = actorId
+            )
+        }
+
+        // Watchlist Screen
         composable(
             route = "watchlist/{userId}",
             arguments = listOf(

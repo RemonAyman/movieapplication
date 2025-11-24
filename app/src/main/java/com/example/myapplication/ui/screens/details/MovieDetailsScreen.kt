@@ -324,16 +324,14 @@ fun MovieDetailsScreen(
                                 )
                             }
                         ) {
+                            isFavorite = !isFavorite
                             val favItem = FavoritesItem(
                                 movieData.id.toString(),
                                 movieData.title,
                                 "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
                             )
-                            if (isFavorite) {
-                                favoritesViewModel.removeFromFavorites(favItem.movieId)
-                            } else {
-                                favoritesViewModel.addToFavorites(favItem)
-                            }
+                            if (isFavorite) favoritesViewModel.addToFavorites(favItem)
+                            else favoritesViewModel.removeFromFavorites(favItem.movieId)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(

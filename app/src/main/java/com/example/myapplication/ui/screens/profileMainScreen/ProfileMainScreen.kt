@@ -1,14 +1,12 @@
 package com.example.myapplication.ui.screens.profileMainScreen
 
-import MovieApiModel
+import com.example.myapplication.data.remote.MovieApiModel
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -31,7 +29,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -106,11 +103,11 @@ fun ProfileMainScreen(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar
+                // ✅ Avatar with proper ContentScale
                 Box(
                     modifier = Modifier
                         .size(130.dp)
-                        .shadow(8.dp, CircleShape)
+                        .shadow(12.dp, CircleShape)
                         .clip(CircleShape)
                         .background(AppColors.NeonGlow.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
@@ -119,15 +116,33 @@ fun ProfileMainScreen(
                         Image(
                             bitmap = avatarBitmap!!.asImageBitmap(),
                             contentDescription = "User Avatar",
-                            modifier = Modifier.fillMaxSize()
+                            contentScale = ContentScale.Crop,  // ✅ أهم حاجة
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)  // ✅ تأكيد إن الصورة دائرية
                         )
                     } else {
-                        Text(
-                            text = if (username.isNotEmpty()) username.first().uppercase() else "?",
-                            color = AppColors.NeonGlow,
-                            fontSize = 52.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        // Placeholder
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            AppColors.NeonGlow.copy(alpha = 0.3f),
+                                            AppColors.NeonGlow.copy(alpha = 0.1f)
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (username.isNotEmpty()) username.first().uppercase() else "?",
+                                color = AppColors.NeonGlow,
+                                fontSize = 52.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
                 }
 
@@ -147,7 +162,7 @@ fun ProfileMainScreen(
                 Button(
                     onClick = onEditProfile,
                     colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow),
-                    shape = MaterialTheme.shapes.large,
+                    shape = RoundedCornerShape(24.dp),
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(48.dp)
@@ -211,7 +226,9 @@ fun FavoritesSection(
             navController = navController
         )
     }
-}@Composable
+}
+
+@Composable
 fun MovieRow(
     movies: List<FavoritesItem>,
     navController: NavHostController
@@ -228,11 +245,11 @@ fun MovieRow(
 
             Box(
                 modifier = Modifier
-                    .width(80.dp)
-                    .height(130.dp)
+                    .width(100.dp)
+                    .height(150.dp)
                     .graphicsLayer { scaleX = scale; scaleY = scale }
-                    .clip(RoundedCornerShape(16.dp))
-                    .shadow(8.dp, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .shadow(8.dp, RoundedCornerShape(12.dp))
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
@@ -241,23 +258,25 @@ fun MovieRow(
                     },
                 contentAlignment = Alignment.BottomCenter
             ) {
-                // Poster
+                // Poster with proper crop
                 AsyncImage(
-                    model = "https://image.tmdb.org/t/p/w500${movie.poster}",
+                    model = movie.poster,
                     contentDescription = movie.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    contentScale = ContentScale.Crop,  // ✅ مهم
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
                 )
 
                 // Gradient overlay
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
+                        .height(60.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color(0xCC2A1B3D))
+                                colors = listOf(Color.Transparent, Color(0xDD000000))
                             )
                         )
                 )
@@ -266,37 +285,41 @@ fun MovieRow(
                 Text(
                     text = movie.title,
                     color = Color.White,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    lineHeight = 13.sp,
                     modifier = Modifier
-                        .padding(horizontal = 2.dp, vertical = 2.dp)
+                        .padding(horizontal = 4.dp, vertical = 6.dp)
                         .align(Alignment.BottomCenter)
                 )
 
                 // Rating
-                if (movie.rating > 0) {
+                if (movie.vote_average > 0) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .background(Color(0xAA000000), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .padding(6.dp)
+                            .background(Color(0xCC000000), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Rounded.Star,
                                 contentDescription = "Rating",
-                                tint = Color.Yellow,
+                                tint = Color(0xFFFFD700),
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = String.format("%.1f", movie.vote_average),
                                 color = Color.White,
-                                fontSize = 10.sp
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -306,9 +329,12 @@ fun MovieRow(
     }
 }
 
-
 @Composable
-fun ProfileCardItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+fun ProfileCardItem(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -316,7 +342,7 @@ fun ProfileCardItem(title: String, icon: androidx.compose.ui.graphics.vector.Ima
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = AppColors.DarkBg.copy(alpha = 0.85f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        shape = MaterialTheme.shapes.medium
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier

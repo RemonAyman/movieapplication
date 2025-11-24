@@ -17,8 +17,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +62,14 @@ fun NewPrivateChatScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Start Private Chat", color = Color.White, fontSize = 18.sp) },
+                title = {
+                    Text(
+                        "Start Private Chat",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -67,30 +78,34 @@ fun NewPrivateChatScreen(navController: NavController) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
             )
         },
-        containerColor = Color(0xFF121212)
+        containerColor = Color(0xFF0F0820)
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121212))
+                .background(Color(0xFF0F0820))
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
                 placeholder = { Text("Search user by name...", color = Color.Gray) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp)),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
+                    focusedContainerColor = Color(0xFF1B1330),
+                    unfocusedContainerColor = Color(0xFF1B1330),
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    cursorColor = Color(0xFF9B5DE5),
+                    focusedBorderColor = Color(0xFF9B5DE5),
+                    unfocusedBorderColor = Color(0xFF2A1B3D)
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -102,14 +117,31 @@ fun NewPrivateChatScreen(navController: NavController) {
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No users found", color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "No users found",
+                            color = Color(0xFFBDBDBD),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Try a different search term",
+                            color = Color(0xFF9B5DE5).copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     items(filteredUsers) { user ->
-                        Row(
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .shadow(8.dp, RoundedCornerShape(16.dp))
                                 .clickable {
                                     if (!isLoading) {
                                         isLoading = true
@@ -121,51 +153,71 @@ fun NewPrivateChatScreen(navController: NavController) {
                                             onFinish = { isLoading = false }
                                         )
                                     }
-                                }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                },
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            if (!user.avatarBase64.isNullOrEmpty()) {
-                                val bytes = Base64.decode(user.avatarBase64, Base64.DEFAULT)
-                                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                Image(
-                                    bitmap = bmp.asImageBitmap(),
-                                    contentDescription = user.name,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(Color.Gray, shape = CircleShape)
-                                )
-                            } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // ✅ Avatar with proper styling
                                 Box(
-                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .size(48.dp)
-                                        .background(Color(0xFF9B5DE5), shape = CircleShape)
+                                        .size(56.dp)
+                                        .shadow(6.dp, CircleShape)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.radialGradient(
+                                                colors = listOf(
+                                                    Color(0xFF9B5DE5).copy(alpha = 0.3f),
+                                                    Color(0xFF2A1B3D)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = user.name.firstOrNull()?.uppercase() ?: "?",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    if (!user.avatarBase64.isNullOrEmpty()) {
+                                        val bytes = Base64.decode(user.avatarBase64, Base64.DEFAULT)
+                                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                        Image(
+                                            bitmap = bmp.asImageBitmap(),
+                                            contentDescription = user.name,
+                                            contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(CircleShape)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = user.name.firstOrNull()?.uppercase() ?: "?",
+                                            color = Color(0xFF9B5DE5),
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    }
                                 }
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Text(
+                                    text = user.name,
+                                    color = Color.White,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                Icon(
+                                    Icons.Default.PersonAdd,
+                                    contentDescription = "Start Chat",
+                                    tint = Color(0xFF9B5DE5),
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Text(
-                                text = user.name,
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Icon(
-                                Icons.Default.PersonAdd,
-                                contentDescription = "Start Chat",
-                                tint = Color(0xFF9B5DE5)
-                            )
                         }
-                        Divider(color = Color.DarkGray, thickness = 0.6.dp)
                     }
                 }
             }

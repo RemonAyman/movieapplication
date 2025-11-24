@@ -11,12 +11,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -105,125 +108,79 @@ fun ChatListScreen(navController: NavController) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(12.dp)
-    ) {
-        Text(
-            text = "Chats",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-        )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Chats",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1B1330)
+                ),
+                actions = {
+                    IconButton(onClick = { /* TODO: Add New Chat */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "New Chat",
+                            tint = Color(0xFF9B5DE5)
+                        )
+                    }
+                }
+            )
+        },
+        containerColor = Color(0xFF0F0820)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0F0820))
+                .padding(padding)
+                .padding(horizontal = 12.dp)
+        ) {
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (chats.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No chats yet", color = Color(0xFFBDBDBD))
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                itemsIndexed(chats, key = { _, item -> item.id }) { index, chat ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(4.dp, shape = RoundedCornerShape(12.dp)),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (chat.isGroup) {
-                                        navController.navigate("chatDetail/${chat.id}")
-                                    } else {
-                                        navController.navigate("privateChatDetail/${chat.id}")
-                                    }
-                                }
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Avatar(
-                                avatarBase64 = chat.avatarBase64,
-                                name = chat.name,
-                                sizeDp = 56
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = chat.name,
-                                        color = Color.White,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    Text(
-                                        text = formatTimestampSmart(chat.lastMessageTime),
-                                        color = Color(0xFFBDBDBD),
-                                        fontSize = 12.sp
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = chat.lastMessage,
-                                        color = Color(0xFFBDBDBD),
-                                        fontSize = 14.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-
-                                    if (chat.unreadCount > 0) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .height(28.dp)
-                                                .wrapContentWidth()
-                                                .clip(CircleShape)
-                                                .background(Color(0xFF9B5DE5)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = if (chat.unreadCount > 99) "99+" else chat.unreadCount.toString(),
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                modifier = Modifier.padding(horizontal = 10.dp)
-                                            )
-                                        }
-                                    }
+            if (chats.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "No chats yet",
+                            color = Color(0xFFBDBDBD),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Start a conversation with your friends!",
+                            color = Color(0xFF9B5DE5).copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    itemsIndexed(chats, key = { _, item -> item.id }) { index, chat ->
+                        ChatItemCard(
+                            chat = chat,
+                            onClick = {
+                                if (chat.isGroup) {
+                                    navController.navigate("chatDetail/${chat.id}")
+                                } else {
+                                    navController.navigate("privateChatDetail/${chat.id}")
                                 }
                             }
-                        }
+                        )
                     }
 
-                    if (index < chats.lastIndex) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
@@ -232,7 +189,108 @@ fun ChatListScreen(navController: NavController) {
 }
 
 @Composable
-private fun Avatar(avatarBase64: String?, name: String, sizeDp: Int = 48) {
+private fun ChatItemCard(
+    chat: ChatListItem,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, shape = RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar with better styling
+            Avatar(
+                avatarBase64 = chat.avatarBase64,
+                name = chat.name,
+                sizeDp = 60
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = chat.name,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = formatTimestampSmart(chat.lastMessageTime),
+                        color = Color(0xFF9B5DE5).copy(alpha = 0.8f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = chat.lastMessage,
+                        color = Color(0xFFBDBDBD),
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (chat.unreadCount > 0) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .height(24.dp)
+                                .wrapContentWidth()
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color(0xFF9B5DE5),
+                                            Color(0xFF7B3FD5)
+                                        )
+                                    )
+                                )
+                                .shadow(4.dp, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (chat.unreadCount > 99) "99+" else chat.unreadCount.toString(),
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Avatar(avatarBase64: String?, name: String, sizeDp: Int = 60) {
     val imageBitmap = remember(avatarBase64) {
         try {
             if (!avatarBase64.isNullOrEmpty()) {
@@ -245,29 +303,37 @@ private fun Avatar(avatarBase64: String?, name: String, sizeDp: Int = 48) {
         }
     }
 
-    if (imageBitmap != null) {
-        Image(
-            bitmap = imageBitmap,
-            contentDescription = name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(sizeDp.dp)
-                .clip(CircleShape)
-                .border(2.dp, Color(0xFF2A1B3D), CircleShape)
-        )
-    } else {
-        Box(
-            modifier = Modifier
-                .size(sizeDp.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF9B5DE5)),
-            contentAlignment = Alignment.Center
-        ) {
+    Box(
+        modifier = Modifier
+            .size(sizeDp.dp)
+            .shadow(8.dp, CircleShape)
+            .clip(CircleShape)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF9B5DE5).copy(alpha = 0.3f),
+                        Color(0xFF2A1B3D)
+                    )
+                )
+            )
+            .border(2.dp, Color(0xFF9B5DE5).copy(alpha = 0.3f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (imageBitmap != null) {
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = name,
+                contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+            )
+        } else {
             Text(
                 text = name.firstOrNull()?.uppercase() ?: "?",
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = (sizeDp / 3).sp
+                color = Color(0xFF9B5DE5),
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = (sizeDp / 2.5).sp
             )
         }
     }

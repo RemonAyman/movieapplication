@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,8 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -191,35 +195,72 @@ fun editProfileScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar + click to pick image
+                    // ✅ Avatar + Camera Icon Overlay
                     Box(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .shadow(6.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(AppColors.NeonGlow.copy(alpha = 0.2f))
-                            .clickable { launcher.launch("image/*") },
+                        modifier = Modifier.size(130.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (avatarBase64 != null) {
-                            val decodedBytes = android.util.Base64.decode(avatarBase64, android.util.Base64.DEFAULT)
-                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Avatar",
-                                modifier = Modifier.fillMaxSize().clip(CircleShape)
-                            )
-                        } else {
-                            Text(
-                                text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
-                                color = AppColors.NeonGlow,
-                                fontSize = 48.sp,
-                                fontWeight = FontWeight.Bold
+                        // Avatar Circle
+                        Box(
+                            modifier = Modifier
+                                .size(130.dp)
+                                .shadow(12.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            AppColors.NeonGlow.copy(alpha = 0.3f),
+                                            AppColors.NeonGlow.copy(alpha = 0.1f)
+                                        )
+                                    )
+                                )
+                                .clickable { launcher.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (avatarBase64 != null) {
+                                val decodedBytes = android.util.Base64.decode(avatarBase64, android.util.Base64.DEFAULT)
+                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Avatar",
+                                    contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                                )
+                            } else {
+                                // Placeholder
+                                Text(
+                                    text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
+                                    color = AppColors.NeonGlow,
+                                    fontSize = 52.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+
+                        // ✅ Camera Icon Badge
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .offset(x = (-4).dp, y = (-4).dp)
+                                .size(38.dp)
+                                .shadow(8.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(AppColors.NeonGlow)
+                                .clickable { launcher.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Change Avatar",
+                                tint = AppColors.DarkBg,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     // Username
                     OutlinedTextField(
@@ -291,7 +332,7 @@ fun editProfileScreen(
                         if (saving || uploading)
                             CircularProgressIndicator(color = AppColors.TextColor, strokeWidth = 2.dp)
                         else
-                            Text("Save Changes", color = AppColors.TextColor)
+                            Text("Save Changes", color = AppColors.TextColor, fontWeight = FontWeight.SemiBold)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

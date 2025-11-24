@@ -122,10 +122,10 @@ fun NavGraph(
                 navController = navController,
                 userId = userId,
                 onEditProfile = { navController.navigate("profileEdit") },
-                onFavoritesClick = { navController.navigate("favorites/$currentUserId") },
+                onFavoritesClick = { navController.navigate("favorites/$userId") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist/$currentUserId") }
+                onWatchlistClick = { navController.navigate("watchlist/$userId") }
             )
         }
 
@@ -147,7 +147,15 @@ fun NavGraph(
             )
         }
 
-        composable("FriendDetailScreen/{friendId}") { backStackEntry ->
+        // ✅ Friend Detail Screen - FIXED ROUTE
+        composable(
+            route = "friendDetail/{friendId}",
+            arguments = listOf(
+                navArgument("friendId") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
             onDestinationChanged("friendDetail")
             val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
             val friendsVM: FriendsViewModel = viewModel()
@@ -222,7 +230,7 @@ fun NavGraph(
             }
         }
 
-        // ✅ Actor Details Screen (NEW)
+        // ✅ Actor Details Screen
         composable(
             route = "actorDetails/{actorId}",
             arguments = listOf(

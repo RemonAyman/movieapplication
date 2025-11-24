@@ -14,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,7 +45,14 @@ fun FriendRequestsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Friend Requests", color = Color.White) },
+                title = {
+                    Text(
+                        "Friend Requests",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         navController.navigate("profileMainScreen/$currentUserId") {
@@ -63,24 +72,28 @@ fun FriendRequestsScreen(
                 .fillMaxSize()
                 .background(Color(0xFF0F0820))
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            Section("Incoming", incoming) { friend ->
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Section("Incoming Requests", incoming) { friend ->
                 FriendRequestCard(
                     friend,
                     primaryActionText = "Accept",
+                    primaryColor = Color(0xFF48C774),
                     secondaryActionText = "Decline",
                     onPrimaryAction = { scope.launch { viewModel.acceptFriendRequest(friend.uid) } },
                     onSecondaryAction = { scope.launch { viewModel.declineFriendRequest(friend.uid) } }
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Section("Outgoing", outgoing) { friend ->
+            Section("Sent Requests", outgoing) { friend ->
                 FriendRequestCard(
                     friend,
                     primaryActionText = "Cancel",
+                    primaryColor = Color(0xFFEF5350),
                     secondaryActionText = null,
                     onPrimaryAction = { scope.launch { viewModel.cancelFriendRequest(friend.uid) } },
                     onSecondaryAction = null
@@ -96,14 +109,47 @@ private fun Section(
     list: List<UserDataModel>,
     itemContent: @Composable (UserDataModel) -> Unit
 ) {
-    Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = title,
+        color = Color.White,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(bottom = 12.dp)
+    )
+
     if (list.isEmpty()) {
-        Box(modifier = Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.CenterStart) {
-            Text("No $title requests", color = Color(0xFFBDBDBD))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330).copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "No ${title.lowercase()}",
+                        color = Color(0xFFBDBDBD),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "You're all caught up!",
+                        color = Color(0xFF9B5DE5).copy(alpha = 0.7f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
         }
     } else {
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.heightIn(max = 400.dp)
+        ) {
             items(list) { itemContent(it) }
         }
     }
@@ -113,6 +159,7 @@ private fun Section(
 fun FriendRequestCard(
     friend: UserDataModel,
     primaryActionText: String,
+    primaryColor: Color = Color(0xFF9B5DE5),
     secondaryActionText: String?,
     onPrimaryAction: () -> Unit,
     onSecondaryAction: (() -> Unit)?
@@ -120,59 +167,108 @@ fun FriendRequestCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(6.dp, shape = RoundedCornerShape(12.dp)),
+            .shadow(8.dp, shape = RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF2A1B3D).copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (friend.avatarBase64.isNotEmpty()) {
-                        AsyncImage(
-                            model = friend.avatarBase64,
-                            contentDescription = "avatar",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            // Avatar with proper styling
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .shadow(8.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF9B5DE5).copy(alpha = 0.3f),
+                                Color(0xFF2A1B3D)
+                            )
                         )
-                    } else {
-                        Text(friend.username.firstOrNull()?.uppercase() ?: "?", color = Color(0xFF9B5DE5), fontSize = 20.sp)
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text(friend.username, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(friend.email, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (friend.avatarBase64.isNotEmpty()) {
+                    AsyncImage(
+                        model = friend.avatarBase64,
+                        contentDescription = "avatar",
+                        contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                    )
+                } else {
+                    Text(
+                        text = friend.username.firstOrNull()?.uppercase() ?: "?",
+                        color = Color(0xFF9B5DE5),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = friend.username,
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = friend.email,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Action Buttons
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.End
+            ) {
                 Button(
                     onClick = onPrimaryAction,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5))
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.height(36.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                 ) {
-                    Text(primaryActionText, color = Color.White)
+                    Text(
+                        primaryActionText,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 if (secondaryActionText != null && onSecondaryAction != null) {
                     OutlinedButton(
                         onClick = onSecondaryAction,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5))
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.height(36.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                     ) {
-                        Text(secondaryActionText, color = Color(0xFF9B5DE5))
+                        Text(
+                            secondaryActionText,
+                            color = Color(0xFFEF5350),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }

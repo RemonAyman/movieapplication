@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.screens.chats
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.foundation.Image
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,8 +30,12 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,37 +43,57 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     var messageText by remember { mutableStateOf("") }
-    var messages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
+    var messages by remember { mutableStateOf<List<PrivateChatMessage>>(emptyList()) }
     var members by remember { mutableStateOf<Map<String,String>>(emptyMap()) }
-    var avatars by remember { mutableStateOf<Map<String,String>>(emptyMap()) }
+    var avatars by remember { mutableStateOf<Map<String,Bitmap?>>(emptyMap()) }
     val coroutineScope = rememberCoroutineScope()
 
     var targetUserId by remember { mutableStateOf("") }
     var targetUserName by remember { mutableStateOf("User") }
-    var targetUserAvatar by remember { mutableStateOf("") }
+    var targetUserAvatar by remember { mutableStateOf<Bitmap?>(null) }
 
     var currentUserName by remember { mutableStateOf("Me") }
-    var currentUserAvatar by remember { mutableStateOf("") }
+    var currentUserAvatar by remember { mutableStateOf<Bitmap?>(null) }
 
-    // تحميل بيانات المستخدمين
+    // ✅ تحميل بيانات المستخدمين بشكل محسّن
     LaunchedEffect(chatId) {
-        val chatDoc = db.collection("chats").document(chatId).get().await()
-        val memberIds = chatDoc.get("members") as? List<String> ?: emptyList()
-        if(memberIds.isNotEmpty()){
-            val usersSnap = db.collection("users").whereIn("__name__", memberIds).get().await()
-            members = usersSnap.documents.associate { it.id to (it.getString("username") ?: "Unknown") }
-            avatars = usersSnap.documents.associate { it.id to (it.getString("avatarBase64") ?: "") }
+        withContext(Dispatchers.IO) {
+            try {
+                val chatDoc = db.collection("chats").document(chatId).get().await()
+                val memberIds = chatDoc.get("members") as? List<String> ?: emptyList()
 
-            targetUserId = memberIds.first { it != currentUserId }
-            targetUserName = members[targetUserId] ?: "User"
-            targetUserAvatar = avatars[targetUserId] ?: ""
+                if(memberIds.isNotEmpty()){
+                    val usersSnap = db.collection("users").whereIn("__name__", memberIds).get().await()
+                    val tempMembers = mutableMapOf<String, String>()
+                    val tempAvatars = mutableMapOf<String, Bitmap?>()
 
-            currentUserName = members[currentUserId] ?: "Me"
-            currentUserAvatar = avatars[currentUserId] ?: ""
+                    usersSnap.documents.forEach { doc ->
+                        tempMembers[doc.id] = doc.getString("username") ?: "Unknown"
+                        val avatarBase64 = doc.getString("avatarBase64") ?: ""
+                        tempAvatars[doc.id] = if(avatarBase64.isNotEmpty()) {
+                            decodeBase64ToBitmap(avatarBase64)
+                        } else null
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        members = tempMembers
+                        avatars = tempAvatars
+
+                        targetUserId = memberIds.first { it != currentUserId }
+                        targetUserName = members[targetUserId] ?: "User"
+                        targetUserAvatar = avatars[targetUserId]
+
+                        currentUserName = members[currentUserId] ?: "Me"
+                        currentUserAvatar = avatars[currentUserId]
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
-    // تحميل الرسائل
+    // ✅ تحميل الرسائل
     LaunchedEffect(chatId) {
         val chatRef = db.collection("chats").document(chatId).collection("messages")
         chatRef.orderBy("timestamp", Query.Direction.ASCENDING)
@@ -76,7 +102,8 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     messages = snapshot.documents.mapNotNull { doc ->
                         val text = doc.getString("text") ?: return@mapNotNull null
                         val senderId = doc.getString("senderId") ?: ""
-                        ChatMessage(senderId, text)
+                        val timestamp = doc.getTimestamp("timestamp")
+                        PrivateChatMessage(senderId, text, timestamp)
                     }
                 }
             }
@@ -87,82 +114,144 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             .fillMaxSize()
             .background(Color(0xFF121212))
     ) {
-        // TopBar مع زر الرجوع وصورة الطرف التاني
+        // TopBar
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF1E1E1E))
-                .padding(8.dp)
+                .padding(horizontal = 8.dp, vertical = 12.dp)
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
 
-            AvatarImage(targetUserAvatar, targetUserName) {
-                navController.navigate("FriendDetailScreen/$targetUserId") {
+            OptimizedAvatarImage(targetUserAvatar, targetUserName) {
+                navController.navigate("friendDetail/$targetUserId") {
                     launchSingleTop = true
                     restoreState = true
                 }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
-            Text(targetUserName, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(targetUserName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // عرض الرسائل
         LazyColumn(
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 12.dp),
             reverseLayout = false
         ) {
-            items(messages) { msg ->
-                val isMine = msg.senderId == currentUserId
-                val senderName = if(isMine) currentUserName else members[msg.senderId] ?: "Unknown"
-                val avatarBase64 = if(isMine) currentUserAvatar else avatars[msg.senderId] ?: ""
+            val groupedMessages = messages.groupBy { msg ->
+                msg.timestamp?.let { formatPrivateDateHeader(it) } ?: "Unknown"
+            }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = if(isMine) Arrangement.End else Arrangement.Start,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    if(!isMine){
-                        AvatarImage(avatarBase64, senderName) {
-                            navController.navigate("FriendDetailScreen/${msg.senderId}") {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-
-                    Column(horizontalAlignment = if(isMine) Alignment.End else Alignment.Start) {
-                        if(!isMine){
-                            Text(senderName, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                        }
+            groupedMessages.forEach { (dateHeader, messagesInGroup) ->
+                item(key = "header_$dateHeader") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Box(
                             modifier = Modifier
-                                .background(if(isMine) Color(0xFF9B5DE5) else Color(0xFF333333), shape = RoundedCornerShape(12.dp))
-                                .padding(10.dp)
+                                .background(
+                                    Color(0xFF2A1B3D).copy(alpha = 0.6f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
                         ) {
-                            Text(msg.text, color = Color.White, fontSize = 16.sp)
+                            Text(
+                                dateHeader,
+                                color = Color(0xFF9B5DE5),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
-                    if(isMine) Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                items(messagesInGroup, key = { it.senderId + it.text + it.timestamp.toString() }) { msg ->
+                    val isMine = msg.senderId == currentUserId
+                    val senderName = if(isMine) currentUserName else members[msg.senderId] ?: "Unknown"
+                    val avatarBitmap = if(isMine) currentUserAvatar else avatars[msg.senderId]
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        horizontalArrangement = if(isMine) Arrangement.End else Arrangement.Start,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        if(!isMine){
+                            OptimizedAvatarImage(avatarBitmap, senderName) {
+                                navController.navigate("friendDetail/${msg.senderId}") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        Column(horizontalAlignment = if(isMine) Alignment.End else Alignment.Start) {
+                            if(!isMine){
+                                Text(
+                                    senderName,
+                                    color = Color.Gray,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if(isMine) Color(0xFF9B5DE5) else Color(0xFF333333),
+                                            shape = RoundedCornerShape(
+                                                topStart = 16.dp,
+                                                topEnd = 16.dp,
+                                                bottomStart = if(isMine) 16.dp else 4.dp,
+                                                bottomEnd = if(isMine) 4.dp else 16.dp
+                                            )
+                                        )
+                                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                                ) {
+                                    Text(msg.text, color = Color.White, fontSize = 15.sp)
+                                }
+
+                                msg.timestamp?.let {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        formatPrivateMessageTime(it),
+                                        color = Color.Gray,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(bottom = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        if(isMine) Spacer(modifier = Modifier.width(8.dp))
+                    }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // إدخال الرسائل
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF1E1E1E), RoundedCornerShape(12.dp))
-                .padding(6.dp)
+                .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
             OutlinedTextField(
                 value = messageText,
@@ -172,58 +261,128 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
                     cursorColor = Color.White,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
+                    focusedContainerColor = Color(0xFF2A1B3D),
+                    unfocusedContainerColor = Color(0xFF2A1B3D),
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
                 ),
-                modifier = Modifier.weight(1f)
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(24.dp))
             )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             IconButton(
                 onClick = {
                     val text = messageText.trim()
                     if(text.isNotEmpty()){
                         coroutineScope.launch {
-                            sendMessage(chatId, currentUserId, text)
+                            sendPrivateMessage(chatId, currentUserId, text)
                             messageText = ""
                         }
                     }
-                }
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF9B5DE5), CircleShape)
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Send", tint = Color(0xFF9B5DE5))
+                Icon(
+                    Icons.Default.Send,
+                    contentDescription = "Send",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
+// ✅ Optimized Avatar with Bitmap cache
 @Composable
-fun AvatarImage(avatarBase64: String, name: String, onClick: () -> Unit) {
-    Box(modifier = Modifier
-        .size(40.dp)
-        .clip(CircleShape)
-        .background(if(avatarBase64.isEmpty()) Color(0xFF9B5DE5) else Color.Gray)
-        .clickable { onClick() },
+fun OptimizedAvatarImage(bitmap: Bitmap?, name: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(if(bitmap == null) Color(0xFF9B5DE5) else Color.Transparent)
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        if(avatarBase64.isNotEmpty()){
-            val bytes = Base64.decode(avatarBase64, Base64.DEFAULT)
-            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            Image(bitmap = bmp.asImageBitmap(), contentDescription = name, modifier = Modifier.fillMaxSize())
+        if(bitmap != null){
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
         } else {
-            Text(name.firstOrNull()?.uppercase() ?: "U", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(
+                name.firstOrNull()?.uppercase() ?: "U",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
-data class ChatMessage(val senderId: String = "", val text: String = "")
+// ✅ Decode Base64 on background thread
+suspend fun decodeBase64ToBitmap(base64: String): Bitmap? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val bytes = Base64.decode(base64, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
 
-suspend fun sendMessage(chatId: String, senderId: String, text: String){
-    val db = FirebaseFirestore.getInstance()
-    val messageData = hashMapOf(
-        "senderId" to senderId,
-        "text" to text,
-        "timestamp" to Timestamp.now()
-    )
-    db.collection("chats").document(chatId).collection("messages").add(messageData).await()
-    db.collection("chats").document(chatId).update(
-        mapOf("lastMessage" to text, "lastMessageTime" to Timestamp.now())
-    ).await()
+fun formatPrivateDateHeader(timestamp: Timestamp): String {
+    val now = Calendar.getInstance()
+    val messageTime = Calendar.getInstance().apply {
+        time = timestamp.toDate()
+    }
+
+    val daysDiff = ((now.timeInMillis - messageTime.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+
+    return when {
+        daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) -> "Today"
+        daysDiff == 1 || (daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) - messageTime.get(Calendar.DAY_OF_YEAR) == 1) -> "Yesterday"
+        daysDiff < 7 && now.get(Calendar.WEEK_OF_YEAR) == messageTime.get(Calendar.WEEK_OF_YEAR) -> {
+            SimpleDateFormat("EEEE", Locale.ENGLISH).format(messageTime.time)
+        }
+        else -> SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH).format(messageTime.time)
+    }
+}
+
+fun formatPrivateMessageTime(timestamp: Timestamp): String {
+    return SimpleDateFormat("HH:mm", Locale.ENGLISH).format(timestamp.toDate())
+}
+
+data class PrivateChatMessage(
+    val senderId: String = "",
+    val text: String = "",
+    val timestamp: Timestamp? = null
+)
+
+suspend fun sendPrivateMessage(chatId: String, senderId: String, text: String){
+    withContext(Dispatchers.IO) {
+        val db = FirebaseFirestore.getInstance()
+        val messageData = hashMapOf(
+            "senderId" to senderId,
+            "text" to text,
+            "timestamp" to Timestamp.now()
+        )
+        db.collection("chats").document(chatId).collection("messages").add(messageData).await()
+        db.collection("chats").document(chatId).update(
+            mapOf("lastMessage" to text, "lastMessageTime" to Timestamp.now())
+        ).await()
+    }
 }

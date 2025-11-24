@@ -17,9 +17,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -39,11 +44,35 @@ data class ChatItem(
     val avatarBase64: String? = null
 )
 
-// تحويل Timestamp لوقت
+// ✅ تحويل Timestamp لوقت مع التاريخ الذكي
 object TimestampUtils {
     fun format(timestamp: Timestamp): String {
-        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-        return sdf.format(timestamp.toDate())
+        val now = Calendar.getInstance()
+        val messageTime = Calendar.getInstance().apply {
+            time = timestamp.toDate()
+        }
+
+        // حساب الفرق بالأيام
+        val daysDiff = ((now.timeInMillis - messageTime.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+
+        return when {
+            // نفس اليوم - عرض الوقت فقط
+            daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) -> {
+                SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(messageTime.time)
+            }
+            // امبارح
+            daysDiff == 1 || (daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) - messageTime.get(Calendar.DAY_OF_YEAR) == 1) -> {
+                "Yesterday"
+            }
+            // خلال الأسبوع الحالي - عرض اسم اليوم
+            daysDiff < 7 && now.get(Calendar.WEEK_OF_YEAR) == messageTime.get(Calendar.WEEK_OF_YEAR) -> {
+                SimpleDateFormat("EEEE", Locale.ENGLISH).format(messageTime.time)
+            }
+            // أكتر من أسبوع - عرض التاريخ الكامل
+            else -> {
+                SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH).format(messageTime.time)
+            }
+        }
     }
 }
 
@@ -105,55 +134,73 @@ fun ChatsScreen(navController: NavController) {
     val filteredChats = sortedChats.filter { it.name.contains(searchText, ignoreCase = true) }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Chats",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF1B1330)
+                )
+            )
+        },
         floatingActionButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
             ) {
                 FloatingActionButton(
                     onClick = { navController.navigate("newPrivateChat") },
-                    containerColor = Color(0xFF9B5DE5)
+                    containerColor = Color(0xFF6930C3),
+                    shape = CircleShape,
+                    modifier = Modifier.shadow(8.dp, CircleShape)
                 ) {
                     Icon(Icons.Default.Person, contentDescription = "Private", tint = Color.White)
                 }
                 FloatingActionButton(
                     onClick = { navController.navigate("newGroup") },
-                    containerColor = Color(0xFF9B5DE5)
+                    containerColor = Color(0xFF9B5DE5),
+                    shape = CircleShape,
+                    modifier = Modifier.shadow(8.dp, CircleShape)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "New Group", tint = Color.White)
                 }
             }
-        }
+        },
+        containerColor = Color(0xFF0F0820)
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121212))
+                .background(Color(0xFF0F0820))
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            Text(
-                text = "Chats",
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Search Bar
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
                 placeholder = { Text("Search chats...", color = Color.Gray) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp)),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF1E1E1E),
-                    unfocusedContainerColor = Color(0xFF1E1E1E),
+                    focusedContainerColor = Color(0xFF1B1330),
+                    unfocusedContainerColor = Color(0xFF1B1330),
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
-                    cursorColor = Color.White
+                    cursorColor = Color(0xFF9B5DE5),
+                    focusedBorderColor = Color(0xFF9B5DE5),
+                    unfocusedBorderColor = Color(0xFF2A1B3D)
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -162,70 +209,180 @@ fun ChatsScreen(navController: NavController) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) { Text("No chats found", color = Color.Gray) }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "No chats found",
+                            color = Color(0xFFBDBDBD),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Start a new conversation!",
+                            color = Color(0xFF9B5DE5).copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             } else {
-                LazyColumn {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(filteredChats) { chat ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    navController.navigate(
-                                        if (chat.isGroup) "chatDetail/${chat.id}"
-                                        else "privateChatDetail/${chat.id}"
-                                    )
-                                }
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (!chat.avatarBase64.isNullOrEmpty()) {
-                                val bytes = Base64.decode(chat.avatarBase64, Base64.DEFAULT)
-                                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                Image(
-                                    bitmap = bmp.asImageBitmap(),
-                                    contentDescription = chat.name,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(Color.Gray, CircleShape)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .background(Color(0xFF9B5DE5), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = chat.name.firstOrNull()?.uppercase() ?: "?",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(chat.name, color = Color.White, fontSize = 18.sp)
-                                Text(chat.lastMessage, color = Color.Gray, fontSize = 14.sp)
-                            }
-
-                            val badgeColor = if (chat.isGroup) Color(0xFF9B5DE5) else Color(0xFF5DE59B)
-                            Text(text = if (chat.isGroup) "Group" else "Private", color = badgeColor, fontSize = 14.sp)
-
-                            chat.lastMessageTime?.let {
-                                Text(
-                                    TimestampUtils.format(it),
-                                    color = Color.Gray,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(start = 8.dp)
+                        ChatCard(
+                            chat = chat,
+                            onClick = {
+                                navController.navigate(
+                                    if (chat.isGroup) "chatDetail/${chat.id}"
+                                    else "privateChatDetail/${chat.id}"
                                 )
                             }
-                        }
-                        Divider(color = Color.DarkGray, thickness = 0.5.dp)
+                        )
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ChatCard(
+    chat: ChatItem,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1330)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar
+            ChatAvatar(
+                avatarBase64 = chat.avatarBase64,
+                name = chat.name,
+                isGroup = chat.isGroup
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = chat.name,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (chat.isGroup) Color(0xFF9B5DE5).copy(alpha = 0.2f)
+                                else Color(0xFF5DE59B).copy(alpha = 0.2f)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (chat.isGroup) "Group" else "Private",
+                            color = if (chat.isGroup) Color(0xFF9B5DE5) else Color(0xFF5DE59B),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = chat.lastMessage,
+                        color = Color(0xFFBDBDBD),
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    chat.lastMessageTime?.let {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            TimestampUtils.format(it),
+                            color = Color(0xFF9B5DE5).copy(alpha = 0.8f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatAvatar(
+    avatarBase64: String?,
+    name: String,
+    isGroup: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .size(60.dp)
+            .shadow(8.dp, CircleShape)
+            .clip(CircleShape)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF9B5DE5).copy(alpha = 0.3f),
+                        Color(0xFF2A1B3D)
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!avatarBase64.isNullOrEmpty()) {
+            val bytes = Base64.decode(avatarBase64, Base64.DEFAULT)
+            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            bmp?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            }
+        } else {
+            Text(
+                text = name.firstOrNull()?.uppercase() ?: "?",
+                color = Color(0xFF9B5DE5),
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 24.sp
+            )
         }
     }
 }

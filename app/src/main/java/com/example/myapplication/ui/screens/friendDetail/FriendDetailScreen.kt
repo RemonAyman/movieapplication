@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.asImageBitmap
@@ -89,13 +90,20 @@ fun FriendDetailScreen(
                             .fillMaxWidth()
                             .padding(20.dp)
                     ) {
-                        // Avatar
+                        // ✅ Avatar with Gradient Background + Proper Crop
                         Box(
                             modifier = Modifier
                                 .size(140.dp)
+                                .shadow(12.dp, CircleShape)
                                 .clip(CircleShape)
-                                .shadow(8.dp, shape = CircleShape)
-                                .background(Color(0xFF2A1B3D)),
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0xFF9B5DE5).copy(alpha = 0.3f),
+                                            Color(0xFF2A1B3D)
+                                        )
+                                    )
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             val bmp = remember(f.avatarBase64) {
@@ -113,22 +121,25 @@ fun FriendDetailScreen(
                                 Image(
                                     painter = BitmapPainter(bmp),
                                     contentDescription = "avatar",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
+                                    contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
                                 )
                             } else {
+                                // Placeholder
                                 Text(
                                     text = f.username.firstOrNull()?.uppercase() ?: "?",
                                     color = Color(0xFF9B5DE5),
-                                    fontSize = 36.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 48.sp,
+                                    fontWeight = FontWeight.ExtraBold
                                 )
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(f.username, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                        Text(f.username, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         Text(f.email, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
                         Text(f.phone, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
 

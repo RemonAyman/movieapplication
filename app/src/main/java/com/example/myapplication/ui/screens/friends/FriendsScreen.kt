@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -136,7 +137,7 @@ fun FriendsScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(user.username, color = Color.White, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(user.username, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(user.email, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
 
@@ -145,13 +146,13 @@ fun FriendsScreen(
                                     "sent" -> OutlinedButton(
                                         onClick = { scope.launch { viewModel.cancelFriendRequest(user.uid) } },
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5))
-                                    ) { Text("Cancel", color = Color.White) }
+                                    ) { Text("Cancel", color = Color.White, fontSize = 12.sp) }
 
                                     "incoming" -> Text("Incoming", color = Color(0xFFBDBDBD), fontSize = 13.sp)
                                     else -> Button(
                                         onClick = { scope.launch { viewModel.sendFriendRequest(user.uid) } },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5))
-                                    ) { Text("Add Friend", color = Color.White) }
+                                    ) { Text("Add", color = Color.White, fontSize = 12.sp) }
                                 }
                             }
                         }
@@ -167,19 +168,35 @@ private fun AvatarSmall(user: UserDataModel, sizeDp: Int = 52) {
     Box(
         modifier = Modifier
             .size(sizeDp.dp)
+            .shadow(6.dp, CircleShape)
             .clip(CircleShape)
-            .background(Color(0xFF2A1B3D).copy(alpha = 0.6f)),
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF9B5DE5).copy(alpha = 0.3f),
+                        Color(0xFF2A1B3D)
+                    )
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (user.avatarBase64.isNotEmpty()) {
             AsyncImage(
                 model = user.avatarBase64,
                 contentDescription = "avatar",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
             )
         } else {
-            Text(user.username.firstOrNull()?.uppercase() ?: "?", color = Color(0xFF9B5DE5), fontSize = 18.sp)
+            // Placeholder
+            Text(
+                text = user.username.firstOrNull()?.uppercase() ?: "?",
+                color = Color(0xFF9B5DE5),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
         }
     }
 }

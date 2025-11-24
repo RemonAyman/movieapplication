@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 
 class WatchedViewModel(
     private val repository: WatchedRepository = WatchedRepository(),
+    private val userId: String? = null // ✅ إضافة userId
 ) : ViewModel() {
     private val _watched = MutableStateFlow<List<WatchedItem>>(emptyList())
     val watched: StateFlow<List<WatchedItem>> = _watched
@@ -22,14 +23,15 @@ class WatchedViewModel(
     val errorState: StateFlow<String?> = _errorState
 
     init {
-        loadWatched()
+        loadWatched(userId)
     }
 
     fun loadWatched(userId: String? = null) {
         viewModelScope.launch {
             _loadingState.value = true
             try {
-                _watched.value = repository.getWatched(userId)
+                // ✅ استخدم الـ userId من الـ parameter أو من الـ constructor
+                _watched.value = repository.getWatched(userId ?: this@WatchedViewModel.userId)
                 _errorState.value = null
             } catch (e: Exception) {
                 _watched.value = emptyList()
@@ -37,7 +39,6 @@ class WatchedViewModel(
             } finally {
                 _loadingState.value = false
             }
-
         }
     }
 
@@ -71,5 +72,17 @@ class WatchedViewModel(
             }
         }
     }
+}
 
+// ✅ إضافة Factory
+class WatchedViewModelFactory(
+    private val userId: String?
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(WatchedViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return WatchedViewModel(userId = userId) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
 }

@@ -28,23 +28,26 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.myapplication.ui.screens.watched.WatchedItem
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.FavoritesViewModelFactory
 import com.example.myapplication.viewmodel.WatchedViewModel
+import com.example.myapplication.viewmodel.WatchedViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchedScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    watchedViewModel: WatchedViewModel = viewModel(),
-    favoritesViewModel: FavoritesViewModel = viewModel(),
+    watchedViewModel: WatchedViewModel, // ✅ Remove default value
+    favoritesViewModel: FavoritesViewModel, // ✅ Remove default value
     userId: String? = null
 ) {
     val watchedItems by watchedViewModel.watched.collectAsState()
     val isLoading by watchedViewModel.loadingState.collectAsState()
     val favoriteItems by favoritesViewModel.favorites.collectAsState()
 
+    // ✅ لا تستدعي loadWatched هنا لأنه بيتم في الـ init
+    // بس نستدعي الـ Favorites
     LaunchedEffect(userId) {
-        watchedViewModel.loadWatched(userId)
         favoritesViewModel.loadFavorites(userId)
     }
 

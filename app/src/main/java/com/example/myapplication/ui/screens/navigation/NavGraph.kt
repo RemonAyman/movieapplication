@@ -44,6 +44,7 @@ import com.example.myapplication.viewmodel.WatchedViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.screens.details.ActorDetailsScreen
+import com.example.myapplication.viewmodel.WatchedViewModelFactory
 
 @Composable
 fun NavGraph(
@@ -272,6 +273,7 @@ fun NavGraph(
         }
 
         // ✅ Watched Screen
+        // ✅ Watched Screen with Factory
         composable(
             route = "watched/{userId}",
             arguments = listOf(
@@ -284,8 +286,15 @@ fun NavGraph(
         ) { backStackEntry ->
             onDestinationChanged("watched")
             val userId = backStackEntry.arguments?.getString("userId")
-            val watchedVM: WatchedViewModel = viewModel()
-            val favoritesVM: FavoritesViewModel = viewModel()
+
+            // ✅ إنشاء ViewModels مع الـ Factory
+            val watchedVM: WatchedViewModel = viewModel(
+                factory = WatchedViewModelFactory(userId)
+            )
+            val favoritesVM: FavoritesViewModel = viewModel(
+                factory = FavoritesViewModelFactory(userId)
+            )
+
             WatchedScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },

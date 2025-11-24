@@ -37,8 +37,10 @@ import com.example.myapplication.ui.screens.chats.PrivateChatDetailScreen
 import com.example.myapplication.ui.watchlist.WatchlistScreen
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
 import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
+import com.example.myapplication.ui.watched.WatchedScreen
 import com.example.myapplication.viewmodel.FavoritesViewModel
 import com.example.myapplication.viewmodel.FavoritesViewModelFactory
+import com.example.myapplication.viewmodel.WatchedViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.screens.details.ActorDetailsScreen
@@ -112,7 +114,8 @@ fun NavGraph(
                 onFavoritesClick = { navController.navigate("favorites/$currentUserId") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist/$currentUserId") }
+                onWatchlistClick = { navController.navigate("watchlist/$currentUserId") },
+                onWatchedClick = { navController.navigate("watched/$currentUserId") }
             )
         }
 
@@ -125,7 +128,8 @@ fun NavGraph(
                 onFavoritesClick = { navController.navigate("favorites/$userId") },
                 onFriendsClick = { navController.navigate("friends") },
                 onRequestsClick = { navController.navigate("friendRequests") },
-                onWatchlistClick = { navController.navigate("watchlist/$userId") }
+                onWatchlistClick = { navController.navigate("watchlist/$userId") },
+                onWatchedClick = { navController.navigate("watched/$userId") }
             )
         }
 
@@ -147,7 +151,7 @@ fun NavGraph(
             )
         }
 
-        // ✅ Friend Detail Screen - FIXED ROUTE
+        // ✅ Friend Detail Screen
         composable(
             route = "friendDetail/{friendId}",
             arguments = listOf(
@@ -164,7 +168,7 @@ fun NavGraph(
                 viewModel = friendsVM,
                 onBack = { navController.popBackStack() },
                 onLikesClick = { navController.navigate("favorites/$friendId") },
-                onWatchedClick = {},
+                onWatchedClick = { navController.navigate("watched/$friendId") },
                 onWatchListClick = { navController.navigate("watchlist/$friendId") },
                 onRatingsClick = {}
             )
@@ -230,7 +234,7 @@ fun NavGraph(
             }
         }
 
-        // ✅ Actor Details Screen
+        //  Actor Details Screen
         composable(
             route = "actorDetails/{actorId}",
             arguments = listOf(
@@ -264,6 +268,30 @@ fun NavGraph(
                 viewModel = watchlistVM,
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") }
+            )
+        }
+
+        // ✅ Watched Screen
+        composable(
+            route = "watched/{userId}",
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            onDestinationChanged("watched")
+            val userId = backStackEntry.arguments?.getString("userId")
+            val watchedVM: WatchedViewModel = viewModel()
+            val favoritesVM: FavoritesViewModel = viewModel()
+            WatchedScreen(
+                onBack = { navController.popBackStack() },
+                onMovieClick = { id -> navController.navigate("details/$id") },
+                watchedViewModel = watchedVM,
+                favoritesViewModel = favoritesVM,
+                userId = userId
             )
         }
     }

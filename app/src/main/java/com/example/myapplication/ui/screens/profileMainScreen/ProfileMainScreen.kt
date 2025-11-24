@@ -41,6 +41,7 @@ import coil.compose.AsyncImage
 import com.example.myapplication.AppColors
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.WatchedViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -53,8 +54,10 @@ fun ProfileMainScreen(
     onFriendsClick: () -> Unit = {},
     onRequestsClick: () -> Unit = {},
     onWatchlistClick: () -> Unit = { navController.navigate("watchlist")},
+    onWatchedClick:()-> Unit={}
 ) {
     val favoritesViewModel: FavoritesViewModel = viewModel()
+    val watchedViewModel: WatchedViewModel= viewModel()
     val db = FirebaseFirestore.getInstance()
 
     var username by remember { mutableStateOf("") }
@@ -62,6 +65,8 @@ fun ProfileMainScreen(
     var loading by remember { mutableStateOf(true) }
 
     val favorites by favoritesViewModel.favorites.collectAsState()
+
+    val watched by watchedViewModel.watched.collectAsState()
 
     // تحميل بيانات أي يوزر حسب userId
     suspend fun loadUserData() {
@@ -183,6 +188,7 @@ fun ProfileMainScreen(
                         navController = navController,
                         onSeeMore = { onFavoritesClick() }
                     )
+                    ProfileCardItem("Watched", Icons.Default.GroupAdd, onWatchedClick)
                     ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)
                     ProfileCardItem("Friends", Icons.Default.Person, onFriendsClick)
                     ProfileCardItem("Friend Requests", Icons.Default.GroupAdd, onRequestsClick)

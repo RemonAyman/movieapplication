@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -45,11 +46,13 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.*
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.example.myapplication.ui.screens.watched.WatchedItem
 import com.example.myapplication.ui.theme.MovitoBackground
 import com.example.myapplication.ui.watchlist.WatchlistItem
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
 import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.WatchedViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.animation.core.*
@@ -58,7 +61,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
-import com.example.myapplication.ui.screens.details.ActorItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,9 +77,12 @@ fun MovieDetailsScreen(
         factory = WatchlistViewModelFactory(currentUserId)
     )
 
-    var isWatched by remember { mutableStateOf(false) }
+    // ✅ إضافة WatchedViewModel
+    val watchedViewModel: WatchedViewModel = viewModel()
+
     var isInWatchlist by remember { mutableStateOf(false) }
     var isFavorite by remember { mutableStateOf(false) }
+    var isWatched by remember { mutableStateOf(false) }
     var movie by remember { mutableStateOf<MovieApiModel?>(null) }
     var trailerKey by remember { mutableStateOf<String?>(null) }
     var castList by remember { mutableStateOf<List<CastMember>>(emptyList()) }
@@ -122,7 +127,7 @@ fun MovieDetailsScreen(
             trailerKey = videos.results.find { it.site == "YouTube" && it.type == "Trailer" }?.key
 
             val credits = apiService.getMovieCredits(movieId)
-            castList = credits.cast.take(10) // أول 10 بس
+            castList = credits.cast.take(10)
 
             delay(100)
             posterVisible = true
@@ -139,6 +144,15 @@ fun MovieDetailsScreen(
         movie?.let { m ->
             watchlistViewModel.watchlist.collectLatest { list ->
                 isInWatchlist = list.any { it.movieId == m.id.toString() }
+            }
+        }
+    }
+
+    // ✅ Watched collector
+    LaunchedEffect(movie) {
+        movie?.let { m ->
+            watchedViewModel.watched.collectLatest { list ->
+                isWatched = list.any { it.movieId == m.id.toString() }
             }
         }
     }
@@ -276,14 +290,17 @@ fun MovieDetailsScreen(
                                 )
                             }
                         ) {
-                            if (isInWatchlist) watchlistViewModel.removeFromWatchlist(movieData.id.toString())
-                            else watchlistViewModel.addToWatchlist(
-                                WatchlistItem(
-                                    movieId = movieData.id.toString(),
-                                    title = movieData.title,
-                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
+                            if (isInWatchlist) {
+                                watchlistViewModel.removeFromWatchlist(movieData.id.toString())
+                            } else {
+                                watchlistViewModel.addToWatchlist(
+                                    WatchlistItem(
+                                        movieId = movieData.id.toString(),
+                                        title = movieData.title,
+                                        poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
+                                    )
                                 )
-                            )
+                            }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -307,14 +324,16 @@ fun MovieDetailsScreen(
                                 )
                             }
                         ) {
-                            isFavorite = !isFavorite
                             val favItem = FavoritesItem(
                                 movieData.id.toString(),
                                 movieData.title,
                                 "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
                             )
-                            if (isFavorite) favoritesViewModel.addToFavorites(favItem)
-                            else favoritesViewModel.removeFromFavorites(favItem.movieId)
+                            if (isFavorite) {
+                                favoritesViewModel.removeFromFavorites(favItem.movieId)
+                            } else {
+                                favoritesViewModel.addToFavorites(favItem)
+                            }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -324,7 +343,7 @@ fun MovieDetailsScreen(
                         )
                     }
 
-                    // Watched
+                    // ✅ Watched - نفس اللوجيك
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
                             isActive = isWatched,
@@ -336,7 +355,21 @@ fun MovieDetailsScreen(
                                     modifier = Modifier.size(32.dp)
                                 )
                             },
-                            onClick = { isWatched = !isWatched }
+                            onClick = {
+                                if (isWatched) {
+                                    watchedViewModel.removeFromWatched(movieData.id.toString())
+                                } else {
+                                    watchedViewModel.addToWatched(
+                                        WatchedItem(
+                                            movieId = movieData.id.toString(),
+                                            title = movieData.title,
+                                            poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                            rating = 0,
+                                            vote_average = movieData.vote_average.toInt()
+                                        )
+                                    )
+                                }
+                            }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -465,7 +498,7 @@ fun MovieDetailsScreen(
                         .padding(horizontal = 20.dp)
                         .height(52.dp)
                 ) {
-                    Text("Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Done", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -474,7 +507,7 @@ fun MovieDetailsScreen(
     }
 
     // ============================
-    // Main Movie Details
+    // Main Movie Details (نفس الكود السابق)
     // ============================
     Column(
         modifier = Modifier
@@ -703,20 +736,62 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ التعديل الرئيسي هنا - استخدام ActorItem مع Navigation
             if (castList.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(horizontal = 0.dp)
                 ) {
                     items(castList) { actor ->
-                        ActorItem(
-                            actor = actor,
-                            onClick = {
-                                // Navigate to Actor Details
-                                navController.navigate("actorDetails/${actor.id}")
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(90.dp)
+                        ) {
+                            // Actor image with border
+                            Box {
+                                val hasProfilePath = actor.profile_path != null && actor.profile_path.isNotEmpty()
+
+                                if (hasProfilePath) {
+                                    AsyncImage(
+                                        model = "https://image.tmdb.org/t/p/w200${actor.profile_path}",
+                                        contentDescription = actor.name,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF4A3A64))
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF4A3A64)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            actor.name.take(1),
+                                            color = Color.White,
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
-                        )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Actor name
+                            Text(
+                                actor.name,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             } else {

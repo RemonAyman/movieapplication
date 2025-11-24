@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class FavoritesViewModel(
     private val repository: FavoritesRepository = FavoritesRepository(),
-    userId: String? =null
+    userId: String? = null,
 ) : ViewModel() {
 
     private val _favorites = MutableStateFlow<List<FavoritesItem>>(emptyList())
@@ -24,8 +24,9 @@ class FavoritesViewModel(
     val errorState: StateFlow<String?> = _errorState
 
     init {
-        loadFavorites(userId)
+        loadFavorites()
     }
+
     fun loadFirst4Favorites(userId: String? = null) {
         viewModelScope.launch {
             _loadingState.value = true
@@ -86,8 +87,9 @@ class FavoritesViewModel(
         }
     }
 }
+
 class FavoritesViewModelFactory(
-    private val userId: String?
+    private val userId: String?,
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FavoritesViewModel::class.java)) {

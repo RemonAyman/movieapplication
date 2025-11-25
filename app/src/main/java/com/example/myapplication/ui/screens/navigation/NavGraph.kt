@@ -59,6 +59,7 @@ fun NavGraph(
     val favoritesViewModel: FavoritesViewModel = viewModel()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
         composable("splash") {
@@ -96,11 +97,15 @@ fun NavGraph(
         composable("favorites/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val favVM: FavoritesViewModel = viewModel(factory = FavoritesViewModelFactory(userId))
+            val ratingVM: RatingViewModel = viewModel(
+                factory = RatingViewModelFactory(userId)
+            )
             FavoritesScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
                 viewModel = favVM,
-                userID = userId
+                userID = userId,
+                ratingViewModel = ratingVM
             )
         }
 
@@ -297,13 +302,17 @@ fun NavGraph(
             val favoritesVM: FavoritesViewModel = viewModel(
                 factory = FavoritesViewModelFactory(userId)
             )
+            val ratingVM: RatingViewModel = viewModel(
+                factory = RatingViewModelFactory(userId)
+            )
 
             WatchedScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
                 watchedViewModel = watchedVM,
                 favoritesViewModel = favoritesVM,
-                userId = userId
+                userId = userId,
+                ratingViewModel = ratingVM
             )
         }
 
@@ -329,7 +338,8 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
                 ratingViewModel = ratingVM,
-                userId = userId
+                userId = userId,
+                favoritesViewModel = favoritesViewModel
             )
         }
     }

@@ -17,12 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -30,8 +26,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +87,7 @@ fun ChatDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(groupName, color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text(groupName, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -104,10 +98,10 @@ fun ChatDetailScreen(
                         Icon(Icons.Default.GroupAdd, contentDescription = "Add/Remove Member", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
         },
-        containerColor = Color(0xFF0F0820)
+        containerColor = Color(0xFF121212)
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Column(
@@ -121,52 +115,19 @@ fun ChatDetailScreen(
                         .fillMaxWidth(),
                     reverseLayout = false
                 ) {
-                    // ✅ Group messages by date
-                    val groupedMessages = messages.groupBy { msg ->
-                        msg.timestamp?.let { formatDateHeader(it) } ?: "Unknown"
-                    }
-
-                    groupedMessages.forEach { (dateHeader, messagesInGroup) ->
-                        // Date Header
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .background(
-                                            Color(0xFF2A1B3D).copy(alpha = 0.6f),
-                                            RoundedCornerShape(12.dp)
-                                        )
-                                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                                ) {
-                                    Text(
-                                        dateHeader,
-                                        color = Color(0xFF9B5DE5),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                    items(messages) { msg ->
+                        val senderName = members[msg.senderId] ?: "Unknown"
+                        val avatarBase64 = avatars[msg.senderId] ?: ""
+                        MessageBubble(
+                            msg,
+                            isMe = msg.senderId == currentUserId,
+                            senderName = senderName,
+                            avatarBase64 = avatarBase64,
+                            onAvatarClick = {
+                                // Navigate to ProfileMainScreen of that user
+                                navController.navigate("FriendDetail/${msg.senderId}")
                             }
-                        }
-
-                        // Messages in this date group
-                        items(messagesInGroup) { msg ->
-                            val senderName = members[msg.senderId] ?: "Unknown"
-                            val avatarBase64 = avatars[msg.senderId] ?: ""
-                            MessageBubble(
-                                msg,
-                                isMe = msg.senderId == currentUserId,
-                                senderName = senderName,
-                                avatarBase64 = avatarBase64,
-                                onAvatarClick = {
-                                    navController.navigate("friendDetail/${msg.senderId}")
-                                }
-                            )
-                        }
+                        )
                     }
                 }
 
@@ -186,9 +147,9 @@ fun ChatDetailScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent,
-                            focusedContainerColor = Color(0xFF1B1330),
-                            unfocusedContainerColor = Color(0xFF1B1330),
-                            cursorColor = Color(0xFF9B5DE5),
+                            focusedContainerColor = Color(0xFF2A1B3D),
+                            unfocusedContainerColor = Color(0xFF2A1B3D),
+                            cursorColor = Color.White,
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         ),
@@ -205,8 +166,7 @@ fun ChatDetailScreen(
                         modifier = Modifier
                             .padding(start = 8.dp)
                             .size(48.dp)
-                            .shadow(4.dp, CircleShape)
-                            .background(Color(0xFF9B5DE5), CircleShape)
+                            .background(Color(0xFF9B5DE5), RoundedCornerShape(24.dp))
                     ) {
                         Icon(Icons.Default.Send, contentDescription = "Send", tint = Color.White)
                     }
@@ -238,25 +198,6 @@ fun ChatDetailScreen(
                 )
             }
         }
-    }
-}
-
-// ✅ Format date header (Today, Yesterday, date)
-fun formatDateHeader(timestamp: Timestamp): String {
-    val now = Calendar.getInstance()
-    val messageTime = Calendar.getInstance().apply {
-        time = timestamp.toDate()
-    }
-
-    val daysDiff = ((now.timeInMillis - messageTime.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-
-    return when {
-        daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) -> "Today"
-        daysDiff == 1 || (daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) - messageTime.get(Calendar.DAY_OF_YEAR) == 1) -> "Yesterday"
-        daysDiff < 7 && now.get(Calendar.WEEK_OF_YEAR) == messageTime.get(Calendar.WEEK_OF_YEAR) -> {
-            SimpleDateFormat("EEEE", Locale.ENGLISH).format(messageTime.time)
-        }
-        else -> SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH).format(messageTime.time)
     }
 }
 
@@ -293,39 +234,30 @@ fun MessageBubble(
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
         if (!isMe) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .shadow(6.dp, CircleShape)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                Color(0xFF9B5DE5).copy(alpha = 0.3f),
-                                Color(0xFF2A1B3D)
-                            )
-                        )
-                    )
-                    .clickable { onAvatarClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                if (avatarBase64.isNotBlank()) {
-                    val bytes = Base64.decode(avatarBase64, Base64.DEFAULT)
-                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                    )
-                } else {
+            if (avatarBase64.isNotBlank()) {
+                val bytes = Base64.decode(avatarBase64, Base64.DEFAULT)
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { onAvatarClick() }
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF9B5DE5))
+                        .clickable { onAvatarClick() },
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = senderName.firstOrNull()?.uppercase() ?: "U",
-                        color = Color(0xFF9B5DE5),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        color = Color.White,
+                        fontSize = 16.sp
                     )
                 }
             }
@@ -336,44 +268,26 @@ fun MessageBubble(
             if (!isMe) {
                 Text(
                     senderName,
-                    color = Color(0xFF9B5DE5).copy(alpha = 0.8f),
+                    color = Color.Gray,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                 )
             }
 
-            Row(verticalAlignment = Alignment.Bottom) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = if (isMe) Color(0xFF9B5DE5) else Color(0xFF1B1330),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Text(message.text, color = Color.White, fontSize = 16.sp)
-                }
-
-                // ✅ Time stamp next to message
-                message.timestamp?.let {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        formatMessageTime(it),
-                        color = Color.Gray,
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(bottom = 4.dp)
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = if (isMe) Color(0xFF9B5DE5) else Color(0xFF3A3A3A),
+                        shape = RoundedCornerShape(16.dp)
                     )
-                }
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(message.text, color = Color.White, fontSize = 16.sp)
             }
         }
 
         if (isMe) Spacer(modifier = Modifier.width(8.dp))
     }
-}
-
-// ✅ Format message time (HH:mm)
-fun formatMessageTime(timestamp: Timestamp): String {
-    return SimpleDateFormat("HH:mm", Locale.ENGLISH).format(timestamp.toDate())
 }
 
 @Composable
@@ -386,7 +300,7 @@ fun MembersBottomSheet(
     onDismiss: () -> Unit,
     onUpdateMembers: (Map<String,String>, String, List<Pair<String,String>>, String) -> Unit
 ) {
-    val allUsers by remember { mutableStateOf(mutableStateListOf<Triple<String,String,String>>()) }
+    val allUsers by remember { mutableStateOf(mutableStateListOf<Triple<String,String,String>>()) } // id, username, avatar
     var selectedUsers by remember { mutableStateOf(mutableStateListOf<Triple<String,String,String>>()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -412,22 +326,22 @@ fun MembersBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 200.dp, max = 500.dp)
-                .background(Color(0xFF1B1330), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                .background(Color(0xFF1A1A1A), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                 .clickable(enabled = false) {}
                 .padding(16.dp)
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFF9B5DE5))
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
             } else {
                 Column {
-                    Text("Manage Members", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Manage Members", color = Color.White, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    LazyColumn(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f)
+                    ) {
                         items(allUsers) { user ->
                             val isMember = members.containsKey(user.first)
                             val isSelected = selectedUsers.any { it.first == user.first }
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -443,54 +357,17 @@ fun MembersBottomSheet(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .shadow(4.dp, CircleShape)
+                                        .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(
-                                            brush = if (isSelected)
-                                                Brush.radialGradient(colors = listOf(Color(0xFF48C774), Color(0xFF48C774)))
-                                            else
-                                                Brush.radialGradient(
-                                                    colors = listOf(
-                                                        Color(0xFF9B5DE5).copy(alpha = 0.3f),
-                                                        Color(0xFF2A1B3D)
-                                                    )
-                                                )
-                                        ),
+                                        .background(if (isSelected) Color.Green else Color(0xFF9B5DE5)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (user.third.isNotBlank()) {
-                                        val bytes = Base64.decode(user.third, Base64.DEFAULT)
-                                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                                        Image(
-                                            bitmap = bitmap.asImageBitmap(),
-                                            contentDescription = "Avatar",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape)
-                                        )
-                                    } else {
-                                        Text(
-                                            user.second.firstOrNull()?.uppercase() ?: "U",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.ExtraBold
-                                        )
-                                    }
+                                    Text(user.second.firstOrNull()?.uppercase() ?: "U", color = Color.White)
                                 }
-
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(user.second, color = Color.White, fontSize = 16.sp)
+                                Text(user.second, color = Color.White)
                                 Spacer(modifier = Modifier.weight(1f))
-
-                                if (isMember) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = "Member",
-                                        tint = Color(0xFF48C774),
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                if (isMember) Icon(Icons.Default.Check, contentDescription = "Member", tint = Color.Green)
                             }
                         }
                     }
@@ -501,13 +378,7 @@ fun MembersBottomSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { onDismiss() }) {
-                            Text("Cancel", color = Color.Gray)
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
+                        TextButton(
                             onClick = {
                                 val chatRef = db.collection("chats").document(chatId)
                                 val usersToAdd = selectedUsers.filter { !members.containsKey(it.first) }
@@ -531,9 +402,7 @@ fun MembersBottomSheet(
 
                                 selectedUsers.clear()
                                 onDismiss()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
-                            enabled = selectedUsers.isNotEmpty()
+                            }
                         ) {
                             Text("Apply", color = Color.White)
                         }

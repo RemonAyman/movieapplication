@@ -12,22 +12,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.RatingViewModel
+import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,13 +37,16 @@ fun FavoritesScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
     viewModel: FavoritesViewModel,
+    ratingViewModel: RatingViewModel,
     userID: String? = null
 ) {
     val items by viewModel.favorites.collectAsState()
     val isLoading by viewModel.loadingState.collectAsState()
+    val ratingItems by ratingViewModel.ratings.collectAsState()
 
     LaunchedEffect(userID) {
         viewModel.loadFavorites(userID)
+        ratingViewModel.loadRatings(userID)
     }
 
     Scaffold(
@@ -53,7 +58,9 @@ fun FavoritesScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF2A1B3D))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2A1B3D)
+                )
             )
         },
         containerColor = Color(0xFF1B1330)
@@ -69,7 +76,7 @@ fun FavoritesScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color(0xFF9B5DE5))
+                        CircularProgressIndicator(color = Color(0xFF3A2C58))
                     }
                 }
                 items.isEmpty() -> {
@@ -77,41 +84,26 @@ fun FavoritesScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                tint = Color.Gray,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Text(
-                                "No favorites yet",
-                                color = Color.Gray,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                "Add movies to your favorites to see them here",
-                                color = Color.Gray.copy(alpha = 0.7f),
-                                fontSize = 14.sp
-                            )
-                        }
+                        Text(
+                            "Your favorites list is empty",
+                            color = Color.Gray,
+                            fontSize = 18.sp
+                        )
                     }
                 }
                 else -> {
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                        columns = GridCells.Fixed(4),
                         contentPadding = PaddingValues(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(items, key = { it.movieId }) { item ->
+                            val rating = ratingItems.find { it.movieId == item.movieId }?.rating
                             FavoritesMovieCard(
                                 item = item,
+                                rating = rating,
                                 onMovieClick = onMovieClick,
                                 onRemoveFavorite = { viewModel.removeFromFavorites(it) }
                             )
@@ -127,111 +119,107 @@ fun FavoritesScreen(
 @Composable
 fun FavoritesMovieCard(
     item: FavoritesItem,
+    rating: Float?,
     onMovieClick: (String) -> Unit,
     onRemoveFavorite: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.7f)
+        modifier = Modifier.wrapContentSize()
     ) {
-        // Movie Card
-        Box(
+
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF3A2C58), Color(0xFF1B1330))
-                    )
-                )
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF1B1330))
                 .combinedClickable(
                     onClick = { onMovieClick(item.movieId) },
                     onLongClick = { showMenu = true }
                 )
         ) {
+
             // Poster
             Image(
                 painter = rememberAsyncImagePainter(item.poster),
                 contentDescription = item.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
+                    .fillMaxWidth()
+                    .aspectRatio(0.67f)
+                    .clip(RoundedCornerShape(6.dp))
             )
 
-            // Gradient overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color(0xCC000000)
-                            ),
-                            startY = 300f
-                        )
-                    )
-            )
-
-            // Title at bottom
-            Column(
+            // Bottom row (stars + heart)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(12.dp)
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                    .background(Color(0xFF1B1330)),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = item.title,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 16.sp
-                )
-            }
+                // Stars (only filled stars and ½ symbol)
+                if (rating != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val fullStars = floor(rating).toInt()
+                        val hasHalfStar = (rating - fullStars) >= 0.5
 
-            // Favorite Heart Icon (Top Right)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                contentAlignment = Alignment.TopEnd
-            ) {
+                        // Show full stars
+                        repeat(fullStars) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+
+                        // Show ½ symbol if needed
+                        if (hasHalfStar) {
+                            Text(
+                                text = "½",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                } else {
+                    // Empty space if no rating
+                    Spacer(modifier = Modifier.size(12.dp))
+                }
+
+                // Heart icon (always visible in favorites)
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Favorite",
-                    tint = Color(0xFFE91E63),
-                    modifier = Modifier.size(24.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp)
                 )
             }
         }
 
-        // Context Menu
+        // DropdownMenu فوق كل العناصر
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            offset = menuOffset,
-            modifier = Modifier.background(Color(0xFF2A1B3D))
+            offset = DpOffset(0.dp, 0.dp),
+            modifier = Modifier
+                .zIndex(1f)
+                .background(Color(0xFFF60000).copy(alpha = .95f))
+                .clip(RoundedCornerShape(14.dp))
+                .shadow(12.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black)
         ) {
             DropdownMenuItem(
-                text = {
-                    Text(
-                        "Remove from Favorites",
-                        color = Color.White
-                    )
-                },
+                text = { Text("Remove from Favorites", color = Color.White) },
                 onClick = {
                     onRemoveFavorite(item.movieId)
                     showMenu = false
-                },
-                modifier = Modifier.background(Color(0xFF2A1B3D))
+                }
             )
         }
     }

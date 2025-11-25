@@ -84,7 +84,6 @@ fun MovieDetailsScreen(
         factory = WatchedViewModelFactory(currentUserId)
     )
 
-    // ✅ إضافة RatingViewModel
     val ratingViewModel: RatingViewModel = viewModel(
         factory = RatingViewModelFactory(currentUserId)
     )
@@ -114,7 +113,7 @@ fun MovieDetailsScreen(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
     )
 
-    // ✅ Load existing rating
+    // Load existing rating
     LaunchedEffect(movieId) {
         isLoading = true
         errorMessage = null
@@ -137,7 +136,7 @@ fun MovieDetailsScreen(
             val credits = apiService.getMovieCredits(movieId)
             castList = credits.cast.take(10)
 
-            // ✅ Load existing rating
+            // Load existing rating
             val existingRating = ratingViewModel.getRating(movieId.toString())
             if (existingRating != null) {
                 userRating = existingRating.rating
@@ -368,7 +367,7 @@ fun MovieDetailsScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (isWatched) "Watched ✓" else "Mark Watched",
+                            if (isWatched) "Watched" else "Mark Watched",
                             color = Color.White,
                             fontSize = 12.sp
                         )
@@ -384,7 +383,7 @@ fun MovieDetailsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ===== Rating Section =====
+                // Rating Section
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
@@ -408,6 +407,38 @@ fun MovieDetailsScreen(
                                     val newRating = (offset.x / size.width) * 5f
                                     userRating = ((newRating * 2).toInt() / 2f).coerceIn(0f, 5f)
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+                                    // Save rating immediately
+                                    if (userRating > 0f) {
+                                        ratingViewModel.addRating(
+                                            RatingItem(
+                                                movieId = movieData.id.toString(),
+                                                title = movieData.title,
+                                                poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                                rating = userRating,
+                                                review = "",
+                                                vote_average = movieData.vote_average
+                                            )
+                                        )
+
+                                        // Add to watched automatically
+                                        if (!isWatched) {
+                                            watchedViewModel.addToWatched(
+                                                WatchedItem(
+                                                    movieId = movieData.id.toString(),
+                                                    title = movieData.title,
+                                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                                    rating = 0,
+                                                    vote_average = movieData.vote_average.toInt()
+                                                )
+                                            )
+                                        }
+
+                                        // Remove from watchlist if exists
+                                        if (isInWatchlist) {
+                                            watchlistViewModel.removeFromWatchlist(movieData.id.toString())
+                                        }
+                                    }
                                 }
                             }
                     ) {
@@ -416,6 +447,38 @@ fun MovieDetailsScreen(
                             onValueChange = {
                                 userRating = ((it * 2).toInt() / 2f).coerceIn(0f, 5f)
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+
+                                // Save rating immediately
+                                if (userRating > 0f) {
+                                    ratingViewModel.addRating(
+                                        RatingItem(
+                                            movieId = movieData.id.toString(),
+                                            title = movieData.title,
+                                            poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                            rating = userRating,
+                                            review = "",
+                                            vote_average = movieData.vote_average
+                                        )
+                                    )
+
+                                    // Add to watched automatically
+                                    if (!isWatched) {
+                                        watchedViewModel.addToWatched(
+                                            WatchedItem(
+                                                movieId = movieData.id.toString(),
+                                                title = movieData.title,
+                                                poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                                rating = 0,
+                                                vote_average = movieData.vote_average.toInt()
+                                            )
+                                        )
+                                    }
+
+                                    // Remove from watchlist if exists
+                                    if (isInWatchlist) {
+                                        watchlistViewModel.removeFromWatchlist(movieData.id.toString())
+                                    }
+                                }
                             },
                             valueRange = 0f..5f,
                             steps = 9,
@@ -475,23 +538,9 @@ fun MovieDetailsScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // ✅ Save Rating Button
+                // Close Button (Rating is saved automatically)
                 Button(
-                    onClick = {
-                        if (userRating > 0f) {
-                            ratingViewModel.addRating(
-                                RatingItem(
-                                    movieId = movieData.id.toString(),
-                                    title = movieData.title,
-                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
-                                    rating = userRating,
-                                    review = "",
-                                    vote_average = movieData.vote_average
-                                )
-                            )
-                        }
-                        showSheet = false
-                    },
+                    onClick = { showSheet = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -499,7 +548,7 @@ fun MovieDetailsScreen(
                         .padding(horizontal = 20.dp)
                         .height(52.dp)
                 ) {
-                    Text("Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Done", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

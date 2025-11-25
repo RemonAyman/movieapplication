@@ -18,11 +18,7 @@ import com.google.firebase.firestore.QuerySnapshot
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-data class WatchlistItem(
-    val movieId: String = "",
-    val title: String = "",
-    val poster: String = ""
-)
+
 
 class WatchlistViewModel(userID: String?=null) : ViewModel() {
 

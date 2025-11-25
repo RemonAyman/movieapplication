@@ -35,8 +35,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
@@ -45,11 +43,16 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.*
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.example.myapplication.ui.screens.watched.WatchedItem
+import com.example.myapplication.ui.screens.ratings.RatingItem
 import com.example.myapplication.ui.theme.MovitoBackground
-import com.example.myapplication.ui.watchlist.WatchlistItem
 import com.example.myapplication.ui.watchlist.WatchlistViewModel
 import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.WatchedViewModel
+import com.example.myapplication.viewmodel.WatchedViewModelFactory
+import com.example.myapplication.viewmodel.RatingViewModel
+import com.example.myapplication.viewmodel.RatingViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.animation.core.*
@@ -59,6 +62,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
 import com.example.myapplication.ui.screens.details.ActorItem
+import com.example.myapplication.ui.watchlist.WatchlistItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,8 +75,18 @@ fun MovieDetailsScreen(
     val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+    // ViewModels
     val watchlistViewModel: WatchlistViewModel = viewModel(
         factory = WatchlistViewModelFactory(currentUserId)
+    )
+
+    val watchedViewModel: WatchedViewModel = viewModel(
+        factory = WatchedViewModelFactory(currentUserId)
+    )
+
+    // ✅ إضافة RatingViewModel
+    val ratingViewModel: RatingViewModel = viewModel(
+        factory = RatingViewModelFactory(currentUserId)
     )
 
     var isWatched by remember { mutableStateOf(false) }
@@ -90,7 +104,6 @@ fun MovieDetailsScreen(
     var showSheet by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
-    // Animation for poster entrance
     var posterVisible by remember { mutableStateOf(false) }
     val posterAlpha by animateFloatAsState(
         targetValue = if (posterVisible) 1f else 0f,
@@ -101,7 +114,7 @@ fun MovieDetailsScreen(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
     )
 
-    // ===== Load movie details =====
+    // ✅ Load existing rating
     LaunchedEffect(movieId) {
         isLoading = true
         errorMessage = null
@@ -122,7 +135,13 @@ fun MovieDetailsScreen(
             trailerKey = videos.results.find { it.site == "YouTube" && it.type == "Trailer" }?.key
 
             val credits = apiService.getMovieCredits(movieId)
-            castList = credits.cast.take(10) // أول 10 بس
+            castList = credits.cast.take(10)
+
+            // ✅ Load existing rating
+            val existingRating = ratingViewModel.getRating(movieId.toString())
+            if (existingRating != null) {
+                userRating = existingRating.rating
+            }
 
             delay(100)
             posterVisible = true
@@ -134,7 +153,6 @@ fun MovieDetailsScreen(
         }
     }
 
-    // ===== Watchlist collector =====
     LaunchedEffect(movie) {
         movie?.let { m ->
             watchlistViewModel.watchlist.collectLatest { list ->
@@ -143,7 +161,14 @@ fun MovieDetailsScreen(
         }
     }
 
-    // ===== Error/Loading States =====
+    LaunchedEffect(movie) {
+        movie?.let { m ->
+            watchedViewModel.watched.collectLatest { list ->
+                isWatched = list.any { it.movieId == m.id.toString() }
+            }
+        }
+    }
+
     if (isLoading) {
         Box(
             modifier = Modifier
@@ -189,7 +214,6 @@ fun MovieDetailsScreen(
 
     val movieData = movie!!
 
-    // ===== Animated Icon Button =====
     @Composable
     fun AnimatedIconButton(
         isActive: Boolean,
@@ -220,7 +244,6 @@ fun MovieDetailsScreen(
         }
     }
 
-    // ===== Rating Description =====
     @Composable
     fun getRatingDescription(rating: Float): String {
         return when {
@@ -234,9 +257,6 @@ fun MovieDetailsScreen(
         }
     }
 
-    // ============================
-    // Bottom Sheet
-    // ============================
     if (showSheet) {
         ModalBottomSheet(
             sheetState = sheetState,
@@ -244,7 +264,6 @@ fun MovieDetailsScreen(
             onDismissRequest = { showSheet = false }
         ) {
             Column(modifier = Modifier.padding(vertical = 16.dp)) {
-                // Title
                 Text(
                     "Manage Movie",
                     color = Color.White,
@@ -255,12 +274,10 @@ fun MovieDetailsScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Row 1: Watchlist / Favorites / Watched
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    // Watchlist
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
                             isActive = isInWatchlist,
@@ -293,7 +310,6 @@ fun MovieDetailsScreen(
                         )
                     }
 
-                    // Favorites
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
                             isActive = isFavorite,
@@ -324,7 +340,6 @@ fun MovieDetailsScreen(
                         )
                     }
 
-                    // Watched
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
                             isActive = isWatched,
@@ -335,12 +350,25 @@ fun MovieDetailsScreen(
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp)
                                 )
-                            },
-                            onClick = { isWatched = !isWatched }
-                        )
+                            }
+                        ) {
+                            if (isWatched) {
+                                watchedViewModel.removeFromWatched(movieData.id.toString())
+                            } else {
+                                watchedViewModel.addToWatched(
+                                    WatchedItem(
+                                        movieId = movieData.id.toString(),
+                                        title = movieData.title,
+                                        poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                        rating = 0,
+                                        vote_average = movieData.vote_average.toInt()
+                                    )
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (isWatched) "Watched" else "Mark Watched",
+                            if (isWatched) "Watched ✓" else "Mark Watched",
                             color = Color.White,
                             fontSize = 12.sp
                         )
@@ -349,7 +377,6 @@ fun MovieDetailsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Divider
                 HorizontalDivider(
                     color = Color.White.copy(alpha = 0.1f),
                     modifier = Modifier.padding(horizontal = 20.dp)
@@ -371,7 +398,6 @@ fun MovieDetailsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Container للنجوم مع الـ Slider
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -385,7 +411,6 @@ fun MovieDetailsScreen(
                                 }
                             }
                     ) {
-                        // Slider شفاف
                         Slider(
                             value = userRating,
                             onValueChange = {
@@ -400,7 +425,6 @@ fun MovieDetailsScreen(
                                 .alpha(0f)
                         )
 
-                        // Stars Row
                         Row(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically,
@@ -435,7 +459,6 @@ fun MovieDetailsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Rating Text with animation
                     val ratingText = if (userRating > 0f) {
                         " ${getRatingDescription(userRating)}"
                     } else {
@@ -452,11 +475,22 @@ fun MovieDetailsScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // DONE Button
+                // ✅ Save Rating Button
                 Button(
                     onClick = {
+                        if (userRating > 0f) {
+                            ratingViewModel.addRating(
+                                RatingItem(
+                                    movieId = movieData.id.toString(),
+                                    title = movieData.title,
+                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
+                                    rating = userRating,
+                                    review = "",
+                                    vote_average = movieData.vote_average
+                                )
+                            )
+                        }
                         showSheet = false
-                        // هنا ممكن تحفظ الـ rating في database
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
                     shape = RoundedCornerShape(12.dp),
@@ -473,9 +507,6 @@ fun MovieDetailsScreen(
         }
     }
 
-    // ============================
-    // Main Movie Details
-    // ============================
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -483,13 +514,11 @@ fun MovieDetailsScreen(
             .background(MovitoBackground)
             .padding(bottom = 16.dp)
     ) {
-        // Movie Poster
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(420.dp)
         ) {
-            // Poster with animation
             AsyncImage(
                 model = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
                 contentDescription = movieData.title,
@@ -500,7 +529,6 @@ fun MovieDetailsScreen(
                     .scale(posterScale)
             )
 
-            // Gradient overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -518,7 +546,6 @@ fun MovieDetailsScreen(
                     )
             )
 
-            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -529,8 +556,7 @@ fun MovieDetailsScreen(
             ) {
                 IconButton(
                     onClick = { navController.popBackStack() },
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
@@ -541,20 +567,16 @@ fun MovieDetailsScreen(
 
                 IconButton(
                     onClick = { showSheet = true },
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
                 }
             }
-
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Movie Info
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            // Title
             Text(
                 movieData.title,
                 color = Color.White,
@@ -565,12 +587,10 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Meta info with improved design
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Rating chip
                 Surface(
                     color = Color(0xFFFFD700).copy(alpha = 0.2f),
                     shape = RoundedCornerShape(8.dp)
@@ -595,7 +615,6 @@ fun MovieDetailsScreen(
                     }
                 }
 
-                // Year
                 movieData.release_date?.let { releaseDate ->
                     if (releaseDate.isNotEmpty()) {
                         Text(
@@ -606,7 +625,6 @@ fun MovieDetailsScreen(
                     }
                 }
 
-                // Language
                 Surface(
                     color = Color.White.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(6.dp)
@@ -623,7 +641,6 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Overview
             Text(
                 "Overview",
                 color = Color.White,
@@ -642,7 +659,6 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Trailer Button with improved design
             if (trailerKey != null) {
                 Button(
                     onClick = {
@@ -652,9 +668,7 @@ fun MovieDetailsScreen(
                         )
                         context.startActivity(intent)
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF9B5DE5)
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -678,7 +692,6 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // CAST with improved design
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -696,14 +709,13 @@ fun MovieDetailsScreen(
                         "View All",
                         color = Color(0xFF9B5DE5),
                         fontSize = 14.sp,
-                        modifier = Modifier.clickable { /* Navigate to full cast */ }
+                        modifier = Modifier.clickable { }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ✅ التعديل الرئيسي هنا - استخدام ActorItem مع Navigation
             if (castList.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -713,7 +725,6 @@ fun MovieDetailsScreen(
                         ActorItem(
                             actor = actor,
                             onClick = {
-                                // Navigate to Actor Details
                                 navController.navigate("actorDetails/${actor.id}")
                             }
                         )

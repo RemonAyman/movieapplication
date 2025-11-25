@@ -1,8 +1,9 @@
-package com.example.myapplication.ui.favorites
+package com.example.myapplication.ui.screens.ratings
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -11,7 +12,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,39 +22,41 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.example.myapplication.ui.screens.favorites.FavoritesItem
-import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.RatingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FavoritesScreen(
+fun RatingsScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    viewModel: FavoritesViewModel,
-    userID: String? = null
+    ratingViewModel: RatingViewModel,
+    userId: String? = null
 ) {
-    val items by viewModel.favorites.collectAsState()
-    val isLoading by viewModel.loadingState.collectAsState()
+    val ratingItems by ratingViewModel.ratings.collectAsState()
+    val isLoading by ratingViewModel.loadingState.collectAsState()
 
-    LaunchedEffect(userID) {
-        viewModel.loadFavorites(userID)
+    LaunchedEffect(userId) {
+        ratingViewModel.loadRatings(userId)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Favorites", color = Color.White) },
+                title = { Text("My Ratings", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF2A1B3D))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2A1B3D)
+                )
             )
         },
         containerColor = Color(0xFF1B1330)
@@ -72,7 +75,7 @@ fun FavoritesScreen(
                         CircularProgressIndicator(color = Color(0xFF9B5DE5))
                     }
                 }
-                items.isEmpty() -> {
+                ratingItems.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -82,21 +85,22 @@ fun FavoritesScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Favorite,
+                                imageVector = Icons.Rounded.Star,
                                 contentDescription = null,
                                 tint = Color.Gray,
                                 modifier = Modifier.size(64.dp)
                             )
                             Text(
-                                "No favorites yet",
+                                "No ratings yet",
                                 color = Color.Gray,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                "Add movies to your favorites to see them here",
+                                "Start rating movies to see them here",
                                 color = Color.Gray.copy(alpha = 0.7f),
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -109,11 +113,11 @@ fun FavoritesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(items, key = { it.movieId }) { item ->
-                            FavoritesMovieCard(
+                        items(ratingItems, key = { it.movieId }) { item ->
+                            RatingMovieCard(
                                 item = item,
                                 onMovieClick = onMovieClick,
-                                onRemoveFavorite = { viewModel.removeFromFavorites(it) }
+                                onRemoveRating = { ratingViewModel.removeRating(it) }
                             )
                         }
                     }
@@ -125,10 +129,10 @@ fun FavoritesScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FavoritesMovieCard(
-    item: FavoritesItem,
+fun RatingMovieCard(
+    item: RatingItem,
     onMovieClick: (String) -> Unit,
-    onRemoveFavorite: (String) -> Unit
+    onRemoveRating: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
@@ -179,7 +183,7 @@ fun FavoritesMovieCard(
                     )
             )
 
-            // Title at bottom
+            // Title + Rating at bottom
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -195,21 +199,32 @@ fun FavoritesMovieCard(
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp
                 )
-            }
 
-            // Favorite Heart Icon (Top Right)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Favorite",
-                    tint = Color(0xFFE91E63),
-                    modifier = Modifier.size(24.dp)
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Your Rating
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = String.format("%.1f", item.rating),
+                        color = Color(0xFFFFD700),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "/ 5.0",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
 
@@ -223,12 +238,12 @@ fun FavoritesMovieCard(
             DropdownMenuItem(
                 text = {
                     Text(
-                        "Remove from Favorites",
+                        "Remove Rating",
                         color = Color.White
                     )
                 },
                 onClick = {
-                    onRemoveFavorite(item.movieId)
+                    onRemoveRating(item.movieId)
                     showMenu = false
                 },
                 modifier = Modifier.background(Color(0xFF2A1B3D))

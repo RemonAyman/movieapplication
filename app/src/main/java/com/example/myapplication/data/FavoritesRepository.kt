@@ -10,21 +10,25 @@ class FavoritesRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    private fun getFavoritesCollection(userId: String? = null) =
+    // ✅ دالة مساعدة للحصول على الـ Collection الخاصة باليوزر
+    private fun getFavoritesCollection(userId: String?) =
         (userId ?: auth.currentUser?.uid)?.let { uid ->
             db.collection("users").document(uid).collection("favorites")
         }
-    suspend fun getFirst5Favorites(userId: String? = null): List<FavoritesItem> {
+
+    // ✅ جلب أول 5 Favorites (للـ Home Screen مثلاً)
+    suspend fun getFirst5Favorites(userId: String?): List<FavoritesItem> {
         val collection = getFavoritesCollection(userId) ?: return emptyList()
         return try {
-            val snapshot = collection.limit(5).get().await() // جلب أول 4 مستندات فقط
+            val snapshot = collection.limit(5).get().await()
             snapshot.documents.mapNotNull { it.toObject(FavoritesItem::class.java) }
         } catch (e: Exception) {
             emptyList()
         }
     }
 
-    suspend fun getFavorites(userId: String? = null): List<FavoritesItem> {
+    // ✅ جلب كل الـ Favorites الخاصة باليوزر
+    suspend fun getFavorites(userId: String?): List<FavoritesItem> {
         val collection = getFavoritesCollection(userId) ?: return emptyList()
         return try {
             val snapshot = collection.get().await()
@@ -34,12 +38,14 @@ class FavoritesRepository {
         }
     }
 
-    suspend fun addFavorite(item: FavoritesItem, userId: String? = null) {
+    // ✅ إضافة فيلم للـ Favorites
+    suspend fun addFavorite(item: FavoritesItem, userId: String?) {
         val collection = getFavoritesCollection(userId) ?: return
         collection.document(item.movieId).set(item).await()
     }
 
-    suspend fun removeFavorite(movieId: String, userId: String? = null) {
+    // ✅ حذف فيلم من الـ Favorites
+    suspend fun removeFavorite(movieId: String, userId: String?) {
         val collection = getFavoritesCollection(userId) ?: return
         collection.document(movieId).delete().await()
     }

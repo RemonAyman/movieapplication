@@ -12,6 +12,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,6 +43,7 @@ import coil.compose.AsyncImage
 import com.example.myapplication.AppColors
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
 import com.example.myapplication.viewmodel.FavoritesViewModel
+import com.example.myapplication.viewmodel.WatchedViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -53,8 +56,11 @@ fun ProfileMainScreen(
     onFriendsClick: () -> Unit = {},
     onRequestsClick: () -> Unit = {},
     onWatchlistClick: () -> Unit = { navController.navigate("watchlist")},
+    onWatchedClick: () -> Unit = {},
+    onRatingsClick: () -> Unit = {} // ✅ إضافة Ratings
 ) {
     val favoritesViewModel: FavoritesViewModel = viewModel()
+    val watchedViewModel: WatchedViewModel = viewModel()
     val db = FirebaseFirestore.getInstance()
 
     var username by remember { mutableStateOf("") }
@@ -62,8 +68,10 @@ fun ProfileMainScreen(
     var loading by remember { mutableStateOf(true) }
 
     val favorites by favoritesViewModel.favorites.collectAsState()
+    val watched by watchedViewModel.watched.collectAsState()
 
-    // تحميل بيانات أي يوزر حسب userId
+    val scrollState = rememberScrollState()
+
     suspend fun loadUserData() {
         try {
             val snapshot = db.collection("users").document(userId).get().await()
@@ -91,7 +99,6 @@ fun ProfileMainScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.DarkBg)
-            .padding(16.dp)
     ) {
         if (loading) {
             CircularProgressIndicator(
@@ -100,10 +107,12 @@ fun ProfileMainScreen(
             )
         } else {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ✅ Avatar with proper ContentScale
                 Box(
                     modifier = Modifier
                         .size(130.dp)
@@ -116,13 +125,12 @@ fun ProfileMainScreen(
                         Image(
                             bitmap = avatarBitmap!!.asImageBitmap(),
                             contentDescription = "User Avatar",
-                            contentScale = ContentScale.Crop,  // ✅ أهم حاجة
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(CircleShape)  // ✅ تأكيد إن الصورة دائرية
+                                .clip(CircleShape)
                         )
                     } else {
-                        // Placeholder
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -148,7 +156,6 @@ fun ProfileMainScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // اسم المستخدم
                 Text(
                     text = username,
                     color = AppColors.TextColor,
@@ -158,7 +165,6 @@ fun ProfileMainScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // زر تعديل البروفايل
                 Button(
                     onClick = onEditProfile,
                     colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow),
@@ -172,21 +178,24 @@ fun ProfileMainScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // الأقسام
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Favorites Section مع See More
                     FavoritesSection(
                         favorites = favorites,
                         navController = navController,
                         onSeeMore = { onFavoritesClick() }
                     )
+                    ProfileCardItem("Watched", Icons.Default.GroupAdd, onWatchedClick)
                     ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)
+                    // ✅ إضافة Ratings Button
+                    ProfileCardItem("Ratings", Icons.Rounded.Star, onRatingsClick)
                     ProfileCardItem("Friends", Icons.Default.Person, onFriendsClick)
                     ProfileCardItem("Friend Requests", Icons.Default.GroupAdd, onRequestsClick)
                 }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -222,7 +231,7 @@ fun FavoritesSection(
         }
 
         MovieRow(
-            movies = favorites.take(4), // نعرض أول 4
+            movies = favorites.take(4),
             navController = navController
         )
     }
@@ -258,17 +267,15 @@ fun MovieRow(
                     },
                 contentAlignment = Alignment.BottomCenter
             ) {
-                // Poster with proper crop
                 AsyncImage(
                     model = movie.poster,
                     contentDescription = movie.title,
-                    contentScale = ContentScale.Crop,  // ✅ مهم
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(12.dp))
                 )
 
-                // Gradient overlay
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -281,7 +288,6 @@ fun MovieRow(
                         )
                 )
 
-                // Title
                 Text(
                     text = movie.title,
                     color = Color.White,
@@ -296,7 +302,6 @@ fun MovieRow(
                         .align(Alignment.BottomCenter)
                 )
 
-                // Rating
                 if (movie.vote_average > 0) {
                     Box(
                         modifier = Modifier

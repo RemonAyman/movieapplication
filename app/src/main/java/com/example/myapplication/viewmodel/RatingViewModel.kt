@@ -3,19 +3,19 @@ package com.example.myapplication.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.data.FavoritesRepository
-import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.example.myapplication.data.repositories.RatingRepository
+import com.example.myapplication.ui.screens.ratings.RatingItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class FavoritesViewModel(
-    private val repository: FavoritesRepository = FavoritesRepository(),
+class RatingViewModel(
+    private val repository: RatingRepository = RatingRepository(),
     private val userId: String? = null
 ) : ViewModel() {
 
-    private val _favorites = MutableStateFlow<List<FavoritesItem>>(emptyList())
-    val favorites: StateFlow<List<FavoritesItem>> = _favorites
+    private val _ratings = MutableStateFlow<List<RatingItem>>(emptyList())
+    val ratings: StateFlow<List<RatingItem>> = _ratings
 
     private val _loadingState = MutableStateFlow(false)
     val loadingState: StateFlow<Boolean> = _loadingState
@@ -24,18 +24,17 @@ class FavoritesViewModel(
     val errorState: StateFlow<String?> = _errorState
 
     init {
-        loadFavorites(userId)
+        loadRatings(userId)
     }
 
-    // ✅ جلب أول 4 Favorites (للـ Home Screen)
-    fun loadFirst4Favorites(userId: String? = this.userId) {
+    fun loadRatings(userId: String? = null) {
         viewModelScope.launch {
             _loadingState.value = true
             try {
-                _favorites.value = repository.getFirst5Favorites(userId)
+                _ratings.value = repository.getRatings(userId ?: this@RatingViewModel.userId)
                 _errorState.value = null
             } catch (e: Exception) {
-                _favorites.value = emptyList()
+                _ratings.value = emptyList()
                 _errorState.value = e.message
             } finally {
                 _loadingState.value = false
@@ -43,29 +42,12 @@ class FavoritesViewModel(
         }
     }
 
-    // ✅ جلب كل الـ Favorites الخاصة باليوزر
-    fun loadFavorites(userId: String? = this.userId) {
+    fun addRating(item: RatingItem) {
         viewModelScope.launch {
             _loadingState.value = true
             try {
-                _favorites.value = repository.getFavorites(userId = userId)
-                _errorState.value = null
-            } catch (e: Exception) {
-                _favorites.value = emptyList()
-                _errorState.value = e.message
-            } finally {
-                _loadingState.value = false
-            }
-        }
-    }
-
-    // ✅ إضافة فيلم للـ Favorites
-    fun addToFavorites(item: FavoritesItem, userId: String? = this.userId) {
-        viewModelScope.launch {
-            _loadingState.value = true
-            try {
-                repository.addFavorite(item, userId)
-                _favorites.value = _favorites.value + item
+                repository.addRating(item)
+                loadRatings()
                 _errorState.value = null
             } catch (e: Exception) {
                 _errorState.value = e.message
@@ -75,30 +57,52 @@ class FavoritesViewModel(
         }
     }
 
-    // ✅ حذف فيلم من الـ Favorites
-    fun removeFromFavorites(movieId: String, userId: String? = this.userId) {
+    fun updateRating(movieId: String, rating: Float, review: String) {
         viewModelScope.launch {
             _loadingState.value = true
             try {
-                repository.removeFavorite(movieId, userId)
-                _favorites.value = _favorites.value.filter { it.movieId != movieId }
+                repository.updateRating(movieId, rating, review)
+                loadRatings()
                 _errorState.value = null
             } catch (e: Exception) {
                 _errorState.value = e.message
             } finally {
                 _loadingState.value = false
             }
+        }
+    }
+
+    fun removeRating(movieId: String) {
+        viewModelScope.launch {
+            _loadingState.value = true
+            try {
+                repository.removeRating(movieId)
+                _ratings.value = _ratings.value.filter { it.movieId != movieId }
+                _errorState.value = null
+            } catch (e: Exception) {
+                _errorState.value = e.message
+            } finally {
+                _loadingState.value = false
+            }
+        }
+    }
+
+    suspend fun getRating(movieId: String): RatingItem? {
+        return try {
+            repository.getRating(movieId)
+        } catch (e: Exception) {
+            null
         }
     }
 }
 
-class FavoritesViewModelFactory(
+class RatingViewModelFactory(
     private val userId: String?
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(FavoritesViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(RatingViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return FavoritesViewModel(userId = userId) as T
+            return RatingViewModel(userId = userId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

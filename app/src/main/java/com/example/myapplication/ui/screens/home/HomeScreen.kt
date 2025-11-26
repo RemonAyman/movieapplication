@@ -129,8 +129,8 @@ fun HomeScreen(
                     val topRated = uiState.popularMovies.sortedByDescending { it.vote_average }.take(10)
                     if (topRated.isNotEmpty()) {
                         PremiumSectionTitle(
-                            title = "Top Rated",
-                            subtitle = "Highest rated movies of all time"
+                            title = "Popular",
+                            subtitle = "Top hits you can't miss"
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         PremiumMovieRow(topRated, navController, uiState.isLoading)

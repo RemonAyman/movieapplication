@@ -23,11 +23,11 @@ data class HomeScreenState(
     val comedyMovies: List<MovieApiModel> get() = popularMovies.filter { it.genre_ids.contains(35) }
     val romanceMovies: List<MovieApiModel> get() = popularMovies.filter { it.genre_ids.contains(10749) }
     val cartoonMovies: List<MovieApiModel> get() = popularMovies.filter { it.genre_ids.contains(16) }
-    val animeMovies: List<MovieApiModel> get() = popularMovies.filter { 
-        it.genre_ids.contains(16) && it.title.contains("Anime", ignoreCase = true) 
+    val animeMovies: List<MovieApiModel> get() = popularMovies.filter {
+        it.genre_ids.contains(16) && it.title.contains("Anime", ignoreCase = true)
     }
-    val arabicMovies: List<MovieApiModel> get() = (popularMovies + upcomingMovies).filter { 
-        it.original_language == "ar" 
+    val arabicMovies: List<MovieApiModel> get() = (popularMovies + upcomingMovies).filter {
+        it.original_language == "ar"
     }
 }
 
@@ -137,4 +137,3 @@ class HomeScreenViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-

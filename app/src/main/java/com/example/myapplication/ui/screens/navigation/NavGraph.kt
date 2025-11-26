@@ -18,6 +18,7 @@ import com.example.myapplication.LoginScreen
 import com.example.myapplication.ResetPasswordScreen
 import com.example.myapplication.SignUpScreen
 import com.example.myapplication.data.MoviesRepository
+import com.example.myapplication.data.WatchlistRepository
 import com.example.myapplication.data.remote.MovieApiService
 import com.example.myapplication.ui.screens.details.MovieDetailsScreen
 import com.example.myapplication.ui.screens.favorites.FavoritesScreen
@@ -294,8 +295,10 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
+            val watchlistRepository = WatchlistRepository()
+
             val watchlistScreenVM: WatchlistScreenViewModel = viewModel(
-                factory = WatchlistScreenViewModelFactory(userId)
+                factory = WatchlistScreenViewModelFactory(watchlistRepository,userId)
             )
             WatchlistScreen(
                 viewModel = watchlistScreenVM,

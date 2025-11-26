@@ -12,6 +12,7 @@ data class MovieApiModel(
     val title: String,
     val overview: String,
     val poster_path: String?,
+    val backdrop_path: String?,   // ← تمت الإضافة هنا
     val release_date: String?,
     val vote_average: Double,
     val genre_ids: List<Int> = emptyList(),
@@ -62,10 +63,12 @@ data class MovieDetailsResponse(
     val overview: String,
     val release_date: String?,
     val poster_path: String?,
+    val backdrop_path: String?, // ← تمت إضافتها هنا
     val vote_average: Double,
     val runtime: Int?,
     val original_language: String
 )
+
 
 // ===== API Service =====
 interface MovieApiService {

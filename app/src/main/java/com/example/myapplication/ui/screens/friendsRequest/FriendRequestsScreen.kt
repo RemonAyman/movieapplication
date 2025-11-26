@@ -23,22 +23,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.firebase.models.UserDataModel
-import com.example.myapplication.ui.screens.friends.FriendsViewModel
-import kotlinx.coroutines.launch
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendRequestsScreen(
-    viewModel: FriendsViewModel,
+    viewModel: FriendRequestsScreenViewModel,
     navController: NavController
 ) {
-    val incoming by viewModel.friendRequests.collectAsState()
-    val outgoing by viewModel.sentFriendRequests.collectAsState()
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) { viewModel.loadFriendRequests() }
+    val uiState by viewModel.uiState.collectAsState()
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
@@ -76,26 +70,26 @@ fun FriendRequestsScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            Section("Incoming Requests", incoming) { friend ->
+            Section("Incoming Requests", uiState.incomingRequests) { friend ->
                 FriendRequestCard(
                     friend,
                     primaryActionText = "Accept",
                     primaryColor = Color(0xFF48C774),
                     secondaryActionText = "Decline",
-                    onPrimaryAction = { scope.launch { viewModel.acceptFriendRequest(friend.uid) } },
-                    onSecondaryAction = { scope.launch { viewModel.declineFriendRequest(friend.uid) } }
+                    onPrimaryAction = { viewModel.acceptFriendRequest(friend.uid) },
+                    onSecondaryAction = { viewModel.declineFriendRequest(friend.uid) }
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Section("Sent Requests", outgoing) { friend ->
+            Section("Sent Requests", uiState.sentRequests) { friend ->
                 FriendRequestCard(
                     friend,
                     primaryActionText = "Cancel",
                     primaryColor = Color(0xFFEF5350),
                     secondaryActionText = null,
-                    onPrimaryAction = { scope.launch { viewModel.cancelFriendRequest(friend.uid) } },
+                    onPrimaryAction = { viewModel.cancelFriendRequest(friend.uid) },
                     onSecondaryAction = null
                 )
             }

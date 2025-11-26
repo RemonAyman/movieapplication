@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.favorites
+package com.example.myapplication.ui.screens.favorites
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -26,9 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
-import com.example.myapplication.ui.screens.favorites.FavoritesItem
-import com.example.myapplication.viewmodel.FavoritesViewModel
-import com.example.myapplication.viewmodel.RatingViewModel
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,18 +33,12 @@ import kotlin.math.floor
 fun FavoritesScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    viewModel: FavoritesViewModel,
-    ratingViewModel: RatingViewModel,
-    userID: String? = null
+    viewModel: FavoritesScreenViewModel
 ) {
-    val items by viewModel.favorites.collectAsState()
-    val isLoading by viewModel.loadingState.collectAsState()
-    val ratingItems by ratingViewModel.ratings.collectAsState()
-
-    LaunchedEffect(userID) {
-        viewModel.loadFavorites(userID)
-        ratingViewModel.loadRatings(userID)
-    }
+    val uiState by viewModel.uiState.collectAsState()
+    val items = uiState.favorites
+    val isLoading = uiState.isLoading
+    val ratingItems = uiState.ratings
 
     Scaffold(
         topBar = {

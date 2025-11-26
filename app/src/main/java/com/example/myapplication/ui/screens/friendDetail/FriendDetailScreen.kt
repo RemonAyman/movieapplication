@@ -25,14 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.screens.friends.FriendsViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendDetailScreen(
-    UserId: String,
-    viewModel: FriendsViewModel,
+    viewModel: FriendDetailScreenViewModel,
     onBack: (() -> Unit)? = null,
     onLikesClick: (String) -> Unit,
     onWatchedClick: (String) -> Unit,
@@ -40,20 +37,15 @@ fun FriendDetailScreen(
     onRatingsClick: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val friend by viewModel.friendDetail.collectAsState()
-    val friends by viewModel.friendsList.collectAsState()
-    val friendRequests by viewModel.friendRequests.collectAsState()
-    val sentRequests by viewModel.sentFriendRequests.collectAsState()
-    val loading by viewModel.loadingState.collectAsState()
-    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Load friend detail and lists
-    LaunchedEffect(UserId) {
-        viewModel.loadFriendDetail(UserId)
-        viewModel.loadFriendsList()
-        viewModel.loadFriendRequests()
-        viewModel.loadAllUsers()
+    // Show snackbar when message is available
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
     }
 
     Scaffold(
@@ -80,10 +72,10 @@ fun FriendDetailScreen(
                 .padding(padding),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (friend == null || loading) {
+            if (uiState.friend == null || uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                friend?.let { f ->
+                uiState.friend?.let { f ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
@@ -145,19 +137,9 @@ fun FriendDetailScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Compute relationship status
-                        val status = remember(friends, friendRequests, sentRequests) {
-                            when {
-                                friends.any { it.uid == f.uid } -> "friend"
-                                sentRequests.any { it.uid == f.uid } -> "sent"
-                                friendRequests.any { it.uid == f.uid } -> "incoming"
-                                else -> ""
-                            }
-                        }
-
                         // Show status in English
                         Text(
-                            text = when (status) {
+                            text = when (uiState.relationshipStatus) {
                                 "friend" -> "Friend"
                                 "sent" -> "Request Sent"
                                 "incoming" -> "Incoming Request"
@@ -171,27 +153,17 @@ fun FriendDetailScreen(
                         Spacer(modifier = Modifier.height(18.dp))
 
                         // Buttons based on status
-                        when (status) {
+                        when (uiState.relationshipStatus) {
                             "friend" -> {
                                 Button(
-                                    onClick = {
-                                        scope.launch {
-                                            viewModel.removeFriend(f.uid)
-                                            snackbarHostState.showSnackbar("Removed friend.")
-                                        }
-                                    },
+                                    onClick = { viewModel.removeFriend() },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350)),
                                     modifier = Modifier.fillMaxWidth(0.8f)
                                 ) { Text("Remove Friend", color = Color.White) }
                             }
                             "sent" -> {
                                 OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            viewModel.cancelFriendRequest(f.uid)
-                                            snackbarHostState.showSnackbar("Friend request canceled.")
-                                        }
-                                    },
+                                    onClick = { viewModel.cancelFriendRequest() },
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5)),
                                     modifier = Modifier.fillMaxWidth(0.8f)
                                 ) { Text("Cancel Request", color = Color.White) }
@@ -202,12 +174,7 @@ fun FriendDetailScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Button(
-                                        onClick = {
-                                            scope.launch {
-                                                viewModel.acceptFriendRequest(f.uid)
-                                                snackbarHostState.showSnackbar("Friend request accepted.")
-                                            }
-                                        },
+                                        onClick = { viewModel.acceptFriendRequest() },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF48C774)),
                                         modifier = Modifier.weight(1f)
                                     ) { Text("Accept", color = Color.White) }
@@ -215,12 +182,7 @@ fun FriendDetailScreen(
                                     Spacer(modifier = Modifier.width(12.dp))
 
                                     OutlinedButton(
-                                        onClick = {
-                                            scope.launch {
-                                                viewModel.declineFriendRequest(f.uid)
-                                                snackbarHostState.showSnackbar("Friend request declined.")
-                                            }
-                                        },
+                                        onClick = { viewModel.declineFriendRequest() },
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF9B5DE5)),
                                         modifier = Modifier.weight(1f)
                                     ) { Text("Decline", color = Color.White) }
@@ -228,12 +190,7 @@ fun FriendDetailScreen(
                             }
                             else -> {
                                 Button(
-                                    onClick = {
-                                        scope.launch {
-                                            viewModel.sendFriendRequest(f.uid)
-                                            snackbarHostState.showSnackbar("Friend request sent.")
-                                        }
-                                    },
+                                    onClick = { viewModel.sendFriendRequest() },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
                                     modifier = Modifier.fillMaxWidth(0.8f)
                                 ) { Text("Add Friend", color = Color.White) }
@@ -250,7 +207,7 @@ fun FriendDetailScreen(
                         ) {
                             // Favorites
                             Button(
-                                onClick = { onLikesClick(UserId) },
+                                onClick = { onLikesClick(f.uid) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5E60CE)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -259,7 +216,7 @@ fun FriendDetailScreen(
 
                             // Watchlist
                             Button(
-                                onClick = { onWatchListClick(UserId) },
+                                onClick = { onWatchListClick(f.uid) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6930C3)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -268,7 +225,7 @@ fun FriendDetailScreen(
 
                             // Ratings
                             Button(
-                                onClick = { onRatingsClick(UserId) },
+                                onClick = { onRatingsClick(f.uid) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7400B8)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -277,7 +234,7 @@ fun FriendDetailScreen(
 
                             // Watched
                             Button(
-                                onClick = { onWatchedClick(UserId) },
+                                onClick = { onWatchedClick(f.uid) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A0CA3)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {

@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.watched
+package com.example.myapplication.ui.screens.watched
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -26,10 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
-import com.example.myapplication.ui.screens.watched.WatchedItem
-import com.example.myapplication.viewmodel.FavoritesViewModel
-import com.example.myapplication.viewmodel.RatingViewModel
-import com.example.myapplication.viewmodel.WatchedViewModel
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,20 +33,9 @@ import kotlin.math.floor
 fun WatchedScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    watchedViewModel: WatchedViewModel,
-    favoritesViewModel: FavoritesViewModel,
-    ratingViewModel: RatingViewModel,
-    userId: String? = null
+    viewModel: WatchedScreenViewModel
 ) {
-    val watchedItems by watchedViewModel.watched.collectAsState()
-    val isLoading by watchedViewModel.loadingState.collectAsState()
-    val favoriteItems by favoritesViewModel.favorites.collectAsState()
-    val ratingItems by ratingViewModel.ratings.collectAsState()
-
-    LaunchedEffect(userId) {
-        favoritesViewModel.loadFavorites(userId)
-        ratingViewModel.loadRatings(userId)
-    }
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -74,7 +59,7 @@ fun WatchedScreen(
                 .padding(padding)
         ) {
             when {
-                isLoading -> {
+                uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -82,7 +67,7 @@ fun WatchedScreen(
                         CircularProgressIndicator(color = Color(0xFF3A2C58))
                     }
                 }
-                watchedItems.isEmpty() -> {
+                uiState.watchedItems.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -102,15 +87,13 @@ fun WatchedScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(watchedItems, key = { it.movieId }) { item ->
-                            val isFavorite = favoriteItems.any { it.movieId == item.movieId }
-                            val rating = ratingItems.find { it.movieId == item.movieId }?.rating
+                        items(uiState.watchedItems, key = { it.movieId }) { item ->
                             WatchedMovieCard(
                                 item = item,
-                                isFavorite = isFavorite,
-                                rating = rating,
+                                isFavorite = viewModel.isFavorite(item.movieId),
+                                rating = viewModel.getRating(item.movieId),
                                 onMovieClick = onMovieClick,
-                                onRemoveFromWatched = { watchedViewModel.removeFromWatched(it) }
+                                onRemoveFromWatched = { viewModel.removeFromWatched(it) }
                             )
                         }
                     }

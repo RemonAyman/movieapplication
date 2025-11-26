@@ -1,4 +1,4 @@
-package com.example.myapplication.ui.details
+package com.example.myapplication.ui.screens.details
 
 import com.example.myapplication.R
 import android.content.Intent
@@ -38,137 +38,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import com.example.myapplication.data.remote.*
-import com.example.myapplication.ui.screens.favorites.FavoritesItem
-import com.example.myapplication.ui.screens.watched.WatchedItem
-import com.example.myapplication.ui.screens.ratings.RatingItem
 import com.example.myapplication.ui.theme.MovitoBackground
-import com.example.myapplication.ui.watchlist.WatchlistViewModel
-import com.example.myapplication.ui.watchlist.WatchlistViewModelFactory
-import com.example.myapplication.viewmodel.FavoritesViewModel
-import com.example.myapplication.viewmodel.WatchedViewModel
-import com.example.myapplication.viewmodel.WatchedViewModelFactory
-import com.example.myapplication.viewmodel.RatingViewModel
-import com.example.myapplication.viewmodel.RatingViewModelFactory
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.animation.core.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.delay
-import com.example.myapplication.ui.screens.details.ActorItem
-import com.example.myapplication.ui.watchlist.WatchlistItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovieDetailsScreen(
     navController: NavHostController,
-    movieId: Int,
-    favoritesViewModel: FavoritesViewModel,
+    viewModel: MovieDetailsScreenViewModel
 ) {
-    val apiService = remember { MovieApiService.create() }
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
-    // ViewModels
-    val watchlistViewModel: WatchlistViewModel = viewModel(
-        factory = WatchlistViewModelFactory(currentUserId)
-    )
-
-    val watchedViewModel: WatchedViewModel = viewModel(
-        factory = WatchedViewModelFactory(currentUserId)
-    )
-
-    val ratingViewModel: RatingViewModel = viewModel(
-        factory = RatingViewModelFactory(currentUserId)
-    )
-
-    var isWatched by remember { mutableStateOf(false) }
-    var isInWatchlist by remember { mutableStateOf(false) }
-    var isFavorite by remember { mutableStateOf(false) }
-    var movie by remember { mutableStateOf<MovieApiModel?>(null) }
-    var trailerKey by remember { mutableStateOf<String?>(null) }
-    var castList by remember { mutableStateOf<List<CastMember>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var userRating by remember { mutableStateOf(0f) }
 
     val scrollState = rememberScrollState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showSheet by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
-    var posterVisible by remember { mutableStateOf(false) }
     val posterAlpha by animateFloatAsState(
-        targetValue = if (posterVisible) 1f else 0f,
+        targetValue = if (uiState.posterVisible) 1f else 0f,
         animationSpec = tween(600)
     )
     val posterScale by animateFloatAsState(
-        targetValue = if (posterVisible) 1f else 0.8f,
+        targetValue = if (uiState.posterVisible) 1f else 0.8f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
     )
 
-    // Load existing rating
-    LaunchedEffect(movieId) {
-        isLoading = true
-        errorMessage = null
-        try {
-            val movieDetails = apiService.getMovieDetails(movieId)
-            movie = MovieApiModel(
-                id = movieDetails.id,
-                title = movieDetails.title,
-                overview = movieDetails.overview,
-                poster_path = movieDetails.poster_path,
-                release_date = movieDetails.release_date,
-                vote_average = movieDetails.vote_average,
-                genre_ids = emptyList(),
-                original_language = movieDetails.original_language ?: "ar"
-            )
-
-            val videos = apiService.getMovieVideos(movieId)
-            trailerKey = videos.results.find { it.site == "YouTube" && it.type == "Trailer" }?.key
-
-            val credits = apiService.getMovieCredits(movieId)
-            castList = credits.cast.take(10)
-
-            // Load existing rating
-            val existingRating = ratingViewModel.getRating(movieId.toString())
-            if (existingRating != null) {
-                userRating = existingRating.rating
-            }
-
-            delay(100)
-            posterVisible = true
-            isLoading = false
-        } catch (e: Exception) {
-            e.printStackTrace()
-            errorMessage = "Failed to load movie details. Please try again."
-            isLoading = false
-        }
-    }
-
-    LaunchedEffect(movie) {
-        movie?.let { m ->
-            watchlistViewModel.watchlist.collectLatest { list ->
-                isInWatchlist = list.any { it.movieId == m.id.toString() }
-            }
-        }
-    }
-
-    LaunchedEffect(movie) {
-        movie?.let { m ->
-            watchedViewModel.watched.collectLatest { list ->
-                isWatched = list.any { it.movieId == m.id.toString() }
-            }
-        }
-    }
-
-    if (isLoading) {
+    if (uiState.isLoading) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -187,7 +89,7 @@ fun MovieDetailsScreen(
         return
     }
 
-    if (errorMessage != null) {
+    if (uiState.error != null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -195,13 +97,10 @@ fun MovieDetailsScreen(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(errorMessage!!, color = Color.Red, fontSize = 16.sp)
+                Text(uiState.error!!, color = Color.Red, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = {
-                        isLoading = true
-                        errorMessage = null
-                    },
+                    onClick = { viewModel.retry() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5))
                 ) {
                     Text("Retry")
@@ -211,7 +110,7 @@ fun MovieDetailsScreen(
         return
     }
 
-    val movieData = movie!!
+    val movieData = uiState.movie ?: return
 
     @Composable
     fun AnimatedIconButton(
@@ -279,12 +178,12 @@ fun MovieDetailsScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
-                            isActive = isInWatchlist,
+                            isActive = uiState.isInWatchlist,
                             activeColor = Color(0xFFE74C3C),
                             icon = {
                                 Icon(
                                     painterResource(
-                                        id = if (isInWatchlist) R.drawable.remove_from_wachlist
+                                        id = if (uiState.isInWatchlist) R.drawable.remove_from_wachlist
                                         else R.drawable.add_to_wachlist
                                     ),
                                     contentDescription = null,
@@ -292,18 +191,11 @@ fun MovieDetailsScreen(
                                 )
                             }
                         ) {
-                            if (isInWatchlist) watchlistViewModel.removeFromWatchlist(movieData.id.toString())
-                            else watchlistViewModel.addToWatchlist(
-                                WatchlistItem(
-                                    movieId = movieData.id.toString(),
-                                    title = movieData.title,
-                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
-                                )
-                            )
+                            viewModel.toggleWatchlist()
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (isInWatchlist) "In Watchlist" else "Add to List",
+                            if (uiState.isInWatchlist) "In Watchlist" else "Add to List",
                             color = Color.White,
                             fontSize = 12.sp
                         )
@@ -311,29 +203,22 @@ fun MovieDetailsScreen(
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
-                            isActive = isFavorite,
+                            isActive = uiState.isFavorite,
                             activeColor = Color(0xFFE91E63),
                             icon = {
                                 Icon(
-                                    imageVector = if (isFavorite) Icons.Filled.Favorite
+                                    imageVector = if (uiState.isFavorite) Icons.Filled.Favorite
                                     else Icons.Outlined.FavoriteBorder,
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
                         ) {
-                            isFavorite = !isFavorite
-                            val favItem = FavoritesItem(
-                                movieData.id.toString(),
-                                movieData.title,
-                                "https://image.tmdb.org/t/p/w500${movieData.poster_path}"
-                            )
-                            if (isFavorite) favoritesViewModel.addToFavorites(favItem)
-                            else favoritesViewModel.removeFromFavorites(favItem.movieId)
+                            viewModel.toggleFavorite()
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (isFavorite) "Favorited" else "Favorite",
+                            if (uiState.isFavorite) "Favorited" else "Favorite",
                             color = Color.White,
                             fontSize = 12.sp
                         )
@@ -341,7 +226,7 @@ fun MovieDetailsScreen(
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         AnimatedIconButton(
-                            isActive = isWatched,
+                            isActive = uiState.isWatched,
                             activeColor = Color(0xFF4CAF50),
                             icon = {
                                 Icon(
@@ -351,23 +236,11 @@ fun MovieDetailsScreen(
                                 )
                             }
                         ) {
-                            if (isWatched) {
-                                watchedViewModel.removeFromWatched(movieData.id.toString())
-                            } else {
-                                watchedViewModel.addToWatched(
-                                    WatchedItem(
-                                        movieId = movieData.id.toString(),
-                                        title = movieData.title,
-                                        poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
-                                        rating = 0,
-                                        vote_average = movieData.vote_average.toInt()
-                                    )
-                                )
-                            }
+                            viewModel.toggleWatched()
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (isWatched) "Watched" else "Mark Watched",
+                            if (uiState.isWatched) "Watched" else "Mark Watched",
                             color = Color.White,
                             fontSize = 12.sp
                         )
@@ -405,80 +278,18 @@ fun MovieDetailsScreen(
                             .pointerInput(Unit) {
                                 detectTapGestures { offset ->
                                     val newRating = (offset.x / size.width) * 5f
-                                    userRating = ((newRating * 2).toInt() / 2f).coerceIn(0f, 5f)
+                                    val rating = ((newRating * 2).toInt() / 2f).coerceIn(0f, 5f)
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
-                                    // Save rating immediately
-                                    if (userRating > 0f) {
-                                        ratingViewModel.addRating(
-                                            RatingItem(
-                                                movieId = movieData.id.toString(),
-                                                title = movieData.title,
-                                                poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
-                                                rating = userRating,
-                                                review = "",
-                                                vote_average = movieData.vote_average
-                                            )
-                                        )
-
-                                        // Add to watched automatically
-                                        if (!isWatched) {
-                                            watchedViewModel.addToWatched(
-                                                WatchedItem(
-                                                    movieId = movieData.id.toString(),
-                                                    title = movieData.title,
-                                                    poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
-                                                    rating = 0,
-                                                    vote_average = movieData.vote_average.toInt()
-                                                )
-                                            )
-                                        }
-
-                                        // Remove from watchlist if exists
-                                        if (isInWatchlist) {
-                                            watchlistViewModel.removeFromWatchlist(movieData.id.toString())
-                                        }
-                                    }
+                                    viewModel.setRating(rating)
                                 }
                             }
                     ) {
                         Slider(
-                            value = userRating,
+                            value = uiState.userRating,
                             onValueChange = {
-                                userRating = ((it * 2).toInt() / 2f).coerceIn(0f, 5f)
+                                val rating = ((it * 2).toInt() / 2f).coerceIn(0f, 5f)
                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-
-                                // Save rating immediately
-                                if (userRating > 0f) {
-                                    ratingViewModel.addRating(
-                                        RatingItem(
-                                            movieId = movieData.id.toString(),
-                                            title = movieData.title,
-                                            poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
-                                            rating = userRating,
-                                            review = "",
-                                            vote_average = movieData.vote_average
-                                        )
-                                    )
-
-                                    // Add to watched automatically
-                                    if (!isWatched) {
-                                        watchedViewModel.addToWatched(
-                                            WatchedItem(
-                                                movieId = movieData.id.toString(),
-                                                title = movieData.title,
-                                                poster = "https://image.tmdb.org/t/p/w500${movieData.poster_path}",
-                                                rating = 0,
-                                                vote_average = movieData.vote_average.toInt()
-                                            )
-                                        )
-                                    }
-
-                                    // Remove from watchlist if exists
-                                    if (isInWatchlist) {
-                                        watchlistViewModel.removeFromWatchlist(movieData.id.toString())
-                                    }
-                                }
+                                viewModel.setRating(rating)
                             },
                             valueRange = 0f..5f,
                             steps = 9,
@@ -497,20 +308,20 @@ fun MovieDetailsScreen(
                         ) {
                             for (i in 1..5) {
                                 val icon = when {
-                                    userRating >= i -> Icons.Rounded.Star
-                                    userRating >= i - 0.5f -> Icons.Rounded.StarHalf
+                                    uiState.userRating >= i -> Icons.Rounded.Star
+                                    uiState.userRating >= i - 0.5f -> Icons.Rounded.StarHalf
                                     else -> Icons.Rounded.StarOutline
                                 }
 
                                 val iconScale by animateFloatAsState(
-                                    targetValue = if (userRating >= i - 0.5f) 1.1f else 1f,
+                                    targetValue = if (uiState.userRating >= i - 0.5f) 1.1f else 1f,
                                     animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
                                 )
 
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = null,
-                                    tint = if (userRating >= i - 0.5f) Color(0xFFFFD700) else Color.Gray,
+                                    tint = if (uiState.userRating >= i - 0.5f) Color(0xFFFFD700) else Color.Gray,
                                     modifier = Modifier
                                         .size(44.dp)
                                         .padding(horizontal = 4.dp)
@@ -522,10 +333,10 @@ fun MovieDetailsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val ratingText = if (userRating > 0f) {
-                        " ${getRatingDescription(userRating)}"
+                    val ratingText = if (uiState.userRating > 0f) {
+                        " ${getRatingDescription(uiState.userRating)}"
                     } else {
-                        getRatingDescription(userRating)
+                        getRatingDescription(uiState.userRating)
                     }
 
                     Text(
@@ -708,12 +519,12 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (trailerKey != null) {
+            if (uiState.trailerKey != null) {
                 Button(
                     onClick = {
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://www.youtube.com/watch?v=$trailerKey")
+                            Uri.parse("https://www.youtube.com/watch?v=${uiState.trailerKey}")
                         )
                         context.startActivity(intent)
                     },
@@ -753,7 +564,7 @@ fun MovieDetailsScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                if (castList.isNotEmpty()) {
+                if (uiState.castList.isNotEmpty()) {
                     Text(
                         "View All",
                         color = Color(0xFF9B5DE5),
@@ -765,12 +576,12 @@ fun MovieDetailsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (castList.isNotEmpty()) {
+            if (uiState.castList.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(horizontal = 0.dp)
                 ) {
-                    items(castList) { actor ->
+                    items(uiState.castList) { actor ->
                         ActorItem(
                             actor = actor,
                             onClick = {

@@ -1,8 +1,5 @@
 package com.example.myapplication.ui.screens.profileMainScreen
 
-import com.example.myapplication.data.remote.MovieApiModel
-import android.graphics.BitmapFactory
-import android.util.Base64
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,70 +34,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.myapplication.AppColors
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
-import com.example.myapplication.viewmodel.FavoritesViewModel
-import com.example.myapplication.viewmodel.WatchedViewModel
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfileMainScreen(
     navController: NavHostController,
-    userId: String,
+    viewModel: ProfileScreenViewModel,
     onEditProfile: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
     onFriendsClick: () -> Unit = {},
     onRequestsClick: () -> Unit = {},
     onWatchlistClick: () -> Unit = { navController.navigate("watchlist")},
     onWatchedClick: () -> Unit = {},
-    onRatingsClick: () -> Unit = {} // ✅ إضافة Ratings
+    onRatingsClick: () -> Unit = {}
 ) {
-    val favoritesViewModel: FavoritesViewModel = viewModel()
-    val watchedViewModel: WatchedViewModel = viewModel()
-    val db = FirebaseFirestore.getInstance()
-
-    var username by remember { mutableStateOf("") }
-    var avatarBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var loading by remember { mutableStateOf(true) }
-
-    val favorites by favoritesViewModel.favorites.collectAsState()
-    val watched by watchedViewModel.watched.collectAsState()
-
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-
-    suspend fun loadUserData() {
-        try {
-            val snapshot = db.collection("users").document(userId).get().await()
-            if (snapshot.exists()) {
-                username = snapshot.getString("username") ?: "No Name"
-                val avatarBase64 = snapshot.getString("avatarBase64")
-                if (!avatarBase64.isNullOrEmpty()) {
-                    val decodedBytes = Base64.decode(avatarBase64, Base64.DEFAULT)
-                    avatarBitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                }
-            }
-        } catch (e: Exception) {
-            println("❌ Failed to load user data: ${e.message}")
-        } finally {
-            loading = false
-        }
-    }
-
-    LaunchedEffect(userId) {
-        loadUserData()
-        favoritesViewModel.loadFirst4Favorites()
-    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.DarkBg)
     ) {
-        if (loading) {
+        if (uiState.isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
                 color = AppColors.NeonGlow
@@ -121,9 +80,9 @@ fun ProfileMainScreen(
                         .background(AppColors.NeonGlow.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (avatarBitmap != null) {
+                    if (uiState.avatarBitmap != null) {
                         Image(
-                            bitmap = avatarBitmap!!.asImageBitmap(),
+                            bitmap = uiState.avatarBitmap!!.asImageBitmap(),
                             contentDescription = "User Avatar",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -145,7 +104,7 @@ fun ProfileMainScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (username.isNotEmpty()) username.first().uppercase() else "?",
+                                text = if (uiState.username.isNotEmpty()) uiState.username.first().uppercase() else "?",
                                 color = AppColors.NeonGlow,
                                 fontSize = 52.sp,
                                 fontWeight = FontWeight.ExtraBold
@@ -157,7 +116,7 @@ fun ProfileMainScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = username,
+                    text = uiState.username,
                     color = AppColors.TextColor,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
@@ -183,13 +142,12 @@ fun ProfileMainScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     FavoritesSection(
-                        favorites = favorites,
+                        favorites = uiState.favorites,
                         navController = navController,
                         onSeeMore = { onFavoritesClick() }
                     )
                     ProfileCardItem("Watched", Icons.Default.GroupAdd, onWatchedClick)
                     ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)
-                    // ✅ إضافة Ratings Button
                     ProfileCardItem("Ratings", Icons.Rounded.Star, onRatingsClick)
                     ProfileCardItem("Friends", Icons.Default.Person, onFriendsClick)
                     ProfileCardItem("Friend Requests", Icons.Default.GroupAdd, onRequestsClick)

@@ -27,8 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
-import com.example.myapplication.viewmodel.RatingViewModel
-import com.example.myapplication.viewmodel.FavoritesViewModel
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,18 +34,9 @@ import kotlin.math.floor
 fun RatingsScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    ratingViewModel: RatingViewModel,
-    favoritesViewModel: FavoritesViewModel,
-    userId: String? = null
+    viewModel: RatingsScreenViewModel
 ) {
-    val ratingItems by ratingViewModel.ratings.collectAsState()
-    val isLoading by ratingViewModel.loadingState.collectAsState()
-    val favoriteItems by favoritesViewModel.favorites.collectAsState()
-
-    LaunchedEffect(userId) {
-        ratingViewModel.loadRatings(userId)
-        favoritesViewModel.loadFavorites(userId)
-    }
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -71,7 +60,7 @@ fun RatingsScreen(
                 .padding(padding)
         ) {
             when {
-                isLoading -> {
+                uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -79,7 +68,7 @@ fun RatingsScreen(
                         CircularProgressIndicator(color = Color(0xFF3A2C58))
                     }
                 }
-                ratingItems.isEmpty() -> {
+                uiState.ratings.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -99,13 +88,12 @@ fun RatingsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(ratingItems, key = { it.movieId }) { item ->
-                            val isFavorite = favoriteItems.any { it.movieId == item.movieId }
+                        items(uiState.ratings, key = { it.movieId }) { item ->
                             RatingMovieCard(
                                 item = item,
-                                isFavorite = isFavorite,
+                                isFavorite = viewModel.isFavorite(item.movieId),
                                 onMovieClick = onMovieClick,
-                                onRemoveRating = { ratingViewModel.removeRating(it) }
+                                onRemoveRating = { viewModel.removeRating(it) }
                             )
                         }
                     }

@@ -28,28 +28,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.myapplication.data.remote.MovieApiService
-import com.example.myapplication.data.remote.MovieApiModel
 import com.example.myapplication.ui.theme.MovitoBackground
 import com.google.accompanist.flowlayout.FlowRow
-import com.google.gson.Gson
-import kotlinx.coroutines.launch
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(navController: NavHostController) {
+fun SearchScreen(
+    navController: NavHostController,
+    viewModel: SearchScreenViewModel
+) {
     val context = LocalContext.current
-    var query by remember { mutableStateOf("") }
-    var searchResults by remember { mutableStateOf<List<MovieApiModel>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
-    val recentSearches = remember { mutableStateListOf("Action", "Comedy", "Drama", "Sci-Fi") }
-
-    val scope = rememberCoroutineScope()
-    val apiService = MovieApiService.create()
-    val gson = remember { Gson() }
+    val uiState by viewModel.uiState.collectAsState()
 
     // 🎤 Voice recognition launcher
     val voiceLauncher = rememberLauncherForActivityResult(
@@ -59,20 +49,7 @@ fun SearchScreen(navController: NavHostController) {
             val data: Intent? = result.data
             val spokenText = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             if (!spokenText.isNullOrEmpty()) {
-                query = spokenText
-                scope.launch {
-                    try {
-                        isLoading = true
-                        val response = apiService.searchMovies(spokenText)
-                        searchResults = response.results
-                        if (!recentSearches.contains(spokenText))
-                            recentSearches.add(0, spokenText)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    } finally {
-                        isLoading = false
-                    }
-                }
+                viewModel.searchByVoice(spokenText)
             }
         }
     }
@@ -102,8 +79,8 @@ fun SearchScreen(navController: NavHostController) {
 
         // ======= Search Bar =======
         OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
+            value = uiState.query,
+            onValueChange = { viewModel.updateQuery(it) },
             placeholder = { Text("Search for movies, shows, and more", color = Color.LightGray) },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
@@ -143,23 +120,7 @@ fun SearchScreen(navController: NavHostController) {
 
         // ======= Search Button =======
         Button(
-            onClick = {
-                if (query.isNotEmpty()) {
-                    scope.launch {
-                        try {
-                            isLoading = true
-                            val response = apiService.searchMovies(query)
-                            searchResults = response.results
-                            if (!recentSearches.contains(query))
-                                recentSearches.add(0, query)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        } finally {
-                            isLoading = false
-                        }
-                    }
-                }
-            },
+            onClick = { viewModel.search() },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier
@@ -175,16 +136,16 @@ fun SearchScreen(navController: NavHostController) {
 
         // ======= Results / Loading / Recent Searches =======
         when {
-            isLoading -> {
+            uiState.isLoading -> {
                 Spacer(modifier = Modifier.height(50.dp))
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF9B5DE5))
                 }
             }
 
-            searchResults.isNotEmpty() -> {
+            uiState.searchResults.isNotEmpty() -> {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(searchResults) { movie ->
+                    items(uiState.searchResults) { movie ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -227,24 +188,11 @@ fun SearchScreen(navController: NavHostController) {
                 Text("Recent Searches", color = Color.White, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(10.dp))
                 FlowRow(mainAxisSpacing = 12.dp, crossAxisSpacing = 12.dp) {
-                    recentSearches.forEach { item ->
+                    uiState.recentSearches.forEach { item ->
                         Box(
                             modifier = Modifier
                                 .background(Color(0xFF2A1B3D), RoundedCornerShape(20.dp))
-                                .clickable {
-                                    query = item
-                                    scope.launch {
-                                        try {
-                                            isLoading = true
-                                            val response = apiService.searchMovies(item)
-                                            searchResults = response.results
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        } finally {
-                                            isLoading = false
-                                        }
-                                    }
-                                }
+                                .clickable { viewModel.search(item) }
                                 .padding(horizontal = 20.dp, vertical = 10.dp)
                         ) {
                             Text(item, color = Color.White, fontSize = 14.sp)

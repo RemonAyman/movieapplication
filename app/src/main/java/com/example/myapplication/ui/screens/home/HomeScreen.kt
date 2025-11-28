@@ -3,11 +3,14 @@ package com.example.myapplication.ui.screens.home
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -34,10 +37,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.MovieApiModel
 import com.example.myapplication.ui.theme.MovitoBackground
+import com.example.myapplication.ui.theme.SurfaceDark
 
 // Premium Color Palette
 private val PrimaryPurple = Color(0xFF9B5DE5)
@@ -52,7 +57,7 @@ private val GlassBackground = Color(0x30FFFFFF)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    viewModel: HomeScreenViewModel
+    viewModel: HomeScreenViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -102,7 +107,34 @@ fun HomeScreen(
                         message = "Failed to load upcoming movies",
                         onRetry = { viewModel.loadUpcomingMovies() }
                     )
-                    else -> PremiumMovieRow(uiState.upcomingMovies, navController, uiState.isLoading)
+
+                    else -> PremiumMovieRow(
+                        uiState.upcomingMovies,
+                        navController,
+                        uiState.isLoading
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                //From yor watchlist section
+                PremiumSectionTitle(
+                    title = "From Your WatchList",
+                    subtitle = "Your Watchlist Just Got Exciting"
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                when {
+                    uiState.isLoading && uiState.fromYourWatchListMovies.isEmpty() -> ShimmerMovieRow()
+                    uiState.error != null && uiState.fromYourWatchListMovies.isEmpty() -> PremiumErrorCard(
+                        message = "Failed to load watchlist movies",
+                        onRetry = { viewModel.loadWatchlistMovies() }
+                    )
+
+                    else -> PremiumMovieRow(
+                        uiState.upcomingMovies,
+                        navController,
+                        uiState.isLoading
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -119,24 +151,32 @@ fun HomeScreen(
                         message = "No internet connection. Pull down to refresh.",
                         onRetry = { viewModel.loadPopularMovies() }
                     )
+
                     else -> PremiumMovieRow(uiState.popularMovies, navController, uiState.isLoading)
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
 
                 // Top Rated Section
-                if (uiState.popularMovies.isNotEmpty()) {
-                    val topRated = uiState.popularMovies.sortedByDescending { it.vote_average }.take(10)
-                    if (topRated.isNotEmpty()) {
-                        PremiumSectionTitle(
-                            title = "Popular",
-                            subtitle = "Top hits you can't miss"
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        PremiumMovieRow(topRated, navController, uiState.isLoading)
-                        Spacer(modifier = Modifier.height(40.dp))
-                    }
+
+
+                PremiumSectionTitle(
+                    title = "Top Rated",
+                    subtitle = "Top rated of all time",
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                when {
+                    uiState.isLoading&&uiState.topRatedMovies.isEmpty() ->ShimmerMovieRow()
+                    uiState.error != null && uiState.topRatedMovies.isEmpty() -> PremiumErrorCard(
+                        message = "No internet connection. Pull down to refresh.",
+                        onRetry = {viewModel.loadTopRatedMovies()}
+                    )
+                    else -> PremiumMovieRow(uiState.topRatedMovies,navController,uiState.isLoading,showRank = true)
+
                 }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
 
                 // Action Section
                 if (uiState.actionMovies.isNotEmpty()) {
@@ -179,6 +219,17 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.cartoonMovies, navController, uiState.isLoading)
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
+
+                // anime section
+                if (uiState.animeMovies.isNotEmpty()) {
+                    PremiumSectionTitle(
+                        title = "Anime",
+                        subtitle = "Timeless anime adventures for everyone"
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    PremiumMovieRow(uiState.animeMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
                 }
 
@@ -307,11 +358,12 @@ fun PremiumHeader() {
         }
     }
 }
+
 @Composable
 fun FeaturedMovieSection(
     movie: MovieApiModel,
     navController: NavHostController,
-    isLoading: Boolean
+    isLoading: Boolean,
 ) {
     Box(
         modifier = Modifier
@@ -507,7 +559,7 @@ fun FeaturedMovieSection(
 @Composable
 fun PremiumSectionTitle(
     title: String,
-    subtitle: String
+    subtitle: String,
 ) {
     Column(
         modifier = Modifier
@@ -532,10 +584,12 @@ fun PremiumSectionTitle(
 }
 
 @Composable
+
 fun PremiumMovieRow(
     movies: List<MovieApiModel>,
     navController: NavHostController,
-    isLoading: Boolean
+    isLoading: Boolean,
+    showRank: Boolean = false
 ) {
     if (isLoading && movies.isEmpty()) {
         ShimmerMovieRow()
@@ -549,12 +603,7 @@ fun PremiumMovieRow(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    "No movies available",
-                    color = Color.Gray,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Text("No movies available", color = Color.Gray, fontSize = 16.sp)
                 Text(
                     "Check back later",
                     color = Color.Gray.copy(alpha = 0.6f),
@@ -568,8 +617,12 @@ fun PremiumMovieRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(horizontal = 20.dp)
         ) {
-            items(movies) { movie ->
-                PremiumMovieCard(movie, navController)
+            itemsIndexed(movies) { index, movie ->
+                PremiumMovieCard(
+                    movie = movie,
+                    navController = navController,
+                    rank = if (showRank) index + 1 else null // 🔥 هنا السحر
+                )
             }
         }
     }
@@ -578,7 +631,8 @@ fun PremiumMovieRow(
 @Composable
 fun PremiumMovieCard(
     movie: MovieApiModel,
-    navController: NavHostController
+    navController: NavHostController,
+    rank: Int? = null
 ) {
     var isPressed by remember { mutableStateOf(false) }
 
@@ -603,6 +657,11 @@ fun PremiumMovieCard(
                 .width(170.dp)
                 .height(250.dp)
                 .shadow(12.dp, RoundedCornerShape(18.dp))
+                .border(
+                    width = 1.dp,
+                    color = GlassBackground.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(18.dp)
+                )
                 .clip(RoundedCornerShape(18.dp))
                 .background(CardBackground)
                 .clickable {
@@ -627,7 +686,7 @@ fun PremiumMovieCard(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.Black.copy(alpha = 0.6f),
+                                MovitoBackground.copy(alpha = 0.6f),
                                 Color.Transparent
                             )
                         )
@@ -672,14 +731,40 @@ fun PremiumMovieCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.95f)
+                                Color.Black.copy(alpha = 0.6f)
                             )
                         )
                     )
             )
         }
+        // Ranking
+        if (rank != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .offset(y = (-15).dp)
+                    .size(35.dp)
+                    .border(
+                        width = 4.dp,
+                        color = MovitoBackground,
+                        shape = CircleShape
+                    )
+                    .background(
+                        color = PrimaryPurple,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "$rank",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+       Spacer(modifier = Modifier.height(10.dp))
 
         // Movie Title
         Text(
@@ -803,7 +888,7 @@ fun ShimmerMovieCard() {
 @Composable
 fun PremiumErrorCard(
     message: String,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
 ) {
     Box(
         modifier = Modifier

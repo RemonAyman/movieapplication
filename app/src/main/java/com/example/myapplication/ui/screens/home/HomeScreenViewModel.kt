@@ -4,8 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.MoviesRepository
+import com.example.myapplication.data.WatchlistRepository
 import com.example.myapplication.data.remote.MovieApiModel
-import com.example.myapplication.data.remote.MovieApiService
+import com.example.myapplication.ui.screens.home.mapper.toMovieApiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,8 @@ import kotlinx.coroutines.launch
 data class HomeScreenState(
     val popularMovies: List<MovieApiModel> = emptyList(),
     val upcomingMovies: List<MovieApiModel> = emptyList(),
+    val topRatedMovies: List<MovieApiModel> = emptyList(),
+    val fromYourWatchListMovies: List<MovieApiModel> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null
@@ -32,7 +35,8 @@ data class HomeScreenState(
 }
 
 class HomeScreenViewModel(
-    private val repository: MoviesRepository
+    private val moviesRepository: MoviesRepository,
+    private val watchlistRepository: WatchlistRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeScreenState())
@@ -46,11 +50,15 @@ class HomeScreenViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val popular = repository.getPopular100Movies()
-                val upcoming = repository.getUpcomingMovies()
+                val popular = moviesRepository.getPopular100Movies()
+                val upcoming = moviesRepository.getUpcomingMovies()
+                val topRated = moviesRepository.getTop100Movies()
+                val fromYourWatchList = watchlistRepository.getWatchlistFlow().toMovieApiModel()
                 _uiState.value = _uiState.value.copy(
                     popularMovies = popular,
                     upcomingMovies = upcoming,
+                    fromYourWatchListMovies = fromYourWatchList,
+                    topRatedMovies = topRated,
                     isLoading = false
                 )
             } catch (e: Exception) {
@@ -62,15 +70,20 @@ class HomeScreenViewModel(
         }
     }
 
+
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true)
             try {
-                val popular = repository.getPopular100Movies()
-                val upcoming = repository.getUpcomingMovies()
+                val popular = moviesRepository.getPopular100Movies()
+                val upcoming = moviesRepository.getUpcomingMovies()
+                val topRated = moviesRepository.getTop100Movies()
+                val fromYouWatchlist = watchlistRepository.getWatchlistFlow().toMovieApiModel()
                 _uiState.value = _uiState.value.copy(
                     popularMovies = popular,
                     upcomingMovies = upcoming,
+                    topRatedMovies = topRated,
+                    fromYourWatchListMovies = fromYouWatchlist,
                     isRefreshing = false,
                     error = null
                 )
@@ -82,12 +95,38 @@ class HomeScreenViewModel(
             }
         }
     }
+    fun loadTopRatedMovies(){
+        viewModelScope.launch {
+            _uiState.value=_uiState.value.copy(isRefreshing = true)
+            try {
+                val topRated = moviesRepository.getPopular100Movies()
+                _uiState.value = _uiState.value.copy(topRatedMovies = topRated)
+            }catch (e: Exception){
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.localizedMessage
+                )            }
+        }
+    }
+    fun loadWatchlistMovies(){
+        viewModelScope.launch {
+            _uiState.value=_uiState.value.copy(isRefreshing = true)
+            try {
+                val fromyorWatchlist =watchlistRepository.getWatchlistFlow().toMovieApiModel()
+                _uiState.value = _uiState.value.copy(fromYourWatchListMovies = fromyorWatchlist)
+            }catch (e: Exception){
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.localizedMessage
+                )            }
+        }
+    }
 
     fun loadPopularMovies() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val popular = repository.getPopular100Movies()
+                val popular = moviesRepository.getPopular100Movies()
                 _uiState.value = _uiState.value.copy(
                     popularMovies = popular,
                     isLoading = false,
@@ -106,7 +145,7 @@ class HomeScreenViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val upcoming = repository.getUpcomingMovies()
+                val upcoming = moviesRepository.getUpcomingMovies()
                 _uiState.value = _uiState.value.copy(
                     upcomingMovies = upcoming,
                     isLoading = false,
@@ -127,12 +166,13 @@ class HomeScreenViewModel(
 }
 
 class HomeScreenViewModelFactory(
-    private val repository: MoviesRepository
+    private val moviesRepository: MoviesRepository,
+    private val watchlisRepository: WatchlistRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeScreenViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return HomeScreenViewModel(repository) as T
+            return HomeScreenViewModel( moviesRepository,watchlisRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

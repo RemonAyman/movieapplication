@@ -72,6 +72,7 @@ fun NavGraph(
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val apiService = MovieApiService.create()
     val moviesRepository = MoviesRepository(apiService)
+    val watchlistRepository = WatchlistRepository()
 
     NavHost(navController = navController, startDestination = "splash", modifier = modifier) {
 
@@ -105,7 +106,7 @@ fun NavGraph(
         composable("HomeScreen") {
             onDestinationChanged("HomeScreen")
             val homeVM: HomeScreenViewModel = viewModel(
-                factory = HomeScreenViewModelFactory(moviesRepository)
+                factory = HomeScreenViewModelFactory(moviesRepository,watchlistRepository)
             )
             HomeScreen(navController, homeVM)
         }

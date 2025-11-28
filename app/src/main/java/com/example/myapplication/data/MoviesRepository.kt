@@ -28,6 +28,20 @@ class MoviesRepository(
         }
     }
 
+    suspend fun getTop100Movies(): List<MovieApiModel> =withContext(Dispatchers.IO){
+        coroutineScope {
+            try {
+                val pages =(1..5).map{ page->
+                    async { apiService.getTopRatedMovies(page = page).results }
+                }
+                val allMovies =pages.flatMap { it.await() }
+                allMovies.filter { it.title.isNotEmpty() && it.poster_path !=null }
+            }catch (e: Exception){
+                emptyList()
+            }
+        }
+    }
+
     // 🔹 جلب أول 100 فيلم قادم (Upcoming)
     suspend fun getUpcomingMovies(): List<MovieApiModel> = withContext(Dispatchers.IO) {
         coroutineScope {
@@ -46,3 +60,4 @@ class MoviesRepository(
         }
     }
 }
+//جلب اعلى الافلام تقييما

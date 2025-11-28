@@ -48,11 +48,11 @@ fun ActorDetailsScreen(
     var profileVisible by remember { mutableStateOf(false) }
     val profileAlpha by animateFloatAsState(
         targetValue = if (profileVisible) 1f else 0f,
-        animationSpec = tween(600)
+        animationSpec = tween(600), label = ""
     )
     val profileScale by animateFloatAsState(
         targetValue = if (profileVisible) 1f else 0.8f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy), label = ""
     )
 
     // Load actor details

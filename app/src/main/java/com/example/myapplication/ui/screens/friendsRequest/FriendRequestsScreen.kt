@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.firebase.models.UserDataModel
 import androidx.navigation.NavController
-import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,8 +32,6 @@ fun FriendRequestsScreen(
     navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     Scaffold(
         topBar = {
@@ -49,9 +46,8 @@ fun FriendRequestsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        navController.navigate("profileMainScreen/$currentUserId") {
-                            popUpTo("profileMainScreen/$currentUserId") { inclusive = false }
-                        }
+                        // ✅ استخدام popBackStack بدلاً من navigate
+                        navController.popBackStack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
@@ -191,10 +187,10 @@ fun FriendRequestCard(
                     AsyncImage(
                         model = friend.avatarBase64,
                         contentDescription = "avatar",
-                        contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                            .clip(CircleShape)
                     )
                 } else {
                     Text(

@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,7 +43,11 @@ fun SearchScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    // 🎤 Voice recognition launcher
+    // ✅ تهيئة SearchPreferences
+    LaunchedEffect(Unit) {
+        viewModel.initPreferences(context)
+    }
+
     val voiceLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -65,13 +71,14 @@ fun SearchScreen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            IconButton(onClick = { navController.navigate("home") }) {
+            IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Text(
                 text = "Search",
                 color = Color.White,
-                fontSize = 22.sp
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -81,19 +88,16 @@ fun SearchScreen(
         OutlinedTextField(
             value = uiState.query,
             onValueChange = { viewModel.updateQuery(it) },
-            placeholder = { Text("Search for movies, shows, and more", color = Color.LightGray) },
+            placeholder = { Text("Search...", color = Color.LightGray) },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
             },
             trailingIcon = {
                 IconButton(onClick = {
                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                        putExtra(
-                            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                        )
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                         putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Say a movie name…")
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something…")
                     }
                     voiceLauncher.launch(intent)
                 }) {
@@ -118,6 +122,37 @@ fun SearchScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // ======= Category Tabs =======
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SearchCategory.values().forEach { category ->
+                FilterChip(
+                    selected = uiState.selectedCategory == category,
+                    onClick = { viewModel.selectCategory(category) },
+                    label = {
+                        Text(
+                            text = when (category) {
+                                SearchCategory.MOVIES -> "Movies"
+                                SearchCategory.TV_SHOWS -> "TV Shows"
+                                SearchCategory.ACTORS -> "Actors"
+                            },
+                            fontSize = 14.sp
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF9B5DE5),
+                        selectedLabelColor = Color.White,
+                        containerColor = Color(0xFF2A1B3D),
+                        labelColor = Color.LightGray
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // ======= Search Button =======
         Button(
             onClick = { viewModel.search() },
@@ -137,69 +172,174 @@ fun SearchScreen(
         // ======= Results / Loading / Recent Searches =======
         when {
             uiState.isLoading -> {
-                Spacer(modifier = Modifier.height(50.dp))
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF9B5DE5))
                 }
             }
 
-            uiState.searchResults.isNotEmpty() -> {
+            uiState.movieResults.isNotEmpty() || uiState.tvShowResults.isNotEmpty() || uiState.actorResults.isNotEmpty() -> {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(uiState.searchResults) { movie ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clickable {
-                                    navController.navigate("details/${movie.id}")
-                                }
+                    // Movies
+                    items(uiState.movieResults) { movie ->
+                        MovieResultItem(movie) {
+                            navController.navigate("details/${movie.id}")
+                        }
+                    }
 
-                        ) {
-                            Image(
-                                painter = rememberAsyncImagePainter("https://image.tmdb.org/t/p/w500${movie.poster_path}"),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(
-                                modifier = Modifier.align(Alignment.CenterVertically)
-                            ) {
-                                Text(
-                                    text = movie.title ?: "Unknown",
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = movie.release_date ?: "",
-                                    color = Color.Gray,
-                                    fontSize = 13.sp
-                                )
-                            }
+                    // TV Shows
+                    items(uiState.tvShowResults) { show ->
+                        TvShowResultItem(show) {
+                            navController.navigate("tvShowDetails/${show.id}")
+                        }
+                    }
+
+                    // Actors - ✅ الإصلاح هنا
+                    items(uiState.actorResults) { actor ->
+                        ActorResultItem(actor) {
+                            navController.navigate("actorDetails/${actor.id}")
                         }
                     }
                 }
             }
 
             else -> {
-                Text("Recent Searches", color = Color.White, fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(10.dp))
-                FlowRow(mainAxisSpacing = 12.dp, crossAxisSpacing = 12.dp) {
-                    uiState.recentSearches.forEach { item ->
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFF2A1B3D), RoundedCornerShape(20.dp))
-                                .clickable { viewModel.search(item) }
-                                .padding(horizontal = 20.dp, vertical = 10.dp)
-                        ) {
-                            Text(item, color = Color.White, fontSize = 14.sp)
+                // Recent Searches
+                if (uiState.recentSearches.isNotEmpty()) {
+                    Text("Recent Searches", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    FlowRow(mainAxisSpacing = 12.dp, crossAxisSpacing = 12.dp) {
+                        uiState.recentSearches.forEach { item ->
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF2A1B3D), RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        viewModel.updateQuery(item)
+                                        viewModel.search(item)
+                                    }
+                                    .padding(horizontal = 20.dp, vertical = 10.dp)
+                            ) {
+                                Text(item, color = Color.White, fontSize = 14.sp)
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MovieResultItem(movie: com.example.myapplication.data.remote.MovieApiModel, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() }
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter("https://image.tmdb.org/t/p/w500${movie.poster_path}"),
+            contentDescription = null,
+            modifier = Modifier
+                .size(80.dp)
+                .clip(RoundedCornerShape(10.dp))
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+            Text(
+                text = movie.title,
+                color = Color.White,
+                fontSize = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = movie.release_date ?: "",
+                color = Color.Gray,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun TvShowResultItem(show: com.example.myapplication.data.remote.TvShowApiModel, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() }
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter("https://image.tmdb.org/t/p/w500${show.poster_path}"),
+            contentDescription = null,
+            modifier = Modifier
+                .size(80.dp)
+                .clip(RoundedCornerShape(10.dp))
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+            Text(
+                text = show.name,
+                color = Color.White,
+                fontSize = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = show.first_air_date ?: "",
+                color = Color.Gray,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActorResultItem(actor: com.example.myapplication.data.remote.ActorSearchResult, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() }
+    ) {
+        if (actor.profile_path != null) {
+            Image(
+                painter = rememberAsyncImagePainter("https://image.tmdb.org/t/p/w500${actor.profile_path}"),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2A1B3D)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = actor.name.firstOrNull()?.uppercase() ?: "?",
+                    color = Color(0xFF9B5DE5),
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+            Text(
+                text = actor.name,
+                color = Color.White,
+                fontSize = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = actor.known_for_department ?: "",
+                color = Color.Gray,
+                fontSize = 13.sp
+            )
         }
     }
 }

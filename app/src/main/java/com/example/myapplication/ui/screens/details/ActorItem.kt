@@ -32,7 +32,7 @@ fun ActorItem(
     ) {
         // Actor Profile Image
         Box {
-            val hasProfilePath = actor.profile_path != null && actor.profile_path.isNotEmpty()
+            val hasProfilePath = !actor.profile_path.isNullOrEmpty()
 
             if (hasProfilePath) {
                 AsyncImage(
@@ -54,7 +54,7 @@ fun ActorItem(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        actor.name.take(1),
+                        actor.name.firstOrNull()?.uppercase() ?: "?",
                         color = Color.White,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold

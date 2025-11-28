@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import coil.compose.AsyncImage
 import com.example.myapplication.data.remote.firebase.models.UserDataModel
 import kotlinx.coroutines.launch
 import androidx.navigation.NavController
+import com.google.accompanist.flowlayout.FlowRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,59 +64,96 @@ fun FriendsScreen(
         viewModel.loadFriendRequests()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = if (isSearchMode) "Find Users" else "Your Friends", color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
-            )
-        },
-        containerColor = Color(0xFF0F0820)
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0F0820))
-                .padding(padding)
-                .padding(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F0820))
+            .padding(16.dp)
+    ) {
+        // ======= Top Bar =======
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Text(
+                text = if (isSearchMode) "Find Users" else "Your Friends",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
-            if (isSearchMode) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search by username", color = Color.LightGray) },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFF1B1330),
-                        unfocusedContainerColor = Color(0xFF1B1330),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color.White
-                    )
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        if (isSearchMode) {
+            // ======= Search Bar =======
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search by username", color = Color.LightGray) },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color(0xFF1B1330),
+                    unfocusedContainerColor = Color(0xFF1B1330),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ======= Search Button (optional but consistent) =======
+            Button(
+                onClick = { /* Already searching live */ },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
+            ) {
+                Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Search", color = Color.White, fontSize = 16.sp)
             }
 
-            if (displayList.isEmpty()) {
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        // ======= Results / Empty State =======
+        when {
+            displayList.isEmpty() && searchQuery.isNotEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = if (isSearchMode) "No users match your search." else "You have no friends yet.",
+                        text = "No users match your search.",
                         color = Color(0xFFBDBDBD),
                         fontSize = 16.sp
                     )
                 }
-            } else {
+            }
+
+            displayList.isEmpty() && !isSearchMode -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "You have no friends yet.",
+                        color = Color(0xFFBDBDBD),
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            displayList.isNotEmpty() -> {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(displayList) { user ->
                         val status = viewModel.computeRequestStatusFor(user.uid)
@@ -184,13 +223,12 @@ private fun AvatarSmall(user: UserDataModel, sizeDp: Int = 52) {
             AsyncImage(
                 model = user.avatarBase64,
                 contentDescription = "avatar",
-                contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                    .clip(CircleShape)
             )
         } else {
-            // Placeholder
             Text(
                 text = user.username.firstOrNull()?.uppercase() ?: "?",
                 color = Color(0xFF9B5DE5),

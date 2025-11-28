@@ -11,6 +11,7 @@ plugins {
 android {
     namespace = "com.example.myapplication"
     compileSdk = 36
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         applicationId = "com.example.myapplication"

@@ -57,8 +57,11 @@ import com.example.myapplication.ui.screens.ratings.RatingsScreenViewModel
 import com.example.myapplication.ui.screens.ratings.RatingsScreenViewModelFactory
 import com.example.myapplication.ui.screens.details.MovieDetailsScreenViewModel
 import com.example.myapplication.ui.screens.details.MovieDetailsScreenViewModelFactory
-import com.google.firebase.auth.FirebaseAuth
 import com.example.myapplication.ui.screens.details.ActorDetailsScreen
+import com.example.myapplication.ui.screens.tvshowdetails.TvShowDetailsScreen
+import com.example.myapplication.ui.screens.tvshowdetails.TvShowDetailsScreenViewModel
+import com.example.myapplication.ui.screens.tvshowdetails.TvShowDetailsScreenViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun NavGraph(
@@ -283,6 +286,24 @@ fun NavGraph(
             )
         }
 
+        // ✅ TV Show Details Screen - شاشة المسلسلات الجديدة
+        composable(
+            route = "tvShowDetails/{showId}",
+            arguments = listOf(
+                navArgument("showId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            onDestinationChanged("tvShowDetails")
+            val showId = backStackEntry.arguments?.getInt("showId") ?: 0
+
+            val tvShowDetailsVM: TvShowDetailsScreenViewModel = viewModel(
+                factory = TvShowDetailsScreenViewModelFactory(showId)
+            )
+            TvShowDetailsScreen(navController, tvShowDetailsVM)
+        }
+
         // Watchlist Screen
         composable(
             route = "watchlist/{userId}",
@@ -298,7 +319,7 @@ fun NavGraph(
             val watchlistRepository = WatchlistRepository()
 
             val watchlistScreenVM: WatchlistScreenViewModel = viewModel(
-                factory = WatchlistScreenViewModelFactory(watchlistRepository,userId)
+                factory = WatchlistScreenViewModelFactory(watchlistRepository, userId)
             )
             WatchlistScreen(
                 viewModel = watchlistScreenVM,

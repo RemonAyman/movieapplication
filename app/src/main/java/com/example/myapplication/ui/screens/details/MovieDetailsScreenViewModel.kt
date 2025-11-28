@@ -61,19 +61,19 @@ class MovieDetailsScreenViewModel(
                 val movie = MovieApiModel(
                     id = movieDetails.id,
                     title = movieDetails.title,
-                    overview = movieDetails.overview,
+                    overview = movieDetails.overview ?: "",
                     poster_path = movieDetails.poster_path,
                     release_date = movieDetails.release_date,
-                    vote_average = movieDetails.vote_average,
+                    vote_average = movieDetails.vote_average ?: 0.0,
                     genre_ids = emptyList(),
-                    original_language = movieDetails.original_language ?: "ar",
+                    original_language = movieDetails.original_language ?: "en",
                     backdrop_path = movieDetails.backdrop_path
                 )
 
                 // Load trailer
                 val videos = apiService.getMovieVideos(movieId)
-                val trailerKey = videos.results.find { 
-                    it.site == "YouTube" && it.type == "Trailer" 
+                val trailerKey = videos.results.find {
+                    it.site == "YouTube" && it.type == "Trailer"
                 }?.key
 
                 // Load cast
@@ -124,7 +124,7 @@ class MovieDetailsScreenViewModel(
     fun toggleFavorite() {
         val movie = _uiState.value.movie ?: return
         val isFavorite = !_uiState.value.isFavorite
-        
+
         viewModelScope.launch {
             try {
                 val favItem = FavoritesItem(
@@ -132,13 +132,13 @@ class MovieDetailsScreenViewModel(
                     title = movie.title,
                     poster = "https://image.tmdb.org/t/p/w500${movie.poster_path}"
                 )
-                
+
                 if (isFavorite) {
                     favoritesRepository.addFavorite(favItem, currentUserId)
                 } else {
                     favoritesRepository.removeFavorite(movie.id.toString(), currentUserId)
                 }
-                
+
                 _uiState.value = _uiState.value.copy(isFavorite = isFavorite)
             } catch (e: Exception) {
                 // Revert on error
@@ -149,7 +149,7 @@ class MovieDetailsScreenViewModel(
     fun toggleWatched() {
         val movie = _uiState.value.movie ?: return
         val isWatched = !_uiState.value.isWatched
-        
+
         viewModelScope.launch {
             try {
                 if (isWatched) {
@@ -165,7 +165,7 @@ class MovieDetailsScreenViewModel(
                 } else {
                     watchedRepository.removeWatched(movie.id.toString())
                 }
-                
+
                 _uiState.value = _uiState.value.copy(isWatched = isWatched)
             } catch (e: Exception) {
                 // Revert on error
@@ -176,7 +176,7 @@ class MovieDetailsScreenViewModel(
     fun toggleWatchlist() {
         val movie = _uiState.value.movie ?: return
         val isInWatchlist = !_uiState.value.isInWatchlist
-        
+
         viewModelScope.launch {
             try {
                 if (isInWatchlist) {
@@ -200,7 +200,7 @@ class MovieDetailsScreenViewModel(
                         .delete()
                         .await()
                 }
-                
+
                 _uiState.value = _uiState.value.copy(isInWatchlist = isInWatchlist)
             } catch (e: Exception) {
                 // Revert on error
@@ -210,9 +210,9 @@ class MovieDetailsScreenViewModel(
 
     fun setRating(rating: Float) {
         val movie = _uiState.value.movie ?: return
-        
+
         _uiState.value = _uiState.value.copy(userRating = rating)
-        
+
         if (rating > 0f) {
             viewModelScope.launch {
                 try {
@@ -278,4 +278,3 @@ class MovieDetailsScreenViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-

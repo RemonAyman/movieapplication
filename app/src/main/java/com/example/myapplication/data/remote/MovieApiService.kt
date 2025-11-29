@@ -296,6 +296,40 @@ interface MovieApiService {
         @Query("api_key") apiKey: String = "2f13b4fd29b3109c92837f91bdc86c24",
         @Query("language") language: String = "en-US"
     ): ActorMovieCredits
+    // في MovieApiService.kt، ضيف الـ endpoints دي:
+
+    // 🎭 Discover Movies by Genre
+    @GET("discover/movie")
+    suspend fun getMoviesByGenre(
+        @Query("api_key") apiKey: String = "2f13b4fd29b3109c92837f91bdc86c24",
+        @Query("language") language: String = "en-US",
+        @Query("with_genres") genreId: Int,
+        @Query("page") page: Int = 1,
+        @Query("sort_by") sortBy: String = "popularity.desc"
+    ): MovieSearchResponse
+
+    // 🎌 Anime Movies (Animation + Japanese)
+    @GET("discover/movie")
+    suspend fun getAnimeMovies(
+        @Query("api_key") apiKey: String = "2f13b4fd29b3109c92837f91bdc86c24",
+        @Query("language") language: String = "en-US",
+        @Query("with_genres") genre: Int = 16, // Animation
+        @Query("with_original_language") originalLanguage: String = "ja", // Japanese
+        @Query("page") page: Int = 1,
+        @Query("sort_by") sortBy: String = "popularity.desc"
+    ): MovieSearchResponse
+
+    // 🇪🇬 Arabic Movies
+    @GET("discover/movie")
+    suspend fun getArabicMovies(
+        @Query("api_key") apiKey: String = "2f13b4fd29b3109c92837f91bdc86c24",
+        @Query("language") language: String = "ar",             // عشان العناوين والوصف بالعربي
+        @Query("with_original_language") originalLanguage: String = "ar", // لغة الفيلم الأصلية
+        @Query("region") region: String = "EG",                 // لأفلام مصرية وعربية بشكل أفضل
+        @Query("page") page: Int = 1,
+        @Query("sort_by") sortBy: String = "popularity.desc"    // ترتيب حسب الأكثر شعبية
+    ): MovieSearchResponse
+
 
     companion object {
         fun create(): MovieApiService {

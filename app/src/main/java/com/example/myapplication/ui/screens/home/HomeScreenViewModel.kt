@@ -17,6 +17,8 @@ data class HomeScreenState(
     val upcomingMovies: List<MovieApiModel> = emptyList(),
     val topRatedMovies: List<MovieApiModel> = emptyList(),
     val fromYourWatchListMovies: List<MovieApiModel> = emptyList(),
+    val arabicMovies: List<MovieApiModel> = emptyList(),
+
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null
@@ -28,9 +30,6 @@ data class HomeScreenState(
     val cartoonMovies: List<MovieApiModel> get() = popularMovies.filter { it.genre_ids.contains(16) }
     val animeMovies: List<MovieApiModel> get() = popularMovies.filter {
         it.genre_ids.contains(16) && it.title.contains("Anime", ignoreCase = true)
-    }
-    val arabicMovies: List<MovieApiModel> get() = (popularMovies + upcomingMovies).filter {
-        it.original_language == "ar"
     }
 }
 
@@ -53,11 +52,13 @@ class HomeScreenViewModel(
                 val popular = moviesRepository.getPopular100Movies()
                 val upcoming = moviesRepository.getUpcomingMovies()
                 val topRated = moviesRepository.getTop100Movies()
+                val  arabic = moviesRepository.getArabicMoviesForHome()
                 val fromYourWatchList = watchlistRepository.getWatchlistFlow().toMovieApiModel()
                 _uiState.value = _uiState.value.copy(
                     popularMovies = popular,
                     upcomingMovies = upcoming,
                     fromYourWatchListMovies = fromYourWatchList,
+                    arabicMovies = arabic,
                     topRatedMovies = topRated,
                     isLoading = false
                 )
@@ -99,7 +100,7 @@ class HomeScreenViewModel(
         viewModelScope.launch {
             _uiState.value=_uiState.value.copy(isRefreshing = true)
             try {
-                val topRated = moviesRepository.getPopular100Movies()
+                val topRated = moviesRepository.getTop100Movies()
                 _uiState.value = _uiState.value.copy(topRatedMovies = topRated)
             }catch (e: Exception){
                 _uiState.value = _uiState.value.copy(

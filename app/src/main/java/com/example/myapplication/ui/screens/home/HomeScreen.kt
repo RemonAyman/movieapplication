@@ -58,6 +58,8 @@ private val GlassBackground = Color(0x30FFFFFF)
 fun HomeScreen(
     navController: NavHostController,
     viewModel: HomeScreenViewModel,
+    userId : String
+
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -98,8 +100,12 @@ fun HomeScreen(
                 // Coming Soon Section
                 PremiumSectionTitle(
                     title = "Coming Soon",
-                    subtitle = "Get ready for these releases"
+                    subtitle = "Get ready for these releases",
+                    onSeeMoreClick = {
+                        navController.navigate("seeMore/upcoming/Coming Soon/false")
+                    }
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 when {
                     uiState.isLoading && uiState.upcomingMovies.isEmpty() -> ShimmerMovieRow()
@@ -120,8 +126,12 @@ fun HomeScreen(
                 //From yor watchlist section
                 PremiumSectionTitle(
                     title = "From Your WatchList",
-                    subtitle = "Your Watchlist Just Got Exciting"
+                    subtitle = "Your Watchlist Just Got Exciting",
+                    onSeeMoreClick = {
+                        navController.navigate("watchlist/$userId")
+                    }
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 when {
                     uiState.isLoading && uiState.fromYourWatchListMovies.isEmpty() -> ShimmerMovieRow()
@@ -131,7 +141,7 @@ fun HomeScreen(
                     )
 
                     else -> PremiumMovieRow(
-                        uiState.upcomingMovies,
+                        uiState.fromYourWatchListMovies,
                         navController,
                         uiState.isLoading
                     )
@@ -142,8 +152,12 @@ fun HomeScreen(
                 // Trending Now Section
                 PremiumSectionTitle(
                     title = "Trending Now",
-                    subtitle = "What everyone's watching"
+                    subtitle = "What everyone's watching",
+                    onSeeMoreClick = {
+                        navController.navigate("seeMore/popular/Trending Now/false")
+                    }
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 when {
                     uiState.isLoading && uiState.popularMovies.isEmpty() -> ShimmerMovieRow()
@@ -163,7 +177,11 @@ fun HomeScreen(
                 PremiumSectionTitle(
                     title = "Top Rated",
                     subtitle = "Top rated of all time",
+                    onSeeMoreClick = {
+                        navController.navigate("seeMore/topRated/Top Rated/true")
+                    }
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 when {
                     uiState.isLoading&&uiState.topRatedMovies.isEmpty() ->ShimmerMovieRow()
@@ -182,8 +200,12 @@ fun HomeScreen(
                 if (uiState.actionMovies.isNotEmpty()) {
                     PremiumSectionTitle(
                         title = "Action & Adventure",
-                        subtitle = "Explosive entertainment for thrill seekers"
+                        subtitle = "Explosive entertainment for thrill seekers",
+                        onSeeMoreClick = {
+                            navController.navigate("seeMore/action/Action & Adventure/false")
+                        }
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.actionMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
@@ -193,8 +215,12 @@ fun HomeScreen(
                 if (uiState.comedyMovies.isNotEmpty()) {
                     PremiumSectionTitle(
                         title = "Comedy",
-                        subtitle = "Laugh out loud with these comedies"
+                        subtitle = "Laugh out loud with these comedies",
+                        onSeeMoreClick = {
+                            navController.navigate("seeMore/comedy/Comedy/false")
+                        }
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.comedyMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
@@ -204,8 +230,12 @@ fun HomeScreen(
                 if (uiState.romanceMovies.isNotEmpty()) {
                     PremiumSectionTitle(
                         title = "Romance",
-                        subtitle = "Heartwarming love stories"
+                        subtitle = "Heartwarming love stories",
+                        onSeeMoreClick = {
+                            navController.navigate("seeMore/romance/Romance/false")
+                        }
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.romanceMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
@@ -215,8 +245,12 @@ fun HomeScreen(
                 if (uiState.cartoonMovies.isNotEmpty()) {
                     PremiumSectionTitle(
                         title = "Animation",
-                        subtitle = "Animated masterpieces for all ages"
+                        subtitle = "Animated masterpieces for all ages",
+                        onSeeMoreClick = {
+                            navController.navigate("seeMore/animation/Animation/false")
+                        }
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.cartoonMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
@@ -226,8 +260,12 @@ fun HomeScreen(
                 if (uiState.animeMovies.isNotEmpty()) {
                     PremiumSectionTitle(
                         title = "Anime",
-                        subtitle = "Timeless anime adventures for everyone"
+                        subtitle = "Timeless anime adventures for everyone",
+                        onSeeMoreClick = {
+                            navController.navigate("seeMore/anime/Anime/false")
+                        }
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.animeMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
@@ -237,8 +275,12 @@ fun HomeScreen(
                 if (uiState.arabicMovies.isNotEmpty()) {
                     PremiumSectionTitle(
                         title = "Arabic Cinema",
-                        subtitle = "أفضل الأفلام العربية"
+                        subtitle = "أفضل الأفلام العربية",
+                        onSeeMoreClick = {
+                            navController.navigate("seeMore/arabic/Arabic Cinema/false")
+                        }
                     )
+
                     Spacer(modifier = Modifier.height(16.dp))
                     PremiumMovieRow(uiState.arabicMovies, navController, uiState.isLoading)
                     Spacer(modifier = Modifier.height(40.dp))
@@ -560,28 +602,47 @@ fun FeaturedMovieSection(
 fun PremiumSectionTitle(
     title: String,
     subtitle: String,
+    onSeeMoreClick: (() -> Unit)? = null // إضافي: لو مش null يبقى نعرض الزر
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.5.sp
-        )
-        Text(
-            text = subtitle,
-            color = Color.White.copy(alpha = 0.5f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Normal,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Column {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+            Text(
+                text = subtitle,
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
+        // زر "See More" إذا ال callback مش null
+        if (onSeeMoreClick != null) {
+            Text(
+                text = "See More",
+                color = PrimaryPurple,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clickable { onSeeMoreClick() }
+                    .padding(4.dp)
+            )
+        }
     }
 }
+
 
 @Composable
 

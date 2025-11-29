@@ -31,7 +31,8 @@ import com.example.myapplication.ui.watchlist.WatchlistItem
 fun WatchlistScreen(
     viewModel: WatchlistScreenViewModel,
     onBack: () -> Unit,
-    onMovieClick: (String) -> Unit
+    onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -89,6 +90,7 @@ fun WatchlistScreen(
                             WatchlistMovieCard(
                                 item = item,
                                 onMovieClick = onMovieClick,
+                                onTvShowClick = onTvShowClick,
                                 onRemoveFromWatchlist = { viewModel.removeFromWatchlist(it) }
                             )
                         }
@@ -104,6 +106,7 @@ fun WatchlistScreen(
 fun WatchlistMovieCard(
     item: WatchlistItem,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     onRemoveFromWatchlist: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -118,12 +121,18 @@ fun WatchlistMovieCard(
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1B1330))
                 .combinedClickable(
-                    onClick = { onMovieClick(item.movieId) },
+                    onClick = {
+                        if (item.movieId.startsWith("tv_")) {
+                            val tvShowId = item.movieId.removePrefix("tv_")
+                            onTvShowClick(tvShowId)
+                        } else {
+                            onMovieClick(item.movieId)
+                        }
+                    },
                     onLongClick = { showMenu = true }
                 )
         ) {
 
-            // Poster
             Image(
                 painter = rememberAsyncImagePainter(item.poster),
                 contentDescription = item.title,
@@ -135,7 +144,6 @@ fun WatchlistMovieCard(
             )
         }
 
-        // DropdownMenu فوق كل العناصر
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
@@ -156,4 +164,3 @@ fun WatchlistMovieCard(
         }
     }
 }
-

@@ -33,6 +33,7 @@ import kotlin.math.floor
 fun FavoritesScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     viewModel: FavoritesScreenViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -96,6 +97,7 @@ fun FavoritesScreen(
                                 item = item,
                                 rating = rating,
                                 onMovieClick = onMovieClick,
+                                onTvShowClick = onTvShowClick,
                                 onRemoveFavorite = { viewModel.removeFromFavorites(it) }
                             )
                         }
@@ -112,6 +114,7 @@ fun FavoritesMovieCard(
     item: FavoritesItem,
     rating: Float?,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     onRemoveFavorite: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -126,12 +129,18 @@ fun FavoritesMovieCard(
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1B1330))
                 .combinedClickable(
-                    onClick = { onMovieClick(item.movieId) },
+                    onClick = {
+                        if (item.movieId.startsWith("tv_")) {
+                            val tvShowId = item.movieId.removePrefix("tv_")
+                            onTvShowClick(tvShowId)
+                        } else {
+                            onMovieClick(item.movieId)
+                        }
+                    },
                     onLongClick = { showMenu = true }
                 )
         ) {
 
-            // Poster
             Image(
                 painter = rememberAsyncImagePainter(item.poster),
                 contentDescription = item.title,
@@ -142,7 +151,6 @@ fun FavoritesMovieCard(
                     .clip(RoundedCornerShape(6.dp))
             )
 
-            // Bottom row (stars + heart)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -151,7 +159,6 @@ fun FavoritesMovieCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Stars (only filled stars and ½ symbol)
                 if (rating != null) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -160,7 +167,6 @@ fun FavoritesMovieCard(
                         val fullStars = floor(rating).toInt()
                         val hasHalfStar = (rating - fullStars) >= 0.5
 
-                        // Show full stars
                         repeat(fullStars) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
@@ -170,7 +176,6 @@ fun FavoritesMovieCard(
                             )
                         }
 
-                        // Show ½ symbol if needed
                         if (hasHalfStar) {
                             Text(
                                 text = "½",
@@ -180,11 +185,9 @@ fun FavoritesMovieCard(
                         }
                     }
                 } else {
-                    // Empty space if no rating
                     Spacer(modifier = Modifier.size(12.dp))
                 }
 
-                // Heart icon (always visible in favorites)
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Favorite",
@@ -194,7 +197,6 @@ fun FavoritesMovieCard(
             }
         }
 
-        // DropdownMenu فوق كل العناصر
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },

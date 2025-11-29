@@ -118,6 +118,7 @@ fun NavGraph(
             FavoritesScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
+                onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
                 viewModel = vm
             )
         }
@@ -293,7 +294,8 @@ fun NavGraph(
             WatchlistScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
-                onMovieClick = { id -> navController.navigate("details/$id") }
+                onMovieClick = { id -> navController.navigate("details/$id") },
+                onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") }
             )
         }
 
@@ -308,6 +310,7 @@ fun NavGraph(
             WatchedScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
+                onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
                 viewModel = vm
             )
         }
@@ -323,11 +326,11 @@ fun NavGraph(
             RatingsScreen(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
+                onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
                 viewModel = vm
             )
         }
 
-        // ------------------ SEE MORE MOVIES (متعدل) ------------------
         composable(
             route = "seeMore/{category}/{title}/{showRank}",
             arguments = listOf(

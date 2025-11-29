@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +33,7 @@ import kotlin.math.floor
 fun RatingsScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     viewModel: RatingsScreenViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -93,6 +93,7 @@ fun RatingsScreen(
                                 item = item,
                                 isFavorite = viewModel.isFavorite(item.movieId),
                                 onMovieClick = onMovieClick,
+                                onTvShowClick = onTvShowClick,
                                 onRemoveRating = { viewModel.removeRating(it) }
                             )
                         }
@@ -109,6 +110,7 @@ fun RatingMovieCard(
     item: RatingItem,
     isFavorite: Boolean,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     onRemoveRating: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -123,12 +125,18 @@ fun RatingMovieCard(
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1B1330))
                 .combinedClickable(
-                    onClick = { onMovieClick(item.movieId) },
+                    onClick = {
+                        if (item.movieId.startsWith("tv_")) {
+                            val tvShowId = item.movieId.removePrefix("tv_")
+                            onTvShowClick(tvShowId)
+                        } else {
+                            onMovieClick(item.movieId)
+                        }
+                    },
                     onLongClick = { showMenu = true }
                 )
         ) {
 
-            // Poster
             Image(
                 painter = rememberAsyncImagePainter(item.poster),
                 contentDescription = item.title,
@@ -139,7 +147,6 @@ fun RatingMovieCard(
                     .clip(RoundedCornerShape(6.dp))
             )
 
-            // Bottom row (stars + heart)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,7 +155,6 @@ fun RatingMovieCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Stars (only filled stars and ½ symbol)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -156,7 +162,6 @@ fun RatingMovieCard(
                     val fullStars = floor(item.rating).toInt()
                     val hasHalfStar = (item.rating - fullStars) >= 0.5
 
-                    // Show full stars
                     repeat(fullStars) {
                         Icon(
                             imageVector = Icons.Filled.Star,
@@ -166,7 +171,6 @@ fun RatingMovieCard(
                         )
                     }
 
-                    // Show ½ symbol if needed
                     if (hasHalfStar) {
                         Text(
                             text = "½",
@@ -176,7 +180,6 @@ fun RatingMovieCard(
                     }
                 }
 
-                // Heart icon if favorite
                 if (isFavorite) {
                     Icon(
                         imageVector = Icons.Default.Favorite,
@@ -185,13 +188,11 @@ fun RatingMovieCard(
                         modifier = Modifier.size(12.dp)
                     )
                 } else {
-                    // Spacer to maintain layout consistency
                     Spacer(modifier = Modifier.size(12.dp))
                 }
             }
         }
 
-        // DropdownMenu فوق كل العناصر
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },

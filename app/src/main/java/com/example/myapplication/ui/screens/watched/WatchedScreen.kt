@@ -33,6 +33,7 @@ import kotlin.math.floor
 fun WatchedScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     viewModel: WatchedScreenViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -93,6 +94,7 @@ fun WatchedScreen(
                                 isFavorite = viewModel.isFavorite(item.movieId),
                                 rating = viewModel.getRating(item.movieId),
                                 onMovieClick = onMovieClick,
+                                onTvShowClick = onTvShowClick,
                                 onRemoveFromWatched = { viewModel.removeFromWatched(it) }
                             )
                         }
@@ -110,6 +112,7 @@ fun WatchedMovieCard(
     isFavorite: Boolean,
     rating: Float?,
     onMovieClick: (String) -> Unit,
+    onTvShowClick: (String) -> Unit,
     onRemoveFromWatched: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -124,12 +127,18 @@ fun WatchedMovieCard(
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1B1330))
                 .combinedClickable(
-                    onClick = { onMovieClick(item.movieId) },
+                    onClick = {
+                        if (item.movieId.startsWith("tv_")) {
+                            val tvShowId = item.movieId.removePrefix("tv_")
+                            onTvShowClick(tvShowId)
+                        } else {
+                            onMovieClick(item.movieId)
+                        }
+                    },
                     onLongClick = { showMenu = true }
                 )
         ) {
 
-            // Poster
             Image(
                 painter = rememberAsyncImagePainter(item.poster),
                 contentDescription = item.title,
@@ -140,7 +149,6 @@ fun WatchedMovieCard(
                     .clip(RoundedCornerShape(6.dp))
             )
 
-            // Bottom row (stars + heart)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -149,7 +157,6 @@ fun WatchedMovieCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Stars (only filled stars and ½ symbol)
                 if (rating != null) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -158,7 +165,6 @@ fun WatchedMovieCard(
                         val fullStars = floor(rating).toInt()
                         val hasHalfStar = (rating - fullStars) >= 0.5
 
-                        // Show full stars
                         repeat(fullStars) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
@@ -168,7 +174,6 @@ fun WatchedMovieCard(
                             )
                         }
 
-                        // Show ½ symbol if needed
                         if (hasHalfStar) {
                             Text(
                                 text = "½",
@@ -178,11 +183,9 @@ fun WatchedMovieCard(
                         }
                     }
                 } else {
-                    // Empty space if no rating
                     Spacer(modifier = Modifier.size(12.dp))
                 }
 
-                // Heart icon if favorite
                 if (isFavorite) {
                     Icon(
                         imageVector = Icons.Default.Favorite,
@@ -191,13 +194,11 @@ fun WatchedMovieCard(
                         modifier = Modifier.size(12.dp)
                     )
                 } else {
-                    // Spacer to maintain layout consistency
                     Spacer(modifier = Modifier.size(12.dp))
                 }
             }
         }
 
-        // DropdownMenu فوق كل العناصر
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },

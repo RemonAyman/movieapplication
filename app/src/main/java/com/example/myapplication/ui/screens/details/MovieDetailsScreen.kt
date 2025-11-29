@@ -46,6 +46,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import com.example.myapplication.ui.commonComponents.PremiumMovieCard
+import com.example.myapplication.ui.commonComponents.PremiumMovieRow
+import com.example.myapplication.ui.commonComponents.PremiumSectionTitle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -603,6 +606,19 @@ fun MovieDetailsScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+            // Similar Movies Section
+            PremiumSectionTitle(
+                title = "Similar Movies",
+                subtitle = "If you liked this, try these"
+            )
+
+            PremiumMovieRow(
+                movies = uiState.similarMovies,
+                navController = navController,
+                isLoading = uiState.isLoadingSimilar
+            )
+
+
         }
     }
 }

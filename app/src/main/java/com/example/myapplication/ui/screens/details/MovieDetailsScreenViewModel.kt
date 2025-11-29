@@ -25,6 +25,8 @@ data class MovieDetailsScreenState(
     val movie: MovieApiModel? = null,
     val trailerKey: String? = null,
     val castList: List<CastMember> = emptyList(),
+    val similarMovies: List<MovieApiModel> = emptyList(),
+    val isLoadingSimilar: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
     val isFavorite: Boolean = false,
@@ -92,6 +94,8 @@ class MovieDetailsScreenViewModel(
                 val watched = watchedRepository.getWatched(currentUserId)
                 val isWatched = watched.any { it.movieId == movieId.toString() }
 
+                val similarMovies = apiService.getSimilarMovies(movieId).results
+
                 // Check if in watchlist
                 val watchlistSnapshot = db.collection("users")
                     .document(currentUserId)
@@ -106,6 +110,7 @@ class MovieDetailsScreenViewModel(
                     trailerKey = trailerKey,
                     castList = castList,
                     isLoading = false,
+                    similarMovies = similarMovies,
                     isFavorite = isFavorite,
                     isWatched = isWatched,
                     isInWatchlist = isInWatchlist,
@@ -120,6 +125,7 @@ class MovieDetailsScreenViewModel(
             }
         }
     }
+
 
     fun toggleFavorite() {
         val movie = _uiState.value.movie ?: return
@@ -153,13 +159,18 @@ class MovieDetailsScreenViewModel(
         viewModelScope.launch {
             try {
                 if (isWatched) {
+                    // جلب مدة الفيلم من API
+                    val movieDetails = apiService.getMovieDetails(movie.id)
+                    val durationMinutes = movieDetails.runtime ?: 0
+
                     watchedRepository.addWatched(
                         WatchedItem(
                             movieId = movie.id.toString(),
                             title = movie.title,
                             poster = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
                             rating = 0,
-                            vote_average = movie.vote_average.toInt()
+                            vote_average = movie.vote_average.toInt(),
+                            duration = durationMinutes
                         )
                     )
                 } else {
@@ -168,10 +179,11 @@ class MovieDetailsScreenViewModel(
 
                 _uiState.value = _uiState.value.copy(isWatched = isWatched)
             } catch (e: Exception) {
-                // Revert on error
+                // Revert on error or show error
             }
         }
     }
+
 
     fun toggleWatchlist() {
         val movie = _uiState.value.movie ?: return

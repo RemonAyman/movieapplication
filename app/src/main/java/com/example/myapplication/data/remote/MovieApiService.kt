@@ -176,6 +176,15 @@ interface MovieApiService {
         @Query("page") page: Int = 1
     ): MovieResponse
 
+    // 🎬 Similar Movies for a specific movie
+    @GET("movie/{movie_id}/similar")
+    suspend fun getSimilarMovies(
+        @Path("movie_id") movieId: Int,
+        @Query("api_key") apiKey: String = "2f13b4fd29b3109c92837f91bdc86c24",
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1
+    ): MovieResponse
+
     @GET("movie/upcoming")
     suspend fun getUpcomingMovies(
         @Query("api_key") apiKey: String = "2f13b4fd29b3109c92837f91bdc86c24",

@@ -351,3 +351,4 @@ fun SignUpScreen(navController: NavHostController) {
         }
     }
 }
+

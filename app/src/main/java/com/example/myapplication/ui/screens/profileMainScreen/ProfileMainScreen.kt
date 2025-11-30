@@ -1,331 +1,440 @@
 package com.example.myapplication.ui.screens.profileMainScreen
 
-import androidx.compose.animation.core.animateFloatAsState
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
-import com.example.myapplication.AppColors
+import com.example.myapplication.ui.commonComponents.PremiumMovieRow
+import com.example.myapplication.ui.commonComponents.PremiumSectionTitle
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.example.myapplication.ui.screens.ratings.RatingItem
+import com.example.myapplication.ui.screens.watched.WatchedItem
+import com.example.myapplication.ui.watchlist.WatchlistItem
+import com.example.myapplication.ui.theme.MovitoBackground
+import com.example.myapplication.ui.theme.PrimaryPurple
+import com.example.myapplication.ui.theme.CardBackground
+import com.example.myapplication.ui.theme.AccentOrange
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun ProfileMainScreen(
     navController: NavHostController,
-    viewModel: ProfileScreenViewModel,
-    onEditProfile: () -> Unit = {},
-    onFavoritesClick: () -> Unit = {},
-    onFriendsClick: () -> Unit = {},
-    onRequestsClick: () -> Unit = {},
-    onWatchlistClick: () -> Unit = { navController.navigate("watchlist")},
-    onWatchedClick: () -> Unit = {},
-    onRatingsClick: () -> Unit = {}
+    viewModel: ProfileScreenViewModel = viewModel(factory = ProfileScreenViewModelFactory(null)),
+    onEditProfile: () -> Unit,
+    onFavoritesClick: () -> Unit,
+    onFriendsClick: () -> Unit,
+    onRequestsClick: () -> Unit,
+    onWatchlistClick: () -> Unit,
+    onWatchedClick: () -> Unit,
+    onRatingsClick: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.DarkBg)
-    ) {
-        if (uiState.isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = AppColors.NeonGlow
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1a0933),
+                        Color(0xFF0d1b3d),
+                        MovitoBackground
+                    )
+                )
             )
-        } else {
-            Column(
+            .verticalScroll(scrollState)
+    ) {
+        // ===== TOP BAR =====
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = Color.White.copy(alpha = 0.8f),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(130.dp)
-                        .shadow(12.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(AppColors.NeonGlow.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (uiState.avatarBitmap != null) {
-                        Image(
-                            bitmap = uiState.avatarBitmap!!.asImageBitmap(),
-                            contentDescription = "User Avatar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                        )
+                    .size(28.dp)
+                    .clickable { onEditProfile() }
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More",
+                tint = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable { }
+            )
+        }
+
+        // ===== PROFILE HEADER =====
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Profile Avatar
+            android.util.Log.d("ProfileScreen", "Rendering avatar. uiState.avatarBase64 length: ${uiState.avatarBase64.length}")
+            android.util.Log.d("ProfileScreen", "Username: ${uiState.username}")
+
+            val bmp = remember(uiState.avatarBase64) {
+                android.util.Log.d("ProfileScreen", "Avatar recomposition triggered")
+                try {
+                    val avatarBase64 = uiState.avatarBase64
+                    android.util.Log.d("ProfileScreen", "avatarBase64 isEmpty: ${avatarBase64.isEmpty()}")
+
+                    if (avatarBase64.isNotEmpty()) {
+                        android.util.Log.d("ProfileScreen", "Attempting to decode avatar...")
+                        android.util.Log.d("ProfileScreen", "First 50 chars: ${avatarBase64.take(50)}")
+
+                        val pureBase64 = avatarBase64.substringAfter(",")
+                        android.util.Log.d("ProfileScreen", "After comma split, length: ${pureBase64.length}")
+
+                        val bytes = Base64.decode(pureBase64, Base64.DEFAULT)
+                        android.util.Log.d("ProfileScreen", "Decoded bytes length: ${bytes.size}")
+
+                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        android.util.Log.d("ProfileScreen", "Bitmap decoded: ${bitmap != null}, size: ${bitmap?.width}x${bitmap?.height}")
+
+                        bitmap?.asImageBitmap()
                     } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.radialGradient(
-                                        colors = listOf(
-                                            AppColors.NeonGlow.copy(alpha = 0.3f),
-                                            AppColors.NeonGlow.copy(alpha = 0.1f)
-                                        )
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (uiState.username.isNotEmpty()) uiState.username.first().uppercase() else "?",
-                                color = AppColors.NeonGlow,
-                                fontSize = 52.sp,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
+                        android.util.Log.d("ProfileScreen", "avatarBase64 is EMPTY, showing placeholder")
+                        null
                     }
+                } catch (e: Exception) {
+                    android.util.Log.e("ProfileScreen", "❌ ERROR decoding avatar: ${e.message}", e)
+                    e.printStackTrace()
+                    null
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
+            android.util.Log.d("ProfileScreen", "bmp is null: ${bmp == null}")
 
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                PrimaryPurple.copy(alpha = 0.3f),
+                                Color(0xFF2A1B3D)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bmp != null) {
+                    android.util.Log.d("ProfileScreen", "✅ Showing actual image")
+                    Image(
+                        painter = androidx.compose.ui.graphics.painter.BitmapPainter(bmp),
+                        contentDescription = "avatar",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                } else {
+                    android.util.Log.d("ProfileScreen", "Showing placeholder with letter: ${uiState.username.firstOrNull()?.uppercase() ?: "U"}")
+                    Text(
+                        text = uiState.username.firstOrNull()?.uppercase() ?: "U",
+                        color = Color.White,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Username and Info Column
+            Column {
                 Text(
                     text = uiState.username,
-                    color = AppColors.TextColor,
-                    fontSize = 26.sp,
+                    color = Color.White,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                Button(
-                    onClick = onEditProfile,
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.NeonGlow),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(48.dp)
+                Text(
+                    text = "Since ${uiState.joinDate}",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 14.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onFriendsClick() }
                 ) {
-                    Text("Edit Profile", color = AppColors.TextColor, fontWeight = FontWeight.SemiBold)
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    FavoritesSection(
-                        favorites = uiState.favorites,
-                        navController = navController,
-                        onSeeMore = { onFavoritesClick() }
+                    Text(
+                        text = "👥 ",
+                        fontSize = 16.sp
                     )
-                    ProfileCardItem("Watched", Icons.Default.GroupAdd, onWatchedClick)
-                    ProfileCardItem("Watchlist", Icons.Default.Visibility, onWatchlistClick)
-                    ProfileCardItem("Ratings", Icons.Rounded.Star, onRatingsClick)
-                    ProfileCardItem("Friends", Icons.Default.Person, onFriendsClick)
-                    ProfileCardItem("Friend Requests", Icons.Default.GroupAdd, onRequestsClick)
+                    Text(
+                        text = "${uiState.friendsCount}",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ===== TIME SPENT WATCHING CARD =====
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = CardBackground.copy(alpha = 0.5f)
+            ),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                PrimaryPurple.copy(alpha = 0.2f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Time spent watching TV",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Info",
+                            tint = Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Parse totalWatchTime (format: "0d 0h 0m")
+                    val timeString = uiState.totalWatchTime
+                    val days = timeString.substringBefore("d").trim()
+                    val hours = timeString.substringAfter("d").substringBefore("h").trim()
+                    val minutes = timeString.substringAfter("h").substringBefore("m").trim()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        TimeStatItem(days, "Days")
+                        TimeStatItem(hours, "Hours")
+                        TimeStatItem(minutes, "Minutes")
+
+                        // Vertical Divider
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(50.dp)
+                                .background(Color.White.copy(alpha = 0.15f))
+                        )
+
+                        // Movies Count
+                        TimeStatItem(
+                            value = uiState.watchedMovies.size.toString(),
+                            label = "Movies"
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // ===== FAVORITES SECTION =====
+        if (uiState.favoriteMovies.isNotEmpty()) {
+            PremiumSectionTitle(
+                title = "Favorites",
+                subtitle = "Your top picks",
+                onSeeMoreClick = onFavoritesClick
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            PremiumMovieRow(
+                movies = uiState.favoriteMovies.map { it.toMovieApiModel() },
+                navController = navController,
+                isLoading = false
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        // ===== RATINGS SECTION =====
+        if (uiState.ratingsMovies.isNotEmpty()) {
+            PremiumSectionTitle(
+                title = "Ratings",
+                subtitle = "Movies you've rated",
+                onSeeMoreClick = onRatingsClick
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            PremiumMovieRow(
+                movies = uiState.ratingsMovies.map { it.toMovieApiModel() },
+                navController = navController,
+                isLoading = false
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        // ===== WATCHLIST SECTION =====
+        if (uiState.watchlistMovies.isNotEmpty()) {
+            PremiumSectionTitle(
+                title = "Watchlist",
+                subtitle = "Movies to watch later",
+                onSeeMoreClick = onWatchlistClick
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            PremiumMovieRow(
+                movies = uiState.watchlistMovies.map { it.toMovieApiModel() },
+                navController = navController,
+                isLoading = false
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        // ===== WATCHED SECTION =====
+        if (uiState.watchedMovies.isNotEmpty()) {
+            PremiumSectionTitle(
+                title = "Watched",
+                subtitle = "Your viewing history",
+                onSeeMoreClick = onWatchedClick
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            PremiumMovieRow(
+                movies = uiState.watchedMovies.map { it.toMovieApiModel() },
+                navController = navController,
+                isLoading = false
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
 @Composable
-fun FavoritesSection(
-    favorites: List<FavoritesItem>,
-    navController: NavHostController,
-    onSeeMore: () -> Unit = {}
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Favorites",
-                color = AppColors.TextColor,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "See More",
-                color = AppColors.NeonGlow,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { onSeeMore() }
-            )
-        }
-
-        MovieRow(
-            movies = favorites.take(4),
-            navController = navController
+fun TimeStatItem(value: String, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            color = Color.White,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.6f),
+            fontSize = 12.sp
         )
     }
 }
 
-@Composable
-fun MovieRow(
-    movies: List<FavoritesItem>,
-    navController: NavHostController
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        items(movies) { movie ->
-            val interactionSource = remember { MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val scale by animateFloatAsState(if (isPressed) 0.95f else 1f)
+// ===== Extension Functions للتحويل =====
+fun FavoritesItem.toMovieApiModel() = com.example.myapplication.data.remote.MovieApiModel(
+    id = movieId.toIntOrNull() ?: 0,
+    title = title,
+    overview = "",
+    poster_path = poster,
+    backdrop_path = null,
+    release_date = "",
+    vote_average = vote_average.toDouble(),
+    genre_ids = emptyList(),
+    original_language = "en"
+)
 
-            Box(
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(150.dp)
-                    .graphicsLayer { scaleX = scale; scaleY = scale }
-                    .clip(RoundedCornerShape(12.dp))
-                    .shadow(8.dp, RoundedCornerShape(12.dp))
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null
-                    ) {
-                        navController.navigate("details/${movie.movieId}")
-                    },
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                AsyncImage(
-                    model = movie.poster,
-                    contentDescription = movie.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp))
-                )
+fun RatingItem.toMovieApiModel() = com.example.myapplication.data.remote.MovieApiModel(
+    id = movieId.toIntOrNull() ?: 0,
+    title = title,
+    overview = review,
+    poster_path = poster,
+    backdrop_path = null,
+    release_date = "",
+    vote_average = vote_average,
+    genre_ids = emptyList(),
+    original_language = "en"
+)
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color(0xDD000000))
-                            )
-                        )
-                )
+fun WatchlistItem.toMovieApiModel() = com.example.myapplication.data.remote.MovieApiModel(
+    id = movieId.toIntOrNull() ?: 0,
+    title = title,
+    overview = "",
+    poster_path = poster,
+    backdrop_path = null,
+    release_date = "",
+    vote_average = 0.0,
+    genre_ids = emptyList(),
+    original_language = "en"
+)
 
-                Text(
-                    text = movie.title,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 13.sp,
-                    modifier = Modifier
-                        .padding(horizontal = 4.dp, vertical = 6.dp)
-                        .align(Alignment.BottomCenter)
-                )
-
-                if (movie.vote_average > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(6.dp)
-                            .background(Color(0xCC000000), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 6.dp, vertical = 3.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Star,
-                                contentDescription = "Rating",
-                                tint = Color(0xFFFFD700),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = String.format("%.1f", movie.vote_average),
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileCardItem(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(70.dp)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = AppColors.DarkBg.copy(alpha = 0.85f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = AppColors.NeonGlow,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = title,
-                color = AppColors.TextColor,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
+fun WatchedItem.toMovieApiModel() = com.example.myapplication.data.remote.MovieApiModel(
+    id = movieId.toIntOrNull() ?: 0,
+    title = title,
+    overview = "",
+    poster_path = poster,
+    backdrop_path = null,
+    release_date = "",
+    vote_average = vote_average.toDouble(),
+    genre_ids = emptyList(),
+    original_language = "en"
+)

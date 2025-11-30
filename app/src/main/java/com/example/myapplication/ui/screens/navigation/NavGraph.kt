@@ -136,6 +136,12 @@ fun NavGraph(
             )
         }
 
+        // ===== Search =====
+        composable("search") {
+            val searchVM: SearchScreenViewModel = viewModel()
+            SearchScreen(navController, searchVM)
+        }
+
         // ===== Friends =====
         composable("friends") {
             val vm: FriendsViewModel = viewModel()
@@ -173,36 +179,17 @@ fun NavGraph(
             FriendRequestsScreen(viewModel = vm, navController = navController)
         }
 
-        // ===== Watchlist =====
-        composable(
-            "watchlist/{userId}",
-            arguments = listOf(navArgument("userId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId")
-            val vm: WatchlistScreenViewModel = viewModel(
-                factory = WatchlistScreenViewModelFactory(WatchlistRepository(), userId)
-            )
-            WatchlistScreen(viewModel = vm, onBack = { navController.popBackStack() }, onMovieClick = { id -> navController.navigate("details/$id") })
+        // ===== Chats =====
+        composable("chats") { ChatsScreen(navController) }
+        composable("chatDetail/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            ChatDetailScreen(navController, chatId)
         }
-
-        // ===== Watched =====
-        composable(
-            "watched/{userId}",
-            arguments = listOf(navArgument("userId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId")
-            val vm: WatchedScreenViewModel = viewModel( factory = WatchedScreenViewModelFactory(userId))
-            WatchedScreen(onBack = { navController.popBackStack() }, onMovieClick = { id -> navController.navigate("details/$id") }, viewModel = vm)
-        }
-
-        // ===== Ratings =====
-        composable(
-            "ratings/{userId}",
-            arguments = listOf(navArgument("userId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val userId = backStackEntry.arguments?.getString("userId")
-            val vm: RatingsScreenViewModel = viewModel( factory = RatingsScreenViewModelFactory(userId))
-            RatingsScreen(onBack = { navController.popBackStack() }, onMovieClick = { id -> navController.navigate("details/$id") }, viewModel = vm)
+        composable("newGroup") { NewGroupScreen(navController) }
+        composable("newPrivateChat") { NewPrivateChatScreen(navController) }
+        composable("privateChatDetail/{chatId}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            PrivateChatDetailScreen(chatId, navController)
         }
 
         // ===== Movie Details =====
@@ -235,6 +222,38 @@ fun NavGraph(
             val showId = backStackEntry.arguments?.getInt("showId") ?: 0
             val vm: TvShowDetailsScreenViewModel = viewModel(factory = TvShowDetailsScreenViewModelFactory(showId))
             TvShowDetailsScreen(navController, vm)
+        }
+
+        // ===== Watchlist =====
+        composable(
+            "watchlist/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            val vm: WatchlistScreenViewModel = viewModel(
+                factory = WatchlistScreenViewModelFactory(WatchlistRepository(), userId)
+            )
+            WatchlistScreen(viewModel = vm, onBack = { navController.popBackStack() }, onMovieClick = { id -> navController.navigate("details/$id") })
+        }
+
+        // ===== Watched =====
+        composable(
+            "watched/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            val vm: WatchedScreenViewModel = viewModel( factory = WatchedScreenViewModelFactory(userId))
+            WatchedScreen(onBack = { navController.popBackStack() }, onMovieClick = { id -> navController.navigate("details/$id") }, viewModel = vm)
+        }
+
+        // ===== Ratings =====
+        composable(
+            "ratings/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            val vm: RatingsScreenViewModel = viewModel( factory = RatingsScreenViewModelFactory(userId))
+            RatingsScreen(onBack = { navController.popBackStack() }, onMovieClick = { id -> navController.navigate("details/$id") }, viewModel = vm)
         }
 
         // ===== See More Movies =====

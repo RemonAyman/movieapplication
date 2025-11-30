@@ -39,4 +39,24 @@ class WatchedRepository {
         val collection=getWatchedCollection(currentUser)?:return
         collection.document(movieId).delete().await()
     }
+    suspend fun getTotalWatchedTime(userId: String? = null): String {
+        val collection = getWatchedCollection(userId) ?: return "0d 0h 0m"
+        return try {
+            val snapshot = collection.get().await()
+            val totalMinutes = snapshot.mapNotNull {
+                val item = it.toObject(WatchedItem::class.java)
+                item.duration
+            }.sum()
+
+            val days = totalMinutes / (24 * 60)
+            val hours = (totalMinutes % (24 * 60)) / 60
+            val minutes = totalMinutes % 60
+
+            "${days}d ${hours}h ${minutes}m"
+        } catch (e: Exception) {
+            "0d 0h 0m"
+        }
+    }
+
+
 }

@@ -1,17 +1,20 @@
 package com.example.myapplication.ui.screens.profileMainScreen
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.FavoritesRepository
 import com.example.myapplication.data.WatchlistRepository
+import com.example.myapplication.data.remote.firebase.repository.FriendsRepository
 import com.example.myapplication.data.repositories.RatingRepository
 import com.example.myapplication.data.repositories.WatchedRepository
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
+import com.example.myapplication.ui.screens.friends.FriendsViewModel
 import com.example.myapplication.ui.screens.ratings.RatingItem
 import com.example.myapplication.ui.screens.watched.WatchedItem
 import com.example.myapplication.ui.watchlist.WatchlistItem
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +39,8 @@ class ProfileScreenViewModel(
     private val watchedRepository: WatchedRepository = WatchedRepository(),
     private val favoritesRepository: FavoritesRepository = FavoritesRepository(),
     private val watchlistRepository: WatchlistRepository = WatchlistRepository(),
-    private val ratingsRepository: RatingRepository = RatingRepository()
+    private val ratingsRepository: RatingRepository = RatingRepository(),
+    private val friendsRepository: FriendsRepository = FriendsRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -49,60 +53,38 @@ class ProfileScreenViewModel(
     private fun fetchProfileData() {
         viewModelScope.launch {
             try {
-                android.util.Log.d("ProfileViewModel", "fetchProfileData started for userId: $userId")
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                // جلب بيانات المستخدم الكاملة من Firebase
-                userId?.let { uid ->
-                    android.util.Log.d("ProfileViewModel", "Fetching user data from Firebase for uid: $uid")
-
-                    FirebaseDatabase.getInstance()
-                        .getReference("users")
-                        .child(uid)
-                        .get()
-                        .addOnSuccessListener { snapshot ->
-                            android.util.Log.d("ProfileViewModel", "✅ Firebase Success! Snapshot exists: ${snapshot.exists()}")
-                            android.util.Log.d("ProfileViewModel", "Snapshot children count: ${snapshot.childrenCount}")
-
-                            // Print all keys
-                            snapshot.children.forEach { child ->
-                                android.util.Log.d("ProfileViewModel", "Key: ${child.key}, Value: ${child.value}")
-                            }
-
-                            // Try different possible field names
-                            val username = snapshot.child("username").getValue(String::class.java)
-                                ?: snapshot.child("name").getValue(String::class.java)
-                                ?: snapshot.child("displayName").getValue(String::class.java)
-                                ?: "Username"
-
-                            val avatarBase64 = snapshot.child("avatarBase64").getValue(String::class.java)
-                                ?: snapshot.child("avatar").getValue(String::class.java)
-                                ?: snapshot.child("profilePicture").getValue(String::class.java)
-                                ?: ""
-
-                            android.util.Log.d("ProfileViewModel", "Username found: $username")
-                            android.util.Log.d("ProfileViewModel", "Avatar length: ${avatarBase64.length}")
-                            android.util.Log.d("ProfileViewModel", "Avatar first 50 chars: ${avatarBase64.take(50)}")
-
-                            _uiState.value = _uiState.value.copy(
-                                username = username,
-                                avatarBase64 = avatarBase64
-                            )
-
-                            android.util.Log.d("ProfileViewModel", "✅ UI State updated successfully")
-                        }
-                        .addOnFailureListener { e ->
-                            android.util.Log.e("ProfileViewModel", "❌ Firebase Error: ${e.message}", e)
-                        }
-                } ?: run {
-                    android.util.Log.e("ProfileViewModel", "❌ userId is NULL!")
+                val uid = userId ?: run {
+                    Log.e("ProfileViewModel", "userId is null!")
+                    return@launch
                 }
 
-                // حساب الوقت الكلي
+                // ---------------------------
+                // 🔥 Fetch username + avatar from Firestore only
+                // ---------------------------
+                val firestore = FirebaseFirestore.getInstance()
+                firestore.collection("users").document(uid).get()
+                    .addOnSuccessListener { doc ->
+                        val username = doc.getString("username") ?: "Username"
+                        val avatarBase64 = doc.getString("avatarBase64") ?: ""
+                        _uiState.value = _uiState.value.copy(
+                            username = username,
+                            avatarBase64 = avatarBase64
+                        )
+                        Log.d("ProfileViewModel", "✅ Fetched username & avatar successfully")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("ProfileViewModel", "Firestore error: ${e.message}", e)
+                    }
+
+                // باقي اللوجيك زي ما هو بدون أي تعديل
                 val watchTime = watchedRepository.getTotalWatchedTime(userId)
                 _uiState.value = _uiState.value.copy(totalWatchTime = watchTime)
 
-                // جلب القوائم
+                val frindsCount = friendsRepository.getFriendsList().size
+                _uiState.value =_uiState.value.copy(friendsCount = frindsCount)
+
                 val favorites = favoritesRepository.getFirst5Favorites(userId)
                 _uiState.value = _uiState.value.copy(favoriteMovies = favorites)
 
@@ -112,7 +94,6 @@ class ProfileScreenViewModel(
                 val ratings = ratingsRepository.getRatings(userId)
                 _uiState.value = _uiState.value.copy(ratingsMovies = ratings)
 
-                // جمع Watchlist من الـ Flow
                 watchlistRepository.getWatchlistFlow(userId).collect { list ->
                     _uiState.value = _uiState.value.copy(
                         watchlistMovies = list,
@@ -121,9 +102,8 @@ class ProfileScreenViewModel(
                 }
 
             } catch (e: Exception) {
-                android.util.Log.e("ProfileViewModel", "❌ Exception in fetchProfileData: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Unknown error",
+                    error = e.message,
                     isLoading = false
                 )
             }

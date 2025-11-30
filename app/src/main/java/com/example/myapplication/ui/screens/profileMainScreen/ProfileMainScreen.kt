@@ -56,7 +56,7 @@ fun ProfileMainScreen(
     onRequestsClick: () -> Unit,
     onWatchlistClick: () -> Unit,
     onWatchedClick: () -> Unit,
-    onRatingsClick: () -> Unit
+    onRatingsClick: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val uiState by viewModel.uiState.collectAsState()
@@ -109,61 +109,29 @@ fun ProfileMainScreen(
                 .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Avatar
-            android.util.Log.d("ProfileScreen", "Rendering avatar. uiState.avatarBase64 length: ${uiState.avatarBase64.length}")
-            android.util.Log.d("ProfileScreen", "Username: ${uiState.username}")
 
+            // 🔥 Avatar logic from EditProfileScreen
             val bmp = remember(uiState.avatarBase64) {
-                android.util.Log.d("ProfileScreen", "Avatar recomposition triggered")
                 try {
-                    val avatarBase64 = uiState.avatarBase64
-                    android.util.Log.d("ProfileScreen", "avatarBase64 isEmpty: ${avatarBase64.isEmpty()}")
-
-                    if (avatarBase64.isNotEmpty()) {
-                        android.util.Log.d("ProfileScreen", "Attempting to decode avatar...")
-                        android.util.Log.d("ProfileScreen", "First 50 chars: ${avatarBase64.take(50)}")
-
-                        val pureBase64 = avatarBase64.substringAfter(",")
-                        android.util.Log.d("ProfileScreen", "After comma split, length: ${pureBase64.length}")
-
-                        val bytes = Base64.decode(pureBase64, Base64.DEFAULT)
-                        android.util.Log.d("ProfileScreen", "Decoded bytes length: ${bytes.size}")
-
-                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        android.util.Log.d("ProfileScreen", "Bitmap decoded: ${bitmap != null}, size: ${bitmap?.width}x${bitmap?.height}")
-
-                        bitmap?.asImageBitmap()
-                    } else {
-                        android.util.Log.d("ProfileScreen", "avatarBase64 is EMPTY, showing placeholder")
-                        null
-                    }
+                    if (uiState.avatarBase64.isNotEmpty()) {
+                        val bytes = Base64.decode(uiState.avatarBase64, Base64.DEFAULT)
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+                    } else null
                 } catch (e: Exception) {
-                    android.util.Log.e("ProfileScreen", "❌ ERROR decoding avatar: ${e.message}", e)
-                    e.printStackTrace()
                     null
                 }
             }
-
-            android.util.Log.d("ProfileScreen", "bmp is null: ${bmp == null}")
 
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                PrimaryPurple.copy(alpha = 0.3f),
-                                Color(0xFF2A1B3D)
-                            )
-                        )
-                    ),
+                    .background(PrimaryPurple.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (bmp != null) {
-                    android.util.Log.d("ProfileScreen", "✅ Showing actual image")
                     Image(
-                        painter = androidx.compose.ui.graphics.painter.BitmapPainter(bmp),
+                        bitmap = bmp,
                         contentDescription = "avatar",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -171,7 +139,6 @@ fun ProfileMainScreen(
                             .clip(CircleShape)
                     )
                 } else {
-                    android.util.Log.d("ProfileScreen", "Showing placeholder with letter: ${uiState.username.firstOrNull()?.uppercase() ?: "U"}")
                     Text(
                         text = uiState.username.firstOrNull()?.uppercase() ?: "U",
                         color = Color.White,

@@ -6,19 +6,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,6 +30,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.myapplication.ui.commonComponents.PremiumMovieRow
@@ -42,8 +42,7 @@ import com.example.myapplication.ui.watchlist.WatchlistItem
 import com.example.myapplication.ui.theme.MovitoBackground
 import com.example.myapplication.ui.theme.PrimaryPurple
 import com.example.myapplication.ui.theme.CardBackground
-import com.example.myapplication.ui.theme.AccentOrange
-import androidx.compose.ui.text.font.FontWeight
+import com.example.myapplication.ui.theme.DarkPurple
 import androidx.compose.ui.graphics.Brush
 
 @Composable
@@ -64,213 +63,202 @@ fun ProfileMainScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF1a0933),
-                        Color(0xFF0d1b3d),
-                        MovitoBackground
-                    )
-                )
-            )
             .verticalScroll(scrollState)
+            .background(MovitoBackground)
     ) {
-        // ===== TOP BAR =====
-        Row(
+        // ===== TOP GRADIENT AREA =====
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = Color.White.copy(alpha = 0.8f),
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable { onEditProfile() }
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More",
-                tint = Color.White.copy(alpha = 0.8f),
-                modifier = Modifier
-                    .size(28.dp)
-                    .clickable { }
-            )
-        }
-
-        // ===== PROFILE HEADER =====
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            // 🔥 Avatar logic from EditProfileScreen
-            val bmp = remember(uiState.avatarBase64) {
-                try {
-                    if (uiState.avatarBase64.isNotEmpty()) {
-                        val bytes = Base64.decode(uiState.avatarBase64, Base64.DEFAULT)
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                    } else null
-                } catch (e: Exception) {
-                    null
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryPurple.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (bmp != null) {
-                    Image(
-                        bitmap = bmp,
-                        contentDescription = "avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF23133D),
+                            Color(0xFF0F0421),
+                            MovitoBackground
+                        ),
+                        startY = 0.9f,
                     )
-                } else {
-                    Text(
-                        text = uiState.username.firstOrNull()?.uppercase() ?: "U",
-                        color = Color.White,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Username and Info Column
-            Column {
-                Text(
-                    text = uiState.username,
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
                 )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Since ${uiState.joinDate}",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 14.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onFriendsClick() }
-                ) {
-                    Text(
-                        text = "👥 ",
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = "${uiState.friendsCount}",
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ===== TIME SPENT WATCHING CARD =====
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = CardBackground.copy(alpha = 0.5f)
-            ),
-            shape = RoundedCornerShape(20.dp)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                PrimaryPurple.copy(alpha = 0.2f),
-                                Color.Transparent
-                            )
-                        )
-                    )
+                    .padding(horizontal = 20.dp, vertical = 30.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
+                // ===== Edit Icon فوق على اليمين =====
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Time spent watching TV",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Info",
-                            tint = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.size(20.dp)
-                        )
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier
+                            .size(25.dp)
+                            .clickable { onEditProfile() }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(200.dp))
+                // ===== PROFILE HEADER =====
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Avatar
+                    val bmp = remember(uiState.avatarBase64) {
+                        try {
+                            if (uiState.avatarBase64.isNotEmpty()) {
+                                val bytes = Base64.decode(uiState.avatarBase64, Base64.DEFAULT)
+                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+                            } else null
+                        } catch (e: Exception) {
+                            null
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Parse totalWatchTime (format: "0d 0h 0m")
-                    val timeString = uiState.totalWatchTime
-                    val days = timeString.substringBefore("d").trim()
-                    val hours = timeString.substringAfter("d").substringBefore("h").trim()
-                    val minutes = timeString.substringAfter("h").substringBefore("m").trim()
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryPurple.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        TimeStatItem(days, "Days")
-                        TimeStatItem(hours, "Hours")
-                        TimeStatItem(minutes, "Minutes")
+                        if (bmp != null) {
+                            Image(
+                                bitmap = bmp,
+                                contentDescription = "avatar",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Text(
+                                text = uiState.username.firstOrNull()?.uppercase() ?: "U",
+                                color = Color.White,
+                                fontSize = 48.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
 
-                        // Vertical Divider
-                        Box(
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = uiState.username,
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "Since ${uiState.joinDate}",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 14.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { onFriendsClick() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.People, // أيقونة الأصدقاء
+                                contentDescription = "Friends",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${uiState.friendsCount}",
+                                color = Color.White,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ===== TIME SPENT WATCHING CARD =====
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = CardBackground.copy(alpha = 0.9f)
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        PrimaryPurple.copy(alpha = 0.2f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    ) {
+                        Column(
                             modifier = Modifier
-                                .width(1.dp)
-                                .height(50.dp)
-                                .background(Color.White.copy(alpha = 0.15f))
-                        )
+                                .fillMaxWidth()
+                                .padding(20.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Time spent watching TV",
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
 
-                        // Movies Count
-                        TimeStatItem(
-                            value = uiState.watchedMovies.size.toString(),
-                            label = "Movies"
-                        )
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            val timeString = uiState.totalWatchTime
+                            val days = timeString.substringBefore("d").trim()
+                            val hours = timeString.substringAfter("d").substringBefore("h").trim()
+                            val minutes = timeString.substringAfter("h").substringBefore("m").trim()
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                TimeStatItem(days, "Days")
+                                TimeStatItem(hours, "Hours")
+                                TimeStatItem(minutes, "Minutes")
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(50.dp)
+                                        .background(Color.White.copy(alpha = 0.15f))
+                                )
+
+                                TimeStatItem(
+                                    value = uiState.watchedMovies.size.toString(),
+                                    label = "Movies"
+                                )
+                            }
+                        }
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
 
-        // ===== FAVORITES SECTION =====
+        // ===== باقي الشاشة بدون gradient =====
         if (uiState.favoriteMovies.isNotEmpty()) {
             PremiumSectionTitle(
                 title = "Favorites",
@@ -286,7 +274,6 @@ fun ProfileMainScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
 
-        // ===== RATINGS SECTION =====
         if (uiState.ratingsMovies.isNotEmpty()) {
             PremiumSectionTitle(
                 title = "Ratings",
@@ -302,7 +289,6 @@ fun ProfileMainScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
 
-        // ===== WATCHLIST SECTION =====
         if (uiState.watchlistMovies.isNotEmpty()) {
             PremiumSectionTitle(
                 title = "Watchlist",
@@ -318,7 +304,6 @@ fun ProfileMainScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
 
-        // ===== WATCHED SECTION =====
         if (uiState.watchedMovies.isNotEmpty()) {
             PremiumSectionTitle(
                 title = "Watched",
@@ -340,9 +325,7 @@ fun ProfileMainScreen(
 
 @Composable
 fun TimeStatItem(value: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             color = Color.White,

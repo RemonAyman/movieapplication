@@ -198,7 +198,7 @@ fun MovieDetailsScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (uiState.isInWatchlist) "In Watchlist" else "Add to List",
+                            if (uiState.isInWatchlist) "In Watchlist" else "Add to WatchList",
                             color = Color.White,
                             fontSize = 12.sp
                         )
@@ -221,7 +221,7 @@ fun MovieDetailsScreen(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (uiState.isFavorite) "Favorited" else "Favorite",
+                            if (uiState.isFavorite) "Liked" else "Like",
                             color = Color.White,
                             fontSize = 12.sp
                         )

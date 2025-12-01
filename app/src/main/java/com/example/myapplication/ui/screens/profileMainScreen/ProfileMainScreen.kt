@@ -228,7 +228,7 @@ fun ProfileMainScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Time spent watching TV",
+                                    text = "Time Spent on the Big Screen",
                                     color = Color.White,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold

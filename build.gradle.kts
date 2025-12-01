@@ -7,13 +7,13 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
 
     // ✅ Hilt Plugin
-    id("com.google.dagger.hilt.android") version "2.52" apply false
+    id("com.google.dagger.hilt.android") version "2.53.1" apply false
 
     // ✅ Google Services Plugin (علشان Firebase)
-    id("com.google.gms.google-services") version "4.3.15" apply false // ✅ آخر نسخة محدثة
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 // ✅ تنظيف المشروع
 tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+    delete(rootProject.layout.buildDirectory)
 }

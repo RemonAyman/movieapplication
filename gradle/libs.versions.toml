@@ -1,15 +1,16 @@
 [versions]
+agp = "8.11.2"
 kotlin = "2.0.20"
 compose = "1.7.0"
-ads = "23.3.0"
-firebaseDatabaseKtx = "22.0.1"
+ads = "23.6.0"
+firebaseDatabaseKtx = "21.0.0"
 
 [libraries]
-androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version = "1.7.0" }
+androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version = "1.7.5" }
 ads-mobile-sdk = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "ads" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 
 [plugins]
-android-application = { id = "com.android.application", version = "8.13.1" }
+android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

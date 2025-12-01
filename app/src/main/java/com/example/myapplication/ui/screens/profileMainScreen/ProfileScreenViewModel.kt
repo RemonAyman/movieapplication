@@ -48,7 +48,7 @@ data class ProfileUiState(
             friends.any { it.uid == friend?.uid } -> "friend"
             sentRequests.any { it.uid == friend?.uid } -> "sent"
             friendRequests.any { it.uid == friend?.uid } -> "incoming"
-            else -> ""
+            else -> "notFriend"
         }
 }
 
@@ -134,6 +134,7 @@ class ProfileScreenViewModel(
 
     // ✅ Added from FriendDetailScreenViewModel
     private suspend fun loadFriendDetailData() {
+        _uiState.value=_uiState.value.copy(isLoading = true)
         try {
             val currentUid = currentUserId()
             val friend = userId?.let { friendsRepository.getUserById(it) }
@@ -145,7 +146,8 @@ class ProfileScreenViewModel(
                 friend = friend,
                 friends = friends,
                 friendRequests = friendRequests,
-                sentRequests = sentRequests
+                sentRequests = sentRequests,
+                isLoading = false
             )
         } catch (e: Exception) {
             Log.e("ProfileViewModel", "Error loading friend details: ${e.message}", e)

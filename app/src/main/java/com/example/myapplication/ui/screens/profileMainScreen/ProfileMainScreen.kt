@@ -2,6 +2,7 @@ package com.example.myapplication.ui.screens.profileMainScreen
 
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,11 +13,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -168,7 +176,7 @@ fun ProfileMainScreen(
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { onFriendsClick() }
+                            modifier = Modifier.clickable {if (userId== AppConstants.CURRENT_USER_ID) onFriendsClick() else {} }
                         ) {
                             Icon(
                                 imageVector = Icons.Default.People, // أيقونة الأصدقاء
@@ -257,8 +265,206 @@ fun ProfileMainScreen(
                         }
                     }
                 }
+
+                // Buttons based on status
+                // ===== FRIEND ACTION BUTTONS =====
+                if (userId != AppConstants.CURRENT_USER_ID) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = CardBackground.copy(alpha = 0.6f)
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(
+                                            PrimaryPurple.copy(alpha = 0.1f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                                .padding(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when (uiState.relationshipStatus) {
+                                "friend" -> {
+                                    // Remove Friend Button
+                                    Button(
+                                        onClick = { viewModel.removeFriend() },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFFF5252)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(50.dp),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 2.dp,
+                                            pressedElevation = 6.dp
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PersonRemove,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Remove Friend",
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+
+                                "sent" -> {
+                                    // Cancel Request Button
+                                    OutlinedButton(
+                                        onClick = { viewModel.cancelFriendRequest() },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = PrimaryPurple
+                                        ),
+                                        border = BorderStroke(
+                                            2.dp,
+                                            PrimaryPurple.copy(alpha = 0.5f)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(50.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = null,
+                                            tint = PrimaryPurple,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Cancel Request",
+                                            color = PrimaryPurple,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+
+                                "incoming" -> {
+                                    // Accept/Decline Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        // Accept Button
+                                        Button(
+                                            onClick = { viewModel.acceptFriendRequest() },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFF4CAF50)
+                                            ),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(50.dp),
+                                            elevation = ButtonDefaults.buttonElevation(
+                                                defaultElevation = 2.dp,
+                                                pressedElevation = 6.dp
+                                            )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                "Accept",
+                                                color = Color.White,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+
+                                        // Decline Button
+                                        OutlinedButton(
+                                            onClick = { viewModel.declineFriendRequest() },
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = Color(0xFFFF5252)
+                                            ),
+                                            border = BorderStroke(
+                                                2.dp,
+                                                Color(0xFFFF5252).copy(alpha = 0.5f)
+                                            ),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(50.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFF5252),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                "Decline",
+                                                color = Color(0xFFFF5252),
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+                                }
+
+                                else -> {
+                                    // Add Friend Button
+                                    Button(
+                                        onClick = { viewModel.sendFriendRequest() },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = PrimaryPurple
+                                        ),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(50.dp),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 2.dp,
+                                            pressedElevation = 6.dp
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PersonAdd,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Add Friend",
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
             }
-            Spacer(modifier = Modifier.height(32.dp))
+
+                Spacer(modifier = Modifier.height(32.dp))
         }
 
 

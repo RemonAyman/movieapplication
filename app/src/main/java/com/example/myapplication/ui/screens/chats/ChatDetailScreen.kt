@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -144,7 +147,11 @@ fun ChatDetailScreen(
                             senderName = senderName,
                             avatarBase64 = avatarBase64,
                             onAvatarClick = {
-                                navController.navigate("FriendDetail/${msg.senderId}")
+                                // ✅ التعديل الرئيسي: فتح البروفايل بدلاً من FriendDetail
+                                navController.navigate("profileMainScreen/${msg.senderId}") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         )
                     }
@@ -201,6 +208,7 @@ fun ChatDetailScreen(
                     db = db,
                     chatId = chatId,
                     currentUserId = currentUserId,
+                    navController = navController,
                     onDismiss = { showMembersSheet = false },
                     onUpdateMembers = { updatedMembers, actionUserId, affectedUsers, action ->
                         members = updatedMembers
@@ -270,6 +278,7 @@ fun MessageBubble(
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
@@ -300,7 +309,7 @@ fun MessageBubble(
                     senderName,
                     color = Color.Gray,
                     fontSize = 12.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -327,6 +336,7 @@ fun MembersBottomSheet(
     db: FirebaseFirestore,
     chatId: String,
     currentUserId: String,
+    navController: NavController,
     onDismiss: () -> Unit,
     onUpdateMembers: (Map<String, String>, String, List<Pair<String, String>>, String) -> Unit
 ) {
@@ -397,14 +407,36 @@ fun MembersBottomSheet(
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // ✅ Avatar قابل للضغط
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(if (isSelected) Color.Green else Color(0xFF9B5DE5)),
+                                        .background(if (isSelected) Color.Green else Color(0xFF9B5DE5))
+                                        .clickable {
+                                            // ✅ فتح البروفايل عند الضغط على الصورة
+                                            navController.navigate("profileMainScreen/${user.first}") {
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                            onDismiss()
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(user.second.firstOrNull()?.uppercase() ?: "U", color = Color.White)
+                                    if (user.third.isNotEmpty()) {
+                                        val bytes = Base64.decode(user.third, Base64.DEFAULT)
+                                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                        Image(
+                                            bitmap = bitmap.asImageBitmap(),
+                                            contentDescription = user.second,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(CircleShape)
+                                        )
+                                    } else {
+                                        Text(user.second.firstOrNull()?.uppercase() ?: "U", color = Color.White)
+                                    }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(user.second, color = Color.White)

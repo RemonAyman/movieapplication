@@ -230,9 +230,11 @@ fun NavGraph(
             ChatsScreen(navController)
         }
 
+        // ✅ تعديل chatDetail ليستقبل navController بشكل صحيح
         composable("chatDetail/{chatId}") { backStackEntry ->
+            onDestinationChanged("chatDetail")
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
-            ChatDetailScreen(navController, chatId)
+            ChatDetailScreen(navController = navController, chatId = chatId)
         }
 
         composable("newGroup") {
@@ -245,9 +247,11 @@ fun NavGraph(
             NewPrivateChatScreen(navController)
         }
 
+        // ✅ تعديل privateChatDetail ليستقبل navController بشكل صحيح
         composable("privateChatDetail/{chatId}") { backStackEntry ->
+            onDestinationChanged("privateChatDetail")
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
-            PrivateChatDetailScreen(chatId, navController)
+            PrivateChatDetailScreen(chatId = chatId, navController = navController)
         }
 
         composable("details/{movieId}") { backStackEntry ->

@@ -127,7 +127,8 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
 
             OptimizedAvatarImage(targetUserAvatar, targetUserName) {
-                navController.navigate("friendDetail/$targetUserId") {
+                // ✅ التعديل الرئيسي: فتح البروفايل بدلاً من FriendDetail
+                navController.navigate("profileMainScreen/$targetUserId") {
                     launchSingleTop = true
                     restoreState = true
                 }
@@ -190,7 +191,8 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     ) {
                         if(!isMine){
                             OptimizedAvatarImage(avatarBitmap, senderName) {
-                                navController.navigate("friendDetail/${msg.senderId}") {
+                                // ✅ التعديل الرئيسي: فتح البروفايل بدلاً من FriendDetail
+                                navController.navigate("profileMainScreen/${msg.senderId}") {
                                     launchSingleTop = true
                                     restoreState = true
                                 }

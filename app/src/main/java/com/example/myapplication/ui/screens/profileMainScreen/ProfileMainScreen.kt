@@ -469,7 +469,6 @@ fun ProfileMainScreen(
 
 
         // ===== باقي الشاشة بدون gradient =====
-        if (uiState.favoriteMovies.isNotEmpty()) {
             PremiumSectionTitle(
                 title = "Favorites",
                 subtitle = "Your top picks",
@@ -482,9 +481,8 @@ fun ProfileMainScreen(
                 isLoading = false
             )
             Spacer(modifier = Modifier.height(32.dp))
-        }
 
-        if (uiState.ratingsMovies.isNotEmpty()) {
+
             PremiumSectionTitle(
                 title = "Ratings",
                 subtitle = "Movies you've rated",
@@ -497,9 +495,8 @@ fun ProfileMainScreen(
                 isLoading = false
             )
             Spacer(modifier = Modifier.height(32.dp))
-        }
 
-        if (uiState.watchlistMovies.isNotEmpty()) {
+
             PremiumSectionTitle(
                 title = "Watchlist",
                 subtitle = "Movies to watch later",
@@ -512,9 +509,8 @@ fun ProfileMainScreen(
                 isLoading = false
             )
             Spacer(modifier = Modifier.height(32.dp))
-        }
 
-        if (uiState.watchedMovies.isNotEmpty()) {
+
             PremiumSectionTitle(
                 title = "Watched",
                 subtitle = "Your viewing history",
@@ -527,7 +523,7 @@ fun ProfileMainScreen(
                 isLoading = false
             )
             Spacer(modifier = Modifier.height(32.dp))
-        }
+
 
         Spacer(modifier = Modifier.height(20.dp))
     }

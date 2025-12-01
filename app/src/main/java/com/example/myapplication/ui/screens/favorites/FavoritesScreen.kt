@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
+import com.example.myapplication.appConstant.AppConstants
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +35,9 @@ fun FavoritesScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    viewModel: FavoritesScreenViewModel
+    viewModel: FavoritesScreenViewModel,
+    userId: String? = AppConstants.CURRENT_USER_ID
+
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val items = uiState.favorites
@@ -98,7 +101,8 @@ fun FavoritesScreen(
                                 rating = rating,
                                 onMovieClick = onMovieClick,
                                 onTvShowClick = onTvShowClick,
-                                onRemoveFavorite = { viewModel.removeFromFavorites(it) }
+                                onRemoveFavorite = { viewModel.removeFromFavorites(it) },
+                                userId
                             )
                         }
                     }
@@ -115,7 +119,8 @@ fun FavoritesMovieCard(
     rating: Float?,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    onRemoveFavorite: (String) -> Unit
+    onRemoveFavorite: (String) -> Unit,
+    userId: String?
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -137,7 +142,7 @@ fun FavoritesMovieCard(
                             onMovieClick(item.movieId)
                         }
                     },
-                    onLongClick = { showMenu = true }
+                    onLongClick = { if (userId== AppConstants.CURRENT_USER_ID)showMenu = true else showMenu=false }
                 )
         ) {
 

@@ -44,6 +44,7 @@ import com.example.myapplication.ui.theme.PrimaryPurple
 import com.example.myapplication.ui.theme.CardBackground
 import com.example.myapplication.ui.theme.DarkPurple
 import androidx.compose.ui.graphics.Brush
+import com.example.myapplication.appConstant.AppConstants
 
 @Composable
 fun ProfileMainScreen(
@@ -56,6 +57,7 @@ fun ProfileMainScreen(
     onWatchlistClick: () -> Unit,
     onWatchedClick: () -> Unit,
     onRatingsClick: () -> Unit,
+    userId: String = AppConstants.CURRENT_USER_ID,
 ) {
     val scrollState = rememberScrollState()
     val uiState by viewModel.uiState.collectAsState()
@@ -87,18 +89,20 @@ fun ProfileMainScreen(
                     .padding(horizontal = 20.dp, vertical = 30.dp)
             ) {
                 // ===== Edit Icon فوق على اليمين =====
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier
-                            .size(25.dp)
-                            .clickable { onEditProfile() }
-                    )
+                if (userId == AppConstants.CURRENT_USER_ID) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .size(25.dp)
+                                .clickable { onEditProfile() }
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(200.dp))

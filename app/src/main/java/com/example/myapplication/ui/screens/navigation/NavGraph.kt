@@ -69,6 +69,7 @@ fun NavGraph(
     onDestinationChanged: (String?) -> Unit = {},
 ) {
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     val apiService = MovieApiService.create()
     val moviesRepository = MoviesRepository(apiService)
     val watchlistRepository = WatchlistRepository()
@@ -119,7 +120,8 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
                 onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
-                viewModel = vm
+                viewModel = vm,
+                userId
             )
         }
 
@@ -161,7 +163,8 @@ fun NavGraph(
                 onRequestsClick = { navController.navigate("friendRequests") },
                 onWatchlistClick = { navController.navigate("watchlist/$userId") },
                 onWatchedClick = { navController.navigate("watched/$userId") },
-                onRatingsClick = { navController.navigate("ratings/$userId") }
+                onRatingsClick = { navController.navigate("ratings/$userId") },
+                userId = userId
             )
         }
 
@@ -176,7 +179,7 @@ fun NavGraph(
             FriendsScreen(
                 viewModel = vm,
                 navController = navController,
-                onFriendClick = { uid -> navController.navigate("friendDetail/$uid") },
+                onFriendClick = { uid -> navController.navigate("profileMainScreen/$uid") },
                 isSearchMode = false,
                 onBack = { navController.navigate("profile") }
             )
@@ -216,7 +219,7 @@ fun NavGraph(
             FriendsScreen(
                 viewModel = vm,
                 navController = navController,
-                onFriendClick = { uid -> navController.navigate("friendDetail/$uid") },
+                onFriendClick = { uid -> navController.navigate("profileMainScreen/$uid") },
                 isSearchMode = true,
                 onBack = { navController.navigate("profile") }
             )
@@ -295,7 +298,8 @@ fun NavGraph(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
-                onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") }
+                onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
+                userId
             )
         }
 
@@ -311,7 +315,8 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
                 onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
-                viewModel = vm
+                viewModel = vm,
+                userId
             )
         }
 
@@ -327,7 +332,8 @@ fun NavGraph(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id -> navController.navigate("details/$id") },
                 onTvShowClick = { id -> navController.navigate("tvShowDetails/$id") },
-                viewModel = vm
+                viewModel = vm,
+                userId
             )
         }
 

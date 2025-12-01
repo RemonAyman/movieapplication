@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
+import com.example.myapplication.appConstant.AppConstants
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +35,9 @@ fun WatchedScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    viewModel: WatchedScreenViewModel
+    viewModel: WatchedScreenViewModel,
+    userId: String? = AppConstants.CURRENT_USER_ID
+
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -95,7 +98,8 @@ fun WatchedScreen(
                                 rating = viewModel.getRating(item.movieId),
                                 onMovieClick = onMovieClick,
                                 onTvShowClick = onTvShowClick,
-                                onRemoveFromWatched = { viewModel.removeFromWatched(it) }
+                                onRemoveFromWatched = { viewModel.removeFromWatched(it) },
+                                userId
                             )
                         }
                     }
@@ -113,7 +117,8 @@ fun WatchedMovieCard(
     rating: Float?,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    onRemoveFromWatched: (String) -> Unit
+    onRemoveFromWatched: (String) -> Unit,
+    userId: String?
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -135,7 +140,7 @@ fun WatchedMovieCard(
                             onMovieClick(item.movieId)
                         }
                     },
-                    onLongClick = { showMenu = true }
+                    onLongClick = { if (userId== AppConstants.CURRENT_USER_ID)showMenu = true else showMenu=false }
                 )
         ) {
 

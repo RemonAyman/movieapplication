@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
+import com.example.myapplication.appConstant.AppConstants
 import com.example.myapplication.ui.watchlist.WatchlistItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,7 +33,9 @@ fun WatchlistScreen(
     viewModel: WatchlistScreenViewModel,
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
-    onTvShowClick: (String) -> Unit
+    onTvShowClick: (String) -> Unit,
+    userId: String? = AppConstants.CURRENT_USER_ID
+
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -91,7 +94,8 @@ fun WatchlistScreen(
                                 item = item,
                                 onMovieClick = onMovieClick,
                                 onTvShowClick = onTvShowClick,
-                                onRemoveFromWatchlist = { viewModel.removeFromWatchlist(it) }
+                                onRemoveFromWatchlist = { viewModel.removeFromWatchlist(it) },
+                                userId
                             )
                         }
                     }
@@ -107,7 +111,8 @@ fun WatchlistMovieCard(
     item: WatchlistItem,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    onRemoveFromWatchlist: (String) -> Unit
+    onRemoveFromWatchlist: (String) -> Unit,
+    userId: String?
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -129,7 +134,7 @@ fun WatchlistMovieCard(
                             onMovieClick(item.movieId)
                         }
                     },
-                    onLongClick = { showMenu = true }
+                    onLongClick = { if (userId== AppConstants.CURRENT_USER_ID)showMenu = true else showMenu=false }
                 )
         ) {
 

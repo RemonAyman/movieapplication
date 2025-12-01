@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.rememberAsyncImagePainter
+import com.example.myapplication.appConstant.AppConstants
 import kotlin.math.floor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +35,9 @@ fun RatingsScreen(
     onBack: () -> Unit,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    viewModel: RatingsScreenViewModel
+    viewModel: RatingsScreenViewModel,
+    userId: String? = AppConstants.CURRENT_USER_ID
+
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -94,7 +97,8 @@ fun RatingsScreen(
                                 isFavorite = viewModel.isFavorite(item.movieId),
                                 onMovieClick = onMovieClick,
                                 onTvShowClick = onTvShowClick,
-                                onRemoveRating = { viewModel.removeRating(it) }
+                                onRemoveRating = { viewModel.removeRating(it) },
+                                userId = userId
                             )
                         }
                     }
@@ -111,7 +115,8 @@ fun RatingMovieCard(
     isFavorite: Boolean,
     onMovieClick: (String) -> Unit,
     onTvShowClick: (String) -> Unit,
-    onRemoveRating: (String) -> Unit
+    onRemoveRating: (String) -> Unit,
+    userId: String?
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -133,7 +138,7 @@ fun RatingMovieCard(
                             onMovieClick(item.movieId)
                         }
                     },
-                    onLongClick = { showMenu = true }
+                    onLongClick = { if (userId== AppConstants.CURRENT_USER_ID) showMenu = true else showMenu=false }
                 )
         ) {
 
@@ -193,6 +198,7 @@ fun RatingMovieCard(
             }
         }
 
+
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
@@ -201,7 +207,7 @@ fun RatingMovieCard(
                 .zIndex(1f)
                 .background(Color(0xFFF60000).copy(alpha = .95f))
                 .clip(RoundedCornerShape(14.dp))
-                .shadow(12.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black)
+                .shadow(12.dp, RoundedCornerShape(14.dp), ambientColor = Color.Black),
         ) {
             DropdownMenuItem(
                 text = { Text("Remove Rating", color = Color.White) },

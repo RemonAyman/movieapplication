@@ -7,6 +7,7 @@ import com.example.myapplication.data.MoviesRepository
 import com.example.myapplication.data.WatchlistRepository
 import com.example.myapplication.data.remote.MovieApiModel
 import com.example.myapplication.ui.screens.home.mapper.toMovieApiModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,15 +46,25 @@ class HomeScreenViewModel(
         loadAllMovies()
     }
 
+    // ⭐ تحميل موازي باستخدام async
     fun loadAllMovies() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val popular = moviesRepository.getPopular100Movies()
-                val upcoming = moviesRepository.getUpcomingMovies()
-                val topRated = moviesRepository.getTop100Movies()
-                val  arabic = moviesRepository.getArabicMoviesForHome()
-                val fromYourWatchList = watchlistRepository.getWatchlistFlow().toMovieApiModel()
+                // ⭐ تحميل البيانات بشكل متوازي
+                val popularDeferred = async { moviesRepository.getPopular100Movies() }
+                val upcomingDeferred = async { moviesRepository.getUpcomingMovies() }
+                val topRatedDeferred = async { moviesRepository.getTop100Movies() }
+                val arabicDeferred = async { moviesRepository.getArabicMoviesForHome() }
+                val watchlistDeferred = async { watchlistRepository.getWatchlistFlow().toMovieApiModel() }
+
+                // انتظار النتائج
+                val popular = popularDeferred.await()
+                val upcoming = upcomingDeferred.await()
+                val topRated = topRatedDeferred.await()
+                val arabic = arabicDeferred.await()
+                val fromYourWatchList = watchlistDeferred.await()
+
                 _uiState.value = _uiState.value.copy(
                     popularMovies = popular,
                     upcomingMovies = upcoming,
@@ -71,20 +82,21 @@ class HomeScreenViewModel(
         }
     }
 
-
     fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true)
             try {
-                val popular = moviesRepository.getPopular100Movies()
-                val upcoming = moviesRepository.getUpcomingMovies()
-                val topRated = moviesRepository.getTop100Movies()
-                val fromYouWatchlist = watchlistRepository.getWatchlistFlow().toMovieApiModel()
+                // ⭐ تحميل موازي أيضاً
+                val popularDeferred = async { moviesRepository.getPopular100Movies() }
+                val upcomingDeferred = async { moviesRepository.getUpcomingMovies() }
+                val topRatedDeferred = async { moviesRepository.getTop100Movies() }
+                val watchlistDeferred = async { watchlistRepository.getWatchlistFlow().toMovieApiModel() }
+
                 _uiState.value = _uiState.value.copy(
-                    popularMovies = popular,
-                    upcomingMovies = upcoming,
-                    topRatedMovies = topRated,
-                    fromYourWatchListMovies = fromYouWatchlist,
+                    popularMovies = popularDeferred.await(),
+                    upcomingMovies = upcomingDeferred.await(),
+                    topRatedMovies = topRatedDeferred.await(),
+                    fromYourWatchListMovies = watchlistDeferred.await(),
                     isRefreshing = false,
                     error = null
                 )
@@ -96,30 +108,40 @@ class HomeScreenViewModel(
             }
         }
     }
-    fun loadTopRatedMovies(){
+
+    fun loadTopRatedMovies() {
         viewModelScope.launch {
-            _uiState.value=_uiState.value.copy(isRefreshing = true)
+            _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val topRated = moviesRepository.getTop100Movies()
-                _uiState.value = _uiState.value.copy(topRatedMovies = topRated)
-            }catch (e: Exception){
+                _uiState.value = _uiState.value.copy(
+                    topRatedMovies = topRated,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.localizedMessage
-                )            }
+                )
+            }
         }
     }
-    fun loadWatchlistMovies(){
+
+    fun loadWatchlistMovies() {
         viewModelScope.launch {
-            _uiState.value=_uiState.value.copy(isRefreshing = true)
+            _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val fromyorWatchlist =watchlistRepository.getWatchlistFlow().toMovieApiModel()
-                _uiState.value = _uiState.value.copy(fromYourWatchListMovies = fromyorWatchlist)
-            }catch (e: Exception){
+                val fromYourWatchlist = watchlistRepository.getWatchlistFlow().toMovieApiModel()
+                _uiState.value = _uiState.value.copy(
+                    fromYourWatchListMovies = fromYourWatchlist,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = e.localizedMessage
-                )            }
+                )
+            }
         }
     }
 
@@ -168,12 +190,12 @@ class HomeScreenViewModel(
 
 class HomeScreenViewModelFactory(
     private val moviesRepository: MoviesRepository,
-    private val watchlisRepository: WatchlistRepository
+    private val watchlistRepository: WatchlistRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeScreenViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return HomeScreenViewModel( moviesRepository,watchlisRepository) as T
+            return HomeScreenViewModel(moviesRepository, watchlistRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

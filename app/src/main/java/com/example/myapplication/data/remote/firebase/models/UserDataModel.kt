@@ -8,7 +8,7 @@ data class UserDataModel(
     val email: String = "",
     val phone: String = "",
     val avatarBase64: String = "",
-    val requestStatus: String = "", // "pending", "sent", "" للعرض في UI,
-    val favoriest: List<FavoritesItem> =emptyList<FavoritesItem>()
-
+    val requestStatus: String = "", // "pending", "sent", "" للعرض في UI
+    val favoriest: List<FavoritesItem> = emptyList(),
+    val fcmToken: String = "" // ✅ FCM Token للإشعارات
 )

@@ -4,7 +4,9 @@ import android.util.Log
 import com.example.myapplication.ui.screens.favorites.FavoritesItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class FavoritesRepository {
 
@@ -19,17 +21,17 @@ class FavoritesRepository {
             db.collection("users").document(uid).collection("favorites")
         }
 
-    // ✅ جلب أول 5 Favorites (للـ Home Screen مثلاً)
-    suspend fun getFirst5Favorites(userId: String?): List<FavoritesItem> {
+    // ✅ جلب أول 5 Favorites (محسّن)
+    suspend fun getFirst5Favorites(userId: String?): List<FavoritesItem> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getFirst5Favorites called with userId: $userId")
 
         val collection = getFavoritesCollection(userId)
         if (collection == null) {
             Log.e(TAG, "Collection is null! auth.currentUser?.uid = ${auth.currentUser?.uid}")
-            return emptyList()
+            return@withContext emptyList()
         }
 
-        return try {
+        return@withContext try {
             Log.d(TAG, "Fetching first 5 favorites from Firestore...")
             val snapshot = collection.limit(5).get().await()
             Log.d(TAG, "Snapshot received. Document count: ${snapshot.documents.size}")
@@ -50,17 +52,17 @@ class FavoritesRepository {
         }
     }
 
-    // ✅ جلب كل الـ Favorites الخاصة باليوزر
-    suspend fun getFavorites(userId: String?): List<FavoritesItem> {
+    // ✅ جلب كل الـ Favorites (محسّن)
+    suspend fun getFavorites(userId: String?): List<FavoritesItem> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getFavorites called with userId: $userId")
 
         val collection = getFavoritesCollection(userId)
         if (collection == null) {
             Log.e(TAG, "Collection is null! auth.currentUser?.uid = ${auth.currentUser?.uid}")
-            return emptyList()
+            return@withContext emptyList()
         }
 
-        return try {
+        return@withContext try {
             Log.d(TAG, "Fetching all favorites from Firestore...")
             val snapshot = collection.get().await()
             Log.d(TAG, "Snapshot received. Document count: ${snapshot.documents.size}")
@@ -81,14 +83,14 @@ class FavoritesRepository {
         }
     }
 
-    // ✅ إضافة فيلم للـ Favorites
-    suspend fun addFavorite(item: FavoritesItem, userId: String?) {
+    // ✅ إضافة فيلم للـ Favorites (محسّن)
+    suspend fun addFavorite(item: FavoritesItem, userId: String?) = withContext(Dispatchers.IO) {
         Log.d(TAG, "addFavorite called - movieId: ${item.movieId}, title: ${item.title}")
 
         val collection = getFavoritesCollection(userId)
         if (collection == null) {
             Log.e(TAG, "Cannot add favorite - collection is null!")
-            return
+            return@withContext
         }
 
         try {
@@ -100,14 +102,14 @@ class FavoritesRepository {
         }
     }
 
-    // ✅ حذف فيلم من الـ Favorites
-    suspend fun removeFavorite(movieId: String, userId: String?) {
+    // ✅ حذف فيلم من الـ Favorites (محسّن)
+    suspend fun removeFavorite(movieId: String, userId: String?) = withContext(Dispatchers.IO) {
         Log.d(TAG, "removeFavorite called for movieId: $movieId")
 
         val collection = getFavoritesCollection(userId)
         if (collection == null) {
             Log.e(TAG, "Cannot remove favorite - collection is null!")
-            return
+            return@withContext
         }
 
         try {

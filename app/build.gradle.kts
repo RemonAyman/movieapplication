@@ -23,15 +23,22 @@ android {
 
         val TMDB_API_KEY: String by project
         buildConfigField("String", "TMDB_API_KEY", "\"$TMDB_API_KEY\"")
+
+        // ⭐ تحسينات الأداء
+        vectorDrawables.useSupportLibrary = true
+        multiDexEnabled = true
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // ⭐ تحسينات Release
+            buildConfigField("boolean", "DEBUG_MODE", "false")
         }
         debug {
             isMinifyEnabled = false
@@ -46,6 +53,11 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // ⭐ تحسينات Kotlin Compiler
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xjvm-default=all"
+        )
     }
 
     buildFeatures {
@@ -61,18 +73,23 @@ android {
         resources {
             excludes += setOf(
                 "META-INF/LICENSE*",
-                "META-INF/NOTICE*"
+                "META-INF/NOTICE*",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1"
             )
         }
     }
 
     composeCompiler {
         enableStrongSkippingMode = true
+        // ⭐ تحسينات Compose Compiler
+        includeSourceInformation = false
     }
 }
 
 kapt {
     correctErrorTypes = true
+    useBuildCache = true
 }
 
 dependencies {
@@ -81,6 +98,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.activity:activity-ktx:1.9.3")
+
+    // ⭐ Splash Screen API
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Compose BOM + Material3
     implementation(platform("androidx.compose:compose-bom:2025.09.00"))
@@ -103,20 +123,23 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.navigation:navigation-runtime-ktx:2.8.0")
 
-    // Retrofit + Gson + OkHttp
+    // Retrofit + Gson + OkHttp (⭐ محسّن)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // Coil
+    // Coil (⭐ محسّن مع Image Caching)
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt:coil-gif:2.7.0")
 
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.datastore:datastore-core:1.1.1")
 
-    // Coroutines
+    // Coroutines (⭐ محسّن)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
     // ViewModel + Lifecycle with Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
@@ -137,17 +160,18 @@ dependencies {
     implementation("androidx.paging:paging-compose:3.3.2")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.52")
-    kapt("com.google.dagger:hilt-compiler:2.52")
+    implementation("com.google.dagger:hilt-android:2.53.1")
+    kapt("com.google.dagger:hilt-compiler:2.53.1")
 
-    // Firebase
+    // Firebase (⭐ محسّن - استخدم بس الـ services الى محتاجها)
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
-    implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
+
+    // 🔔 Firebase Cloud Messaging (للإشعارات في الشات)
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // Google Sign In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
@@ -161,4 +185,7 @@ dependencies {
 
     // Compose Animation
     implementation("androidx.compose.animation:animation:1.6.7")
+
+    // ⭐ Memory Leak Detection (Debug only)
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 }

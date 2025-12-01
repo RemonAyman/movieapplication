@@ -25,7 +25,10 @@ import androidx.navigation.NavController
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,28 +47,45 @@ fun ChatDetailScreen(
     var showMembersSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Load group info and members
+    // ✅ Load group info and members (محسّن)
     LaunchedEffect(chatId) {
-        db.collection("chats").document(chatId).get()
-            .addOnSuccessListener { doc ->
-                groupName = doc.getString("name") ?: "Group Chat"
-                val memberIds = doc.get("members") as? List<String> ?: emptyList()
-                if (memberIds.isNotEmpty()) {
-                    db.collection("users").whereIn(FieldPath.documentId(), memberIds)
-                        .get()
-                        .addOnSuccessListener { usersSnap ->
-                            members = usersSnap.documents.associate { userDoc ->
-                                userDoc.id to (userDoc.getString("username") ?: "Unknown")
-                            }
-                            avatars = usersSnap.documents.associate { userDoc ->
-                                userDoc.id to (userDoc.getString("avatarBase64") ?: "")
-                            }
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val doc = db.collection("chats").document(chatId).get().await()
+                    val name = doc.getString("name") ?: "Group Chat"
+                    val memberIds = doc.get("members") as? List<String> ?: emptyList()
+
+                    withContext(Dispatchers.Main) {
+                        groupName = name
+                    }
+
+                    if (memberIds.isNotEmpty()) {
+                        val usersSnap = db.collection("users")
+                            .whereIn(FieldPath.documentId(), memberIds)
+                            .get()
+                            .await()
+
+                        val tempMembers = usersSnap.documents.associate { userDoc ->
+                            userDoc.id to (userDoc.getString("username") ?: "Unknown")
                         }
+                        val tempAvatars = usersSnap.documents.associate { userDoc ->
+                            userDoc.id to (userDoc.getString("avatarBase64") ?: "")
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            members = tempMembers
+                            avatars = tempAvatars
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
+        }
     }
 
-    // Listener for messages
+    // ✅ Listener for messages (real-time)
     DisposableEffect(chatId) {
         val listener = db.collection("chats")
             .document(chatId)
@@ -95,7 +115,7 @@ fun ChatDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = { showMembersSheet = true }) {
-                        Icon(Icons.Default.GroupAdd, contentDescription = "Add/Remove Member", tint = Color.White)
+                        Icon(Icons.Default.GroupAdd, contentDescription = "Manage Members", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
@@ -115,7 +135,7 @@ fun ChatDetailScreen(
                         .fillMaxWidth(),
                     reverseLayout = false
                 ) {
-                    items(messages) { msg ->
+                    items(messages, key = { it.id }) { msg ->
                         val senderName = members[msg.senderId] ?: "Unknown"
                         val avatarBase64 = avatars[msg.senderId] ?: ""
                         MessageBubble(
@@ -124,7 +144,6 @@ fun ChatDetailScreen(
                             senderName = senderName,
                             avatarBase64 = avatarBase64,
                             onAvatarClick = {
-                                // Navigate to ProfileMainScreen of that user
                                 navController.navigate("FriendDetail/${msg.senderId}")
                             }
                         )
@@ -159,8 +178,10 @@ fun ChatDetailScreen(
                     IconButton(
                         onClick = {
                             if (messageText.isNotBlank()) {
-                                sendMessage(db, chatId, currentUserId, messageText.trim())
-                                messageText = ""
+                                scope.launch {
+                                    sendMessage(db, chatId, currentUserId, messageText.trim())
+                                    messageText = ""
+                                }
                             }
                         },
                         modifier = Modifier
@@ -185,13 +206,15 @@ fun ChatDetailScreen(
                         members = updatedMembers
                         val actionUserName = members[actionUserId] ?: "Someone"
                         affectedUsers.forEach { (targetUserId, targetUserName) ->
-                            val sysMessage = when(action) {
+                            val sysMessage = when (action) {
                                 "add" -> "$actionUserName added $targetUserName"
                                 "remove" -> "$actionUserName removed $targetUserName"
                                 else -> ""
                             }
-                            if(sysMessage.isNotEmpty()){
-                                sendMessage(db, chatId, actionUserId, sysMessage)
+                            if (sysMessage.isNotEmpty()) {
+                                scope.launch {
+                                    sendMessage(db, chatId, actionUserId, sysMessage)
+                                }
                             }
                         }
                     }
@@ -201,22 +224,29 @@ fun ChatDetailScreen(
     }
 }
 
-fun sendMessage(db: FirebaseFirestore, chatId: String, senderId: String, text: String) {
-    val chatRef = db.collection("chats").document(chatId)
-    val messageData = hashMapOf(
-        "text" to text,
-        "senderId" to senderId,
-        "timestamp" to Timestamp.now()
-    )
-    chatRef.collection("messages").add(messageData)
-    chatRef.set(
-        mapOf(
-            "lastMessage" to text,
-            "lastMessageTime" to Timestamp.now(),
-            "members" to FieldValue.arrayUnion(senderId)
-        ),
-        SetOptions.merge()
-    )
+// ✅ Send Message (محسّن)
+suspend fun sendMessage(db: FirebaseFirestore, chatId: String, senderId: String, text: String) {
+    withContext(Dispatchers.IO) {
+        try {
+            val chatRef = db.collection("chats").document(chatId)
+            val messageData = hashMapOf(
+                "text" to text,
+                "senderId" to senderId,
+                "timestamp" to Timestamp.now()
+            )
+            chatRef.collection("messages").add(messageData).await()
+            chatRef.set(
+                mapOf(
+                    "lastMessage" to text,
+                    "lastMessageTime" to Timestamp.now(),
+                    "members" to FieldValue.arrayUnion(senderId)
+                ),
+                SetOptions.merge()
+            ).await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }
 
 @Composable
@@ -298,21 +328,33 @@ fun MembersBottomSheet(
     chatId: String,
     currentUserId: String,
     onDismiss: () -> Unit,
-    onUpdateMembers: (Map<String,String>, String, List<Pair<String,String>>, String) -> Unit
+    onUpdateMembers: (Map<String, String>, String, List<Pair<String, String>>, String) -> Unit
 ) {
-    val allUsers by remember { mutableStateOf(mutableStateListOf<Triple<String,String,String>>()) } // id, username, avatar
-    var selectedUsers by remember { mutableStateOf(mutableStateListOf<Triple<String,String,String>>()) }
+    val allUsers by remember { mutableStateOf(mutableStateListOf<Triple<String, String, String>>()) }
+    var selectedUsers by remember { mutableStateOf(mutableStateListOf<Triple<String, String, String>>()) }
     var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        db.collection("users").get()
-            .addOnSuccessListener { snapshot ->
-                allUsers.clear()
-                allUsers.addAll(snapshot.documents.map {
-                    Triple(it.id, it.getString("username") ?: "Unknown", it.getString("avatarBase64") ?: "")
-                })
-                isLoading = false
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val snapshot = db.collection("users").get().await()
+                    val users = snapshot.documents.map {
+                        Triple(it.id, it.getString("username") ?: "Unknown", it.getString("avatarBase64") ?: "")
+                    }
+                    withContext(Dispatchers.Main) {
+                        allUsers.clear()
+                        allUsers.addAll(users)
+                        isLoading = false
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        isLoading = false
+                    }
+                }
             }
+        }
     }
 
     Box(
@@ -380,28 +422,40 @@ fun MembersBottomSheet(
                     ) {
                         TextButton(
                             onClick = {
-                                val chatRef = db.collection("chats").document(chatId)
-                                val usersToAdd = selectedUsers.filter { !members.containsKey(it.first) }
-                                val usersToRemove = selectedUsers.filter { members.containsKey(it.first) }
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        try {
+                                            val chatRef = db.collection("chats").document(chatId)
+                                            val usersToAdd = selectedUsers.filter { !members.containsKey(it.first) }
+                                            val usersToRemove = selectedUsers.filter { members.containsKey(it.first) }
 
-                                if (usersToAdd.isNotEmpty()) {
-                                    chatRef.update("members", FieldValue.arrayUnion(*usersToAdd.map { it.first }.toTypedArray()))
-                                        .addOnSuccessListener {
-                                            val updatedMembers = members + usersToAdd.associate { it.first to it.second }
-                                            onUpdateMembers(updatedMembers, currentUserId, usersToAdd.map { it.first to it.second }, "add")
+                                            // ✅ Add members
+                                            if (usersToAdd.isNotEmpty()) {
+                                                chatRef.update("members", FieldValue.arrayUnion(*usersToAdd.map { it.first }.toTypedArray())).await()
+                                                val updatedMembers = members + usersToAdd.associate { it.first to it.second }
+                                                withContext(Dispatchers.Main) {
+                                                    onUpdateMembers(updatedMembers, currentUserId, usersToAdd.map { it.first to it.second }, "add")
+                                                }
+                                            }
+
+                                            // ✅ Remove members (FIXED)
+                                            if (usersToRemove.isNotEmpty()) {
+                                                chatRef.update("members", FieldValue.arrayRemove(*usersToRemove.map { it.first }.toTypedArray())).await()
+                                                val updatedMembers = members - usersToRemove.map { it.first }.toSet()
+                                                withContext(Dispatchers.Main) {
+                                                    onUpdateMembers(updatedMembers, currentUserId, usersToRemove.map { it.first to it.second }, "remove")
+                                                }
+                                            }
+
+                                            withContext(Dispatchers.Main) {
+                                                selectedUsers.clear()
+                                                onDismiss()
+                                            }
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
                                         }
+                                    }
                                 }
-
-                                if (usersToRemove.isNotEmpty()) {
-                                    chatRef.update("members", FieldValue.arrayRemove(*usersToRemove.map { it.first }.toTypedArray()))
-                                        .addOnSuccessListener {
-                                            val updatedMembers = members - usersToRemove.map { it.first }.toSet()
-                                            onUpdateMembers(updatedMembers, currentUserId, usersToRemove.map { it.first to it.second }, "remove")
-                                        }
-                                }
-
-                                selectedUsers.clear()
-                                onDismiss()
                             }
                         ) {
                             Text("Apply", color = Color.White)

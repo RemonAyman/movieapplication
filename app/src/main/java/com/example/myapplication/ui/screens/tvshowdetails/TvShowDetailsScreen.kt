@@ -38,7 +38,6 @@ fun TvShowDetailsScreen(
     viewModel: TvShowDetailsScreenViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showRatingDialog by remember { mutableStateOf(false) }
     var showSeasonsDialog by remember { mutableStateOf(false) }
 
     if (uiState.isLoading) {
@@ -116,44 +115,9 @@ fun TvShowDetailsScreen(
             }
         }
 
-        // ======= Action Buttons =======
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                ActionButton(
-                    icon = if (uiState.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    label = "Like",
-                    tint = if (uiState.isLiked) Color.Red else Color.White,
-                    onClick = { viewModel.toggleLike() }
-                )
-                ActionButton(
-                    icon = Icons.Default.Add,
-                    label = if (uiState.isInWatchlist) "Added" else "Watchlist",
-                    tint = if (uiState.isInWatchlist) Color(0xFF9B5DE5) else Color.White,
-                    onClick = { viewModel.toggleWatchlist() }
-                )
-                ActionButton(
-                    icon = if (uiState.isWatched) Icons.Default.Check else Icons.Default.RemoveRedEye,
-                    label = "Watched",
-                    tint = if (uiState.isWatched) Color.Green else Color.White,
-                    onClick = { viewModel.toggleWatched() }
-                )
-                ActionButton(
-                    icon = Icons.Default.Star,
-                    label = uiState.userRating?.let { "${it.toInt()}" } ?: "Rate",
-                    tint = if (uiState.userRating != null) Color(0xFFFFD700) else Color.White,
-                    onClick = { showRatingDialog = true }
-                )
-            }
-        }
-
         // ======= Overview =======
         item {
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Overview",
                     color = Color.White,
@@ -260,18 +224,6 @@ fun TvShowDetailsScreen(
         }
     }
 
-    // ======= Rating Dialog =======
-    if (showRatingDialog) {
-        RatingDialog(
-            currentRating = uiState.userRating ?: 0f,
-            onDismiss = { showRatingDialog = false },
-            onRate = { rating ->
-                viewModel.rateShow(rating)
-                showRatingDialog = false
-            }
-        )
-    }
-
     // ======= Seasons Dialog =======
     if (showSeasonsDialog) {
         SeasonsDialog(
@@ -298,18 +250,6 @@ fun TvShowDetailsScreen(
             // Show error
             viewModel.clearError()
         }
-    }
-}
-
-@Composable
-private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
-    ) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(28.dp))
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(label, color = Color.White, fontSize = 12.sp)
     }
 }
 
@@ -405,36 +345,6 @@ private fun CastCard(cast: Cast, onClick: () -> Unit) {
             textAlign = TextAlign.Center
         )
     }
-}
-
-@Composable
-private fun RatingDialog(currentRating: Float, onDismiss: () -> Unit, onRate: (Float) -> Unit) {
-    var rating by remember { mutableStateOf(currentRating) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rate this TV Show") },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Your rating: ${rating.toInt()}/10")
-                Slider(
-                    value = rating,
-                    onValueChange = { rating = it },
-                    valueRange = 0f..10f,
-                    steps = 9
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onRate(rating) }) {
-                Text("Rate")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @Composable

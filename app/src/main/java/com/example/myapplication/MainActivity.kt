@@ -25,21 +25,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import coil.size.Scale
 import com.example.myapplication.ui.navigation.AuthNavGraph
 import com.example.myapplication.ui.navigation.BottomNavigationBar
 import com.example.myapplication.ui.navigation.NavGraph
 import com.example.myapplication.ui.theme.MovitoBackground
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -47,32 +51,58 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import java.util.concurrent.TimeUnit
+
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // ⭐ Splash Screen - لازم يكون قبل super.onCreate()
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContent {
-            var isLoggedIn by remember {
-                mutableStateOf(getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                    .getBoolean("isLoggedIn", false))
+            // ⭐ قراءة isLoggedIn في background thread
+            var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
+
+            LaunchedEffect(Unit) {
+                withContext(Dispatchers.IO) {
+                    val prefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                    isLoggedIn = prefs.getBoolean("isLoggedIn", false)
+                }
+            }
+
+            // انتظار حتى يتم تحميل الحالة
+            if (isLoggedIn == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MovitoBackground),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color.White)
+                }
+                return@setContent
             }
 
             MaterialTheme {
                 val navController = rememberNavController()
 
-                if (isLoggedIn) {
+                if (isLoggedIn == true) {
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = currentBackStackEntry?.destination?.route
 
-                    val showBottomBar = currentDestination in listOf(
-                        "HomeScreen",
-                        "search",
-                        "favorites",
-                        "profile",
-                        "chats",
-                        "addFriend"
-                    )
+                    val showBottomBar = remember(currentDestination) {
+                        currentDestination in listOf(
+                            "HomeScreen",
+                            "search",
+                            "favorites",
+                            "profile",
+                            "chats",
+                            "addFriend"
+                        )
+                    }
 
                     Scaffold(
                         bottomBar = {
@@ -89,12 +119,14 @@ class MainActivity : ComponentActivity() {
                     StatusBarBackground(MovitoBackground)
                     AuthNavGraph(navController = navController) { loginSuccess ->
                         if (loginSuccess) {
-                            // حفظ الحالة في SharedPreferences
-                            getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                .edit().putBoolean("isLoggedIn", true).apply()
-
-                            // تحديث State لإعادة بناء Compose → يظهر NavGraph الرئيسية
-                            isLoggedIn = true
+                            // ⭐ حفظ في background thread
+                            kotlinx.coroutines.MainScope().launch {
+                                withContext(Dispatchers.IO) {
+                                    getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                                        .edit().putBoolean("isLoggedIn", true).apply()
+                                }
+                                isLoggedIn = true
+                            }
                         }
                     }
                 }
@@ -102,7 +134,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-// status bar
+
 @Composable
 fun StatusBarBackground(color: Color) {
     val height = WindowInsets.statusBars
@@ -116,8 +148,6 @@ fun StatusBarBackground(color: Color) {
             .background(color)
     )
 }
-
-
 
 // ================= MODELS =================
 data class MovieResponse(val results: List<Movie>)
@@ -169,14 +199,18 @@ interface MovieApi {
     ): CreditsResponse
 }
 
-// ================= RETROFIT =================
+// ================= RETROFIT (محسّن) =================
 object RetrofitClient {
     private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+        else HttpLoggingInterceptor.Level.NONE
     }
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(logging)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private val retrofit = Retrofit.Builder()
@@ -188,24 +222,29 @@ object RetrofitClient {
     val api: MovieApi = retrofit.create(MovieApi::class.java)
 }
 
-// ================= MOVIE LIST SCREEN =================
+// ================= MOVIE LIST SCREEN (محسّن) =================
 @Composable
 fun MovieListScreen(navController: androidx.navigation.NavHostController) {
     var movies by remember { mutableStateOf<List<Movie>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // تحميل الأفلام أول ما الشاشة تفتح
+    // تحميل الأفلام مرة واحدة فقط
     LaunchedEffect(Unit) {
-        scope.launch {
-            try {
-                val response = RetrofitClient.api.getLatestMovies(BuildConfig.TMDB_API_KEY, page = 1)
-                movies = response.results.take(100)
-            } catch (e: Exception) {
-                errorMessage = e.message
+        isLoading = true
+        try {
+            val response = withContext(Dispatchers.IO) {
+                RetrofitClient.api.getLatestMovies(BuildConfig.TMDB_API_KEY, page = 1)
             }
+            movies = response.results.take(100)
+            errorMessage = null
+        } catch (e: Exception) {
+            errorMessage = e.message
+        } finally {
+            isLoading = false
         }
     }
 
@@ -219,14 +258,18 @@ fun MovieListScreen(navController: androidx.navigation.NavHostController) {
             if (!spokenText.isNullOrEmpty()) {
                 query = spokenText
                 scope.launch {
+                    isLoading = true
                     try {
-                        val response =
+                        val response = withContext(Dispatchers.IO) {
                             RetrofitClient.api.searchMovies(BuildConfig.TMDB_API_KEY, spokenText)
+                        }
                         movies = response.results
                         errorMessage = null
                     } catch (e: Exception) {
                         errorMessage = e.message
                         movies = emptyList()
+                    } finally {
+                        isLoading = false
                     }
                 }
             }
@@ -239,20 +282,24 @@ fun MovieListScreen(navController: androidx.navigation.NavHostController) {
                 value = query,
                 onValueChange = { query = it },
                 label = { Text("Search for a movie...") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                enabled = !isLoading
             )
 
-            IconButton(onClick = {
-                Toast.makeText(context, "Listening...", Toast.LENGTH_SHORT).show()
-                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                    putExtra(
-                        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                    )
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
-                }
-                speechLauncher.launch(intent)
-            }) {
+            IconButton(
+                onClick = {
+                    Toast.makeText(context, "Listening...", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(
+                            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                        )
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                    }
+                    speechLauncher.launch(intent)
+                },
+                enabled = !isLoading
+            ) {
                 Icon(Icons.Default.Mic, contentDescription = "Voice Search")
             }
         }
@@ -262,36 +309,44 @@ fun MovieListScreen(navController: androidx.navigation.NavHostController) {
         Button(
             onClick = {
                 scope.launch {
+                    isLoading = true
                     try {
-                        val response =
+                        val response = withContext(Dispatchers.IO) {
                             RetrofitClient.api.searchMovies(BuildConfig.TMDB_API_KEY, query)
+                        }
                         movies = response.results
                         errorMessage = null
                     } catch (e: Exception) {
                         errorMessage = e.message
                         movies = emptyList()
+                    } finally {
+                        isLoading = false
                     }
                 }
             },
-            enabled = query.isNotEmpty(),
+            enabled = query.isNotEmpty() && !isLoading,
             modifier = Modifier.align(Alignment.End)
         ) {
-            Text("Search")
+            Text(if (isLoading) "Searching..." else "Search")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         when {
+            isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+
             errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Error loading movies ")
+                Text("Error loading movies")
             }
 
             movies.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No movies available ")
+                Text("No movies available")
             }
 
             else -> LazyColumn(contentPadding = PaddingValues(8.dp)) {
-                items(movies) { movie ->
+                items(movies, key = { it.id }) { movie ->
                     MovieCard(movie) { navController.navigate("details/${movie.id}") }
                 }
             }
@@ -301,6 +356,8 @@ fun MovieListScreen(navController: androidx.navigation.NavHostController) {
 
 @Composable
 fun MovieCard(movie: Movie, onClick: () -> Unit) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -310,8 +367,15 @@ fun MovieCard(movie: Movie, onClick: () -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             val imageUrl = movie.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" }
+
             Image(
-                painter = rememberAsyncImagePainter(imageUrl),
+                painter = rememberAsyncImagePainter(
+                    ImageRequest.Builder(context)
+                        .data(imageUrl)
+                        .crossfade(true)
+                        .scale(Scale.FILL)
+                        .build()
+                ),
                 contentDescription = movie.title,
                 modifier = Modifier
                     .size(100.dp)
@@ -326,34 +390,50 @@ fun MovieCard(movie: Movie, onClick: () -> Unit) {
     }
 }
 
-// ================= MOVIE DETAILS SCREEN =================
+// ================= MOVIE DETAILS SCREEN (محسّن) =================
 @Composable
 fun MovieDetailScreen(navController: androidx.navigation.NavHostController, movieId: Int) {
     var movie by remember { mutableStateOf<Movie?>(null) }
     var trailerKey by remember { mutableStateOf<String?>(null) }
     var castList by remember { mutableStateOf<List<Cast>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     LaunchedEffect(movieId) {
-        scope.launch {
-            try {
-                movie = RetrofitClient.api.getMovieDetails(movieId, BuildConfig.TMDB_API_KEY)
-                val videos = RetrofitClient.api.getMovieVideos(movieId, BuildConfig.TMDB_API_KEY).results
-                val credits = RetrofitClient.api.getMovieCredits(movieId, BuildConfig.TMDB_API_KEY).cast
-
-                trailerKey = videos.firstOrNull { it.site == "YouTube" && it.type == "Trailer" }?.key
-                castList = credits.take(10)
-            } catch (e: Exception) {
-                errorMessage = e.message
+        isLoading = true
+        try {
+            val movieData = withContext(Dispatchers.IO) {
+                RetrofitClient.api.getMovieDetails(movieId, BuildConfig.TMDB_API_KEY)
             }
+            movie = movieData
+
+            val videos = withContext(Dispatchers.IO) {
+                RetrofitClient.api.getMovieVideos(movieId, BuildConfig.TMDB_API_KEY).results
+            }
+
+            val credits = withContext(Dispatchers.IO) {
+                RetrofitClient.api.getMovieCredits(movieId, BuildConfig.TMDB_API_KEY).cast
+            }
+
+            trailerKey = videos.firstOrNull { it.site == "YouTube" && it.type == "Trailer" }?.key
+            castList = credits.take(10)
+            errorMessage = null
+        } catch (e: Exception) {
+            errorMessage = e.message
+        } finally {
+            isLoading = false
         }
     }
 
     when {
+        isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+
         errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Error loading movie details ")
+            Text("Error loading movie details")
         }
 
         movie == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -373,7 +453,13 @@ fun MovieDetailScreen(navController: androidx.navigation.NavHostController, movi
                 item {
                     if (posterUrl != null) {
                         Image(
-                            painter = rememberAsyncImagePainter(posterUrl),
+                            painter = rememberAsyncImagePainter(
+                                ImageRequest.Builder(context)
+                                    .data(posterUrl)
+                                    .crossfade(true)
+                                    .scale(Scale.FILL)
+                                    .build()
+                            ),
                             contentDescription = m.title,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -399,7 +485,7 @@ fun MovieDetailScreen(navController: androidx.navigation.NavHostController, movi
                         }) {
                             Text("🎥 Watch Trailer on YouTube")
                         }
-                    } else Text("No trailer available ")
+                    } else Text("No trailer available")
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Cast:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -418,7 +504,13 @@ fun MovieDetailScreen(navController: androidx.navigation.NavHostController, movi
                                 val profileUrl =
                                     cast.profile_path?.let { "https://image.tmdb.org/t/p/w200$it" }
                                 Image(
-                                    painter = rememberAsyncImagePainter(profileUrl),
+                                    painter = rememberAsyncImagePainter(
+                                        ImageRequest.Builder(context)
+                                            .data(profileUrl)
+                                            .crossfade(true)
+                                            .scale(Scale.FILL)
+                                            .build()
+                                    ),
                                     contentDescription = cast.name,
                                     modifier = Modifier
                                         .size(100.dp)

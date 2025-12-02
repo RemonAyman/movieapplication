@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -50,7 +51,6 @@ fun ChatDetailScreen(
     var showMembersSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // ✅ Load group info and members (محسّن)
     LaunchedEffect(chatId) {
         scope.launch {
             withContext(Dispatchers.IO) {
@@ -88,7 +88,6 @@ fun ChatDetailScreen(
         }
     }
 
-    // ✅ Listener for messages (real-time)
     DisposableEffect(chatId) {
         val listener = db.collection("chats")
             .document(chatId)
@@ -100,7 +99,25 @@ fun ChatDetailScreen(
                         val text = doc.getString("text") ?: return@mapNotNull null
                         val senderId = doc.getString("senderId") ?: ""
                         val timestamp = doc.getTimestamp("timestamp")
-                        MessageItem(doc.id, text, senderId, timestamp)
+
+                        // ✅ Check if it's a shared movie
+                        val isSharedMovie = doc.getBoolean("isSharedMovie") ?: false
+                        val movieId = doc.getString("movieId")
+                        val movieTitle = doc.getString("movieTitle")
+                        val moviePoster = doc.getString("moviePoster")
+                        val movieRating = doc.getDouble("movieRating")
+
+                        MessageItem(
+                            id = doc.id,
+                            text = text,
+                            senderId = senderId,
+                            timestamp = timestamp,
+                            isSharedMovie = isSharedMovie,
+                            movieId = movieId,
+                            movieTitle = movieTitle,
+                            moviePoster = moviePoster,
+                            movieRating = movieRating
+                        )
                     }
                 }
             }
@@ -141,19 +158,40 @@ fun ChatDetailScreen(
                     items(messages, key = { it.id }) { msg ->
                         val senderName = members[msg.senderId] ?: "Unknown"
                         val avatarBase64 = avatars[msg.senderId] ?: ""
-                        MessageBubble(
-                            msg,
-                            isMe = msg.senderId == currentUserId,
-                            senderName = senderName,
-                            avatarBase64 = avatarBase64,
-                            onAvatarClick = {
-                                // ✅ التعديل الرئيسي: فتح البروفايل بدلاً من FriendDetail
-                                navController.navigate("profileMainScreen/${msg.senderId}") {
-                                    launchSingleTop = true
-                                    restoreState = true
+
+                        // ✅ Display shared movie or regular message
+                        if (msg.isSharedMovie) {
+                            SharedMovieBubble(
+                                msg = msg,
+                                isMe = msg.senderId == currentUserId,
+                                senderName = senderName,
+                                avatarBase64 = avatarBase64,
+                                onAvatarClick = {
+                                    navController.navigate("profileMainScreen/${msg.senderId}") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                onMovieClick = {
+                                    msg.movieId?.let {
+                                        navController.navigate("details/$it")
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        } else {
+                            MessageBubble(
+                                msg,
+                                isMe = msg.senderId == currentUserId,
+                                senderName = senderName,
+                                avatarBase64 = avatarBase64,
+                                onAvatarClick = {
+                                    navController.navigate("profileMainScreen/${msg.senderId}") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -232,7 +270,125 @@ fun ChatDetailScreen(
     }
 }
 
-// ✅ Send Message (محسّن)
+// ✅ New: Shared Movie Bubble
+@Composable
+fun SharedMovieBubble(
+    msg: MessageItem,
+    isMe: Boolean,
+    senderName: String,
+    avatarBase64: String = "",
+    onAvatarClick: () -> Unit,
+    onMovieClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
+    ) {
+        if (!isMe) {
+            if (avatarBase64.isNotBlank()) {
+                val bytes = Base64.decode(avatarBase64, Base64.DEFAULT)
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { onAvatarClick() }
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF9B5DE5))
+                        .clickable { onAvatarClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = senderName.firstOrNull()?.uppercase() ?: "U",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Column {
+            if (!isMe) {
+                Text(
+                    senderName,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Movie Card
+            Card(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clickable { onMovieClick() },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isMe) Color(0xFF9B5DE5) else Color(0xFF3A3A3A)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Poster
+                        coil.compose.AsyncImage(
+                            model = msg.moviePoster,
+                            contentDescription = msg.movieTitle,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                msg.movieTitle ?: "Movie",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                "⭐ ${String.format("%.1f", msg.movieRating ?: 0.0)}",
+                                color = Color(0xFFFFD700),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Tap to view details",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        if (isMe) Spacer(modifier = Modifier.width(8.dp))
+    }
+}
+
 suspend fun sendMessage(db: FirebaseFirestore, chatId: String, senderId: String, text: String) {
     withContext(Dispatchers.IO) {
         try {
@@ -407,14 +563,12 @@ fun MembersBottomSheet(
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // ✅ Avatar قابل للضغط
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
                                         .background(if (isSelected) Color.Green else Color(0xFF9B5DE5))
                                         .clickable {
-                                            // ✅ فتح البروفايل عند الضغط على الصورة
                                             navController.navigate("profileMainScreen/${user.first}") {
                                                 launchSingleTop = true
                                                 restoreState = true
@@ -461,7 +615,6 @@ fun MembersBottomSheet(
                                             val usersToAdd = selectedUsers.filter { !members.containsKey(it.first) }
                                             val usersToRemove = selectedUsers.filter { members.containsKey(it.first) }
 
-                                            // ✅ Add members
                                             if (usersToAdd.isNotEmpty()) {
                                                 chatRef.update("members", FieldValue.arrayUnion(*usersToAdd.map { it.first }.toTypedArray())).await()
                                                 val updatedMembers = members + usersToAdd.associate { it.first to it.second }
@@ -470,7 +623,6 @@ fun MembersBottomSheet(
                                                 }
                                             }
 
-                                            // ✅ Remove members (FIXED)
                                             if (usersToRemove.isNotEmpty()) {
                                                 chatRef.update("members", FieldValue.arrayRemove(*usersToRemove.map { it.first }.toTypedArray())).await()
                                                 val updatedMembers = members - usersToRemove.map { it.first }.toSet()
@@ -503,5 +655,10 @@ data class MessageItem(
     val id: String = "",
     val text: String = "",
     val senderId: String = "",
-    val timestamp: Timestamp? = null
+    val timestamp: Timestamp? = null,
+    val isSharedMovie: Boolean = false,
+    val movieId: String? = null,
+    val movieTitle: String? = null,
+    val moviePoster: String? = null,
+    val movieRating: Double? = null
 )

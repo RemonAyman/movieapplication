@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -55,7 +56,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
     var currentUserName by remember { mutableStateOf("Me") }
     var currentUserAvatar by remember { mutableStateOf<Bitmap?>(null) }
 
-    // ✅ تحميل بيانات المستخدمين بشكل محسّن
     LaunchedEffect(chatId) {
         withContext(Dispatchers.IO) {
             try {
@@ -93,7 +93,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
         }
     }
 
-    // ✅ تحميل الرسائل
     LaunchedEffect(chatId) {
         val chatRef = db.collection("chats").document(chatId).collection("messages")
         chatRef.orderBy("timestamp", Query.Direction.ASCENDING)
@@ -103,7 +102,24 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                         val text = doc.getString("text") ?: return@mapNotNull null
                         val senderId = doc.getString("senderId") ?: ""
                         val timestamp = doc.getTimestamp("timestamp")
-                        PrivateChatMessage(senderId, text, timestamp)
+
+                        // ✅ Check for shared movie
+                        val isSharedMovie = doc.getBoolean("isSharedMovie") ?: false
+                        val movieId = doc.getString("movieId")
+                        val movieTitle = doc.getString("movieTitle")
+                        val moviePoster = doc.getString("moviePoster")
+                        val movieRating = doc.getDouble("movieRating")
+
+                        PrivateChatMessage(
+                            senderId = senderId,
+                            text = text,
+                            timestamp = timestamp,
+                            isSharedMovie = isSharedMovie,
+                            movieId = movieId,
+                            movieTitle = movieTitle,
+                            moviePoster = moviePoster,
+                            movieRating = movieRating
+                        )
                     }
                 }
             }
@@ -114,7 +130,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             .fillMaxSize()
             .background(Color(0xFF121212))
     ) {
-        // TopBar
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -127,7 +142,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
 
             OptimizedAvatarImage(targetUserAvatar, targetUserName) {
-                // ✅ التعديل الرئيسي: فتح البروفايل بدلاً من FriendDetail
                 navController.navigate("profileMainScreen/$targetUserId") {
                     launchSingleTop = true
                     restoreState = true
@@ -140,7 +154,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // عرض الرسائل
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -182,65 +195,85 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     val senderName = if(isMine) currentUserName else members[msg.senderId] ?: "Unknown"
                     val avatarBitmap = if(isMine) currentUserAvatar else avatars[msg.senderId]
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        horizontalArrangement = if(isMine) Arrangement.End else Arrangement.Start,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        if(!isMine){
-                            OptimizedAvatarImage(avatarBitmap, senderName) {
-                                // ✅ التعديل الرئيسي: فتح البروفايل بدلاً من FriendDetail
+                    // ✅ Check if it's a shared movie
+                    if (msg.isSharedMovie) {
+                        PrivateSharedMovieBubble(
+                            msg = msg,
+                            isMine = isMine,
+                            senderName = senderName,
+                            avatarBitmap = avatarBitmap,
+                            onAvatarClick = {
                                 navController.navigate("profileMainScreen/${msg.senderId}") {
                                     launchSingleTop = true
                                     restoreState = true
                                 }
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-
-                        Column(horizontalAlignment = if(isMine) Alignment.End else Alignment.Start) {
-                            if(!isMine){
-                                Text(
-                                    senderName,
-                                    color = Color.Gray,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(bottom = 4.dp)
-                                )
-                            }
-
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Box(
-                                    modifier = Modifier
-                                        .background(
-                                            if(isMine) Color(0xFF9B5DE5) else Color(0xFF333333),
-                                            shape = RoundedCornerShape(
-                                                topStart = 16.dp,
-                                                topEnd = 16.dp,
-                                                bottomStart = if(isMine) 16.dp else 4.dp,
-                                                bottomEnd = if(isMine) 4.dp else 16.dp
-                                            )
-                                        )
-                                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                                ) {
-                                    Text(msg.text, color = Color.White, fontSize = 15.sp)
+                            },
+                            onMovieClick = {
+                                msg.movieId?.let {
+                                    navController.navigate("details/$it")
                                 }
+                            }
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = if(isMine) Arrangement.End else Arrangement.Start,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            if(!isMine){
+                                OptimizedAvatarImage(avatarBitmap, senderName) {
+                                    navController.navigate("profileMainScreen/${msg.senderId}") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
 
-                                msg.timestamp?.let {
-                                    Spacer(modifier = Modifier.width(6.dp))
+                            Column(horizontalAlignment = if(isMine) Alignment.End else Alignment.Start) {
+                                if(!isMine){
                                     Text(
-                                        formatPrivateMessageTime(it),
+                                        senderName,
                                         color = Color.Gray,
-                                        fontSize = 10.sp,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
                                         modifier = Modifier.padding(bottom = 4.dp)
                                     )
                                 }
-                            }
-                        }
 
-                        if(isMine) Spacer(modifier = Modifier.width(8.dp))
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                if(isMine) Color(0xFF9B5DE5) else Color(0xFF333333),
+                                                shape = RoundedCornerShape(
+                                                    topStart = 16.dp,
+                                                    topEnd = 16.dp,
+                                                    bottomStart = if(isMine) 16.dp else 4.dp,
+                                                    bottomEnd = if(isMine) 4.dp else 16.dp
+                                                )
+                                            )
+                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                    ) {
+                                        Text(msg.text, color = Color.White, fontSize = 15.sp)
+                                    }
+
+                                    msg.timestamp?.let {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            formatPrivateMessageTime(it),
+                                            color = Color.Gray,
+                                            fontSize = 10.sp,
+                                            modifier = Modifier.padding(bottom = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if(isMine) Spacer(modifier = Modifier.width(8.dp))
+                        }
                     }
                 }
             }
@@ -248,7 +281,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // إدخال الرسائل
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -303,7 +335,109 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
     }
 }
 
-// ✅ Optimized Avatar with Bitmap cache
+// ✅ New: Shared Movie Bubble for Private Chat
+@Composable
+fun PrivateSharedMovieBubble(
+    msg: PrivateChatMessage,
+    isMine: Boolean,
+    senderName: String,
+    avatarBitmap: Bitmap?,
+    onAvatarClick: () -> Unit,
+    onMovieClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top
+    ) {
+        if (!isMine) {
+            OptimizedAvatarImage(avatarBitmap, senderName, onAvatarClick)
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
+            if (!isMine) {
+                Text(
+                    senderName,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+
+            // Movie Card
+            Card(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .clickable { onMovieClick() },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isMine) Color(0xFF9B5DE5) else Color(0xFF333333)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Poster
+                        coil.compose.AsyncImage(
+                            model = msg.moviePoster,
+                            contentDescription = msg.movieTitle,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                msg.movieTitle ?: "Movie",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                "⭐ ${String.format("%.1f", msg.movieRating ?: 0.0)}",
+                                color = Color(0xFFFFD700),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        "Tap to view details",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            msg.timestamp?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    formatPrivateMessageTime(it),
+                    color = Color.Gray,
+                    fontSize = 10.sp
+                )
+            }
+        }
+
+        if (isMine) Spacer(modifier = Modifier.width(8.dp))
+    }
+}
+
 @Composable
 fun OptimizedAvatarImage(bitmap: Bitmap?, name: String, onClick: () -> Unit) {
     Box(
@@ -334,7 +468,6 @@ fun OptimizedAvatarImage(bitmap: Bitmap?, name: String, onClick: () -> Unit) {
     }
 }
 
-// ✅ Decode Base64 on background thread
 suspend fun decodeBase64ToBitmap(base64: String): Bitmap? {
     return withContext(Dispatchers.IO) {
         try {
@@ -371,7 +504,12 @@ fun formatPrivateMessageTime(timestamp: Timestamp): String {
 data class PrivateChatMessage(
     val senderId: String = "",
     val text: String = "",
-    val timestamp: Timestamp? = null
+    val timestamp: Timestamp? = null,
+    val isSharedMovie: Boolean = false,
+    val movieId: String? = null,
+    val movieTitle: String? = null,
+    val moviePoster: String? = null,
+    val movieRating: Double? = null
 )
 
 suspend fun sendPrivateMessage(chatId: String, senderId: String, text: String){

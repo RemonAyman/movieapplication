@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,17 +16,20 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navController: NavHostController,
-    onLoginSuccess: () -> Unit // ✅ Callback بدل navigate مباشرة
+    onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
     val sharedPref = context.getSharedPreferences("UserPrefs", android.content.Context.MODE_PRIVATE)
     val auth = remember { FirebaseAuth.getInstance() }
     val db = remember { FirebaseFirestore.getInstance() }
+    val scope = rememberCoroutineScope()
 
     var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -35,6 +39,75 @@ fun LoginScreen(
     var loading by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // ✅ دالة مساعدة للتحقق من نوع المدخل
+    fun isEmail(input: String): Boolean {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(input).matches()
+    }
+
+    fun isPhone(input: String): Boolean {
+        return input.matches(Regex("^01[0-9]{9}$"))
+    }
+
+    // ✅ دالة موحدة للـ Login
+    suspend fun performLogin(emailToUse: String, passwordToUse: String): Boolean {
+        return try {
+            Log.d("LoginScreen", "Attempting login with email: $emailToUse")
+            auth.signInWithEmailAndPassword(emailToUse, passwordToUse).await()
+            Log.d("LoginScreen", "Login successful")
+            true
+        } catch (e: Exception) {
+            Log.e("LoginScreen", "Login failed: ${e.message}", e)
+            error = when {
+                e.message?.contains("password") == true -> "Wrong password"
+                e.message?.contains("user") == true -> "User not found"
+                e.message?.contains("network") == true -> "Network error"
+                else -> e.localizedMessage ?: "Login failed"
+            }
+            showSnackbar = true
+            false
+        }
+    }
+
+    // ✅ دالة البحث عن Email بناءً على Username أو Phone
+    suspend fun findEmailByIdentifier(field: String, value: String): String? {
+        return try {
+            Log.d("LoginScreen", "Searching for $field: $value")
+
+            val result = db.collection("users")
+                .whereEqualTo(field, value)
+                .get()
+                .await()
+
+            Log.d("LoginScreen", "Search result size: ${result.size()}")
+
+            if (!result.isEmpty) {
+                val email = result.documents[0].getString("email")
+                Log.d("LoginScreen", "Found email: $email")
+                email
+            } else {
+                error = when (field) {
+                    "username" -> "Username not found"
+                    "phone" -> "Phone number not found"
+                    else -> "User not found"
+                }
+                showSnackbar = true
+                Log.w("LoginScreen", "No user found with $field: $value")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("LoginScreen", "Database error: ${e.message}", e)
+            error = when {
+                e.message?.contains("PERMISSION_DENIED") == true ->
+                    "Database access denied. Please contact support."
+                e.message?.contains("network") == true ->
+                    "Network error. Check your connection."
+                else -> "Database error: ${e.message}"
+            }
+            showSnackbar = true
+            null
+        }
+    }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Box(
@@ -80,79 +153,52 @@ fun LoginScreen(
 
                 val onLoginClick: () -> Unit = {
                     when {
-                        identifier.isEmpty() || password.isEmpty() -> {
+                        identifier.trim().isEmpty() || password.isEmpty() -> {
                             error = "All fields are required"
                             showSnackbar = true
                         }
                         else -> {
                             loading = true
-                            val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
-                            val phonePattern = Regex("^01[0-9]{9}$")
+                            Log.d("LoginScreen", "Login button clicked with identifier: ${identifier.trim()}")
 
-                            fun handleLoginSuccess() {
-                                sharedPref.edit().putBoolean("isLoggedIn", true).apply()
-                                onLoginSuccess() // ✅ استخدم callback
-                            }
+                            scope.launch {
+                                try {
+                                    val emailToLogin = when {
+                                        // ✅ إذا كان المدخل Email
+                                        isEmail(identifier.trim()) -> {
+                                            Log.d("LoginScreen", "Detected as email")
+                                            identifier.trim()
+                                        }
 
-                            when {
-                                emailPattern.matches(identifier) -> {
-                                    auth.signInWithEmailAndPassword(identifier, password)
-                                        .addOnCompleteListener { task ->
-                                            loading = false
-                                            if (task.isSuccessful) handleLoginSuccess()
-                                            else {
-                                                error = task.exception?.localizedMessage ?: "Login failed"
-                                                showSnackbar = true
-                                            }
+                                        // ✅ إذا كان المدخل Phone
+                                        isPhone(identifier.trim()) -> {
+                                            Log.d("LoginScreen", "Detected as phone")
+                                            findEmailByIdentifier("phone", identifier.trim())
                                         }
-                                }
-                                phonePattern.matches(identifier) -> {
-                                    db.collection("users").whereEqualTo("phone", identifier)
-                                        .get().addOnSuccessListener { result ->
-                                            loading = false
-                                            if (!result.isEmpty) {
-                                                val email = result.documents[0].getString("email") ?: ""
-                                                auth.signInWithEmailAndPassword(email, password)
-                                                    .addOnCompleteListener { task ->
-                                                        if (task.isSuccessful) handleLoginSuccess()
-                                                        else {
-                                                            error = "Invalid password or user"
-                                                            showSnackbar = true
-                                                        }
-                                                    }
-                                            } else {
-                                                error = "Phone not found"
-                                                showSnackbar = true
-                                            }
-                                        }.addOnFailureListener {
-                                            loading = false
-                                            error = "Error checking phone"
-                                            showSnackbar = true
+
+                                        // ✅ إذا كان المدخل Username
+                                        else -> {
+                                            Log.d("LoginScreen", "Detected as username")
+                                            findEmailByIdentifier("username", identifier.trim())
                                         }
-                                }
-                                else -> {
-                                    db.collection("users").whereEqualTo("username", identifier)
-                                        .get().addOnSuccessListener { result ->
-                                            loading = false
-                                            if (!result.isEmpty) {
-                                                val email = result.documents[0].getString("email") ?: ""
-                                                auth.signInWithEmailAndPassword(email, password)
-                                                    .addOnCompleteListener { task ->
-                                                        if (task.isSuccessful) handleLoginSuccess()
-                                                        else {
-                                                            error = "Invalid password or user"
-                                                            showSnackbar = true
-                                                        }
-                                                    }
-                                            } else {
-                                                error = "Username not found"
-                                                showSnackbar = true
-                                            }
-                                        }.addOnFailureListener {
-                                            loading = false
-                                            error = "Error checking username"
-                                            showSnackbar = true
+                                    }
+
+                                    // ✅ محاولة تسجيل الدخول
+                                    if (emailToLogin != null) {
+                                        val success = performLogin(emailToLogin, password)
+                                        if (success) {
+                                            sharedPref.edit().putBoolean("isLoggedIn", true).apply()
+                                            onLoginSuccess()
                                         }
+                                    } else {
+                                        Log.w("LoginScreen", "Email lookup returned null")
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("LoginScreen", "Unexpected error: ${e.message}", e)
+                                    error = "Unexpected error: ${e.message}"
+                                    showSnackbar = true
+                                } finally {
+                                    loading = false
                                 }
                             }
                         }
@@ -168,7 +214,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 TextButton(onClick = { navController.navigate("signup") }) {
-                    Text("Don’t have an account? Sign up", color = TextColor)
+                    Text("Don't have an account? Sign up", color = TextColor)
                 }
             }
 

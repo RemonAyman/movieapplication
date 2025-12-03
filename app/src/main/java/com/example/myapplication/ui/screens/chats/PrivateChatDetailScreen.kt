@@ -13,8 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,6 +47,8 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
     var messages by remember { mutableStateOf<List<PrivateChatMessage>>(emptyList()) }
     var members by remember { mutableStateOf<Map<String,String>>(emptyMap()) }
     var avatars by remember { mutableStateOf<Map<String,Bitmap?>>(emptyMap()) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     var targetUserId by remember { mutableStateOf("") }
@@ -57,7 +58,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
     var currentUserName by remember { mutableStateOf("Me") }
     var currentUserAvatar by remember { mutableStateOf<Bitmap?>(null) }
 
-    // ✅ LazyList State for auto-scroll
     val listState = rememberLazyListState()
 
     LaunchedEffect(chatId) {
@@ -128,18 +128,60 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
     }
 
-    // ✅ Auto-scroll to bottom when messages change
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
     }
 
+    // ✅ Delete Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    "Delete Chat?",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    "This will permanently delete this conversation and all its messages. This action cannot be undone.",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        coroutineScope.launch {
+                            deletePrivateChat(db, chatId)
+                            navController.popBackStack()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF4757)
+                    )
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel", color = Color(0xFF9B5DE5))
+                }
+            },
+            containerColor = Color(0xFF1B1330),
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF121212))
-            .imePadding() // ✅ يرفع المحتوى فوق الكيبورد
+            .imePadding()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -160,16 +202,54 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
 
             Spacer(modifier = Modifier.width(12.dp))
-            Text(targetUserName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+
+            Text(
+                targetUserName,
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+
+            // ✅ Options Menu
+            Box {
+                IconButton(onClick = { showOptionsMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = Color.White)
+                }
+
+                DropdownMenu(
+                    expanded = showOptionsMenu,
+                    onDismissRequest = { showOptionsMenu = false },
+                    modifier = Modifier.background(Color(0xFF1B1330))
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFFF4757),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Delete Chat", color = Color(0xFFFF4757))
+                            }
+                        },
+                        onClick = {
+                            showOptionsMenu = false
+                            showDeleteDialog = true
+                        }
+                    )
+                }
+            }
         }
 
-        // ✅ Messages List
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 12.dp),
-            reverseLayout = false // ✅ الترتيب الطبيعي
+            reverseLayout = false
         ) {
             val groupedMessages = messages.groupBy { msg ->
                 msg.timestamp?.let { formatPrivateDateHeader(it) } ?: "Unknown"
@@ -289,7 +369,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
         }
 
-        // ✅ Input Section
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -338,6 +417,29 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     modifier = Modifier.size(24.dp)
                 )
             }
+        }
+    }
+}
+
+// ✅ Delete Private Chat Function
+suspend fun deletePrivateChat(db: FirebaseFirestore, chatId: String) {
+    withContext(Dispatchers.IO) {
+        try {
+            // Delete all messages first
+            val messagesSnapshot = db.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .get()
+                .await()
+
+            messagesSnapshot.documents.forEach { doc ->
+                doc.reference.delete().await()
+            }
+
+            // Delete the chat document
+            db.collection("chats").document(chatId).delete().await()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

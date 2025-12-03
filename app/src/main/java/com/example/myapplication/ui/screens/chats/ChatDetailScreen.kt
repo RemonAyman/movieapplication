@@ -50,9 +50,10 @@ fun ChatDetailScreen(
     var members by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var avatars by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var showMembersSheet by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // ✅ LazyList State for auto-scroll
     val listState = rememberLazyListState()
 
     LaunchedEffect(chatId) {
@@ -127,11 +128,53 @@ fun ChatDetailScreen(
         onDispose { listener.remove() }
     }
 
-    // ✅ Auto-scroll to bottom when messages change
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
+    }
+
+    // ✅ Delete Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    "Delete Chat?",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    "This will permanently delete this group chat and all its messages. This action cannot be undone.",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        scope.launch {
+                            deleteChat(db, chatId)
+                            navController.popBackStack()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF4757)
+                    )
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel", color = Color(0xFF9B5DE5))
+                }
+            },
+            containerColor = Color(0xFF1B1330),
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 
     Scaffold(
@@ -147,6 +190,37 @@ fun ChatDetailScreen(
                     IconButton(onClick = { showMembersSheet = true }) {
                         Icon(Icons.Default.GroupAdd, contentDescription = "Manage Members", tint = Color.White)
                     }
+
+                    Box {
+                        IconButton(onClick = { showOptionsMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = Color.White)
+                        }
+
+                        DropdownMenu(
+                            expanded = showOptionsMenu,
+                            onDismissRequest = { showOptionsMenu = false },
+                            modifier = Modifier.background(Color(0xFF1B1330))
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = Color(0xFFFF4757),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text("Delete Chat", color = Color(0xFFFF4757))
+                                    }
+                                },
+                                onClick = {
+                                    showOptionsMenu = false
+                                    showDeleteDialog = true
+                                }
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1A1A1A))
             )
@@ -157,16 +231,15 @@ fun ChatDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding() // ✅ يرفع المحتوى فوق الكيبورد
+                    .imePadding()
             ) {
-                // ✅ Messages List - reverseLayout = false عشان يبدأ من فوق
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    reverseLayout = false // ✅ الترتيب الطبيعي
+                    reverseLayout = false
                 ) {
                     items(messages, key = { it.id }) { msg ->
                         val senderName = members[msg.senderId] ?: "Unknown"
@@ -207,7 +280,6 @@ fun ChatDetailScreen(
                     }
                 }
 
-                // ✅ Input Section - بدون padding إضافي
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -279,6 +351,29 @@ fun ChatDetailScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+// ✅ Delete Chat Function
+suspend fun deleteChat(db: FirebaseFirestore, chatId: String) {
+    withContext(Dispatchers.IO) {
+        try {
+            // Delete all messages first
+            val messagesSnapshot = db.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .get()
+                .await()
+
+            messagesSnapshot.documents.forEach { doc ->
+                doc.reference.delete().await()
+            }
+
+            // Delete the chat document
+            db.collection("chats").document(chatId).delete().await()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

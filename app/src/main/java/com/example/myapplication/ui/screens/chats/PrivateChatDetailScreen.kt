@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -55,6 +56,9 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
 
     var currentUserName by remember { mutableStateOf("Me") }
     var currentUserAvatar by remember { mutableStateOf<Bitmap?>(null) }
+
+    // ✅ LazyList State for auto-scroll
+    val listState = rememberLazyListState()
 
     LaunchedEffect(chatId) {
         withContext(Dispatchers.IO) {
@@ -103,7 +107,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                         val senderId = doc.getString("senderId") ?: ""
                         val timestamp = doc.getTimestamp("timestamp")
 
-                        // ✅ Check for shared movie
                         val isSharedMovie = doc.getBoolean("isSharedMovie") ?: false
                         val movieId = doc.getString("movieId")
                         val movieTitle = doc.getString("movieTitle")
@@ -125,10 +128,18 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
     }
 
+    // ✅ Auto-scroll to bottom when messages change
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF121212))
+            .imePadding() // ✅ يرفع المحتوى فوق الكيبورد
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -152,13 +163,13 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             Text(targetUserName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // ✅ Messages List
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 12.dp),
-            reverseLayout = false
+            reverseLayout = false // ✅ الترتيب الطبيعي
         ) {
             val groupedMessages = messages.groupBy { msg ->
                 msg.timestamp?.let { formatPrivateDateHeader(it) } ?: "Unknown"
@@ -195,7 +206,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     val senderName = if(isMine) currentUserName else members[msg.senderId] ?: "Unknown"
                     val avatarBitmap = if(isMine) currentUserAvatar else avatars[msg.senderId]
 
-                    // ✅ Check if it's a shared movie
                     if (msg.isSharedMovie) {
                         PrivateSharedMovieBubble(
                             msg = msg,
@@ -279,8 +289,7 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // ✅ Input Section
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -330,12 +339,9 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
-// ✅ New: Shared Movie Bubble for Private Chat
 @Composable
 fun PrivateSharedMovieBubble(
     msg: PrivateChatMessage,
@@ -368,7 +374,6 @@ fun PrivateSharedMovieBubble(
                 )
             }
 
-            // Movie Card
             Card(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
@@ -380,7 +385,6 @@ fun PrivateSharedMovieBubble(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Poster
                         coil.compose.AsyncImage(
                             model = msg.moviePoster,
                             contentDescription = msg.movieTitle,

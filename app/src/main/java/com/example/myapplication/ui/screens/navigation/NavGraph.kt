@@ -38,6 +38,8 @@ import com.example.myapplication.ui.screens.friendDetail.FriendDetailScreenViewM
 import com.example.myapplication.ui.screens.friendDetail.FriendDetailScreenViewModelFactory
 import com.example.myapplication.ui.screens.friendsRequest.FriendRequestsScreen
 import com.example.myapplication.ui.screens.friendsRequest.FriendRequestsScreenViewModel
+import com.example.myapplication.ui.screens.addFriend.AddFriendScreen
+import com.example.myapplication.ui.screens.addFriend.AddFriendViewModel
 import com.example.myapplication.ui.screens.profileMainScreen.ProfileMainScreen
 import com.example.myapplication.ui.screens.profileMainScreen.ProfileScreenViewModel
 import com.example.myapplication.ui.screens.profileMainScreen.ProfileScreenViewModelFactory
@@ -213,15 +215,13 @@ fun NavGraph(
             )
         }
 
+        // ✅ صفحة Add Friend الجديدة
         composable("addFriend") {
             onDestinationChanged("addFriend")
-            val vm: FriendsViewModel = viewModel()
-            FriendsScreen(
+            val vm: AddFriendViewModel = viewModel()
+            AddFriendScreen(
                 viewModel = vm,
-                navController = navController,
-                onFriendClick = { uid -> navController.navigate("profileMainScreen/$uid") },
-                isSearchMode = true,
-                onBack = { navController.navigate("profile") }
+                navController = navController
             )
         }
 
@@ -230,7 +230,6 @@ fun NavGraph(
             ChatsScreen(navController)
         }
 
-        // ✅ تعديل chatDetail ليستقبل navController بشكل صحيح
         composable("chatDetail/{chatId}") { backStackEntry ->
             onDestinationChanged("chatDetail")
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
@@ -247,7 +246,6 @@ fun NavGraph(
             NewPrivateChatScreen(navController)
         }
 
-        // ✅ تعديل privateChatDetail ليستقبل navController بشكل صحيح
         composable("privateChatDetail/{chatId}") { backStackEntry ->
             onDestinationChanged("privateChatDetail")
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""

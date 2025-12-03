@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,6 +51,9 @@ fun ChatDetailScreen(
     var avatars by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var showMembersSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // ✅ LazyList State for auto-scroll
+    val listState = rememberLazyListState()
 
     LaunchedEffect(chatId) {
         scope.launch {
@@ -100,7 +104,6 @@ fun ChatDetailScreen(
                         val senderId = doc.getString("senderId") ?: ""
                         val timestamp = doc.getTimestamp("timestamp")
 
-                        // ✅ Check if it's a shared movie
                         val isSharedMovie = doc.getBoolean("isSharedMovie") ?: false
                         val movieId = doc.getString("movieId")
                         val movieTitle = doc.getString("movieTitle")
@@ -122,6 +125,13 @@ fun ChatDetailScreen(
                 }
             }
         onDispose { listener.remove() }
+    }
+
+    // ✅ Auto-scroll to bottom when messages change
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
     }
 
     Scaffold(
@@ -147,19 +157,21 @@ fun ChatDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .imePadding() // ✅ يرفع المحتوى فوق الكيبورد
             ) {
+                // ✅ Messages List - reverseLayout = false عشان يبدأ من فوق
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
-                    reverseLayout = false
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    reverseLayout = false // ✅ الترتيب الطبيعي
                 ) {
                     items(messages, key = { it.id }) { msg ->
                         val senderName = members[msg.senderId] ?: "Unknown"
                         val avatarBase64 = avatars[msg.senderId] ?: ""
 
-                        // ✅ Display shared movie or regular message
                         if (msg.isSharedMovie) {
                             SharedMovieBubble(
                                 msg = msg,
@@ -195,10 +207,11 @@ fun ChatDetailScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
+                // ✅ Input Section - بدون padding إضافي
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
@@ -270,7 +283,6 @@ fun ChatDetailScreen(
     }
 }
 
-// ✅ New: Shared Movie Bubble
 @Composable
 fun SharedMovieBubble(
     msg: MessageItem,
@@ -328,7 +340,6 @@ fun SharedMovieBubble(
                 )
             }
 
-            // Movie Card
             Card(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
@@ -340,7 +351,6 @@ fun SharedMovieBubble(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Poster
                         coil.compose.AsyncImage(
                             model = msg.moviePoster,
                             contentDescription = msg.movieTitle,

@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myapplication.utils.NotificationHelper
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
@@ -52,6 +53,8 @@ fun ChatDetailScreen(
     var showMembersSheet by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
+    var currentUserName by remember { mutableStateOf("You") }
+    var currentUserAvatar by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     val listState = rememberLazyListState()
@@ -84,6 +87,8 @@ fun ChatDetailScreen(
                         withContext(Dispatchers.Main) {
                             members = tempMembers
                             avatars = tempAvatars
+                            currentUserName = members[currentUserId] ?: "You"
+                            currentUserAvatar = avatars[currentUserId] ?: ""
                         }
                     }
                 } catch (e: Exception) {
@@ -134,7 +139,6 @@ fun ChatDetailScreen(
         }
     }
 
-    // ✅ Delete Dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -309,7 +313,21 @@ fun ChatDetailScreen(
                         onClick = {
                             if (messageText.isNotBlank()) {
                                 scope.launch {
+                                    // إرسال الرسالة
                                     sendMessage(db, chatId, currentUserId, messageText.trim())
+
+                                    // إرسال الإشعارات لجميع الأعضاء ما عدا المرسل
+                                    val recipientIds = members.keys.filter { it != currentUserId }
+                                    NotificationHelper.sendNotificationToMultipleUsers(
+                                        userIds = recipientIds,
+                                        currentUserId = currentUserId,
+                                        title = "$currentUserName in $groupName",
+                                        body = messageText.trim(),
+                                        chatId = chatId,
+                                        isGroup = true,
+                                        senderAvatar = currentUserAvatar
+                                    )
+
                                     messageText = ""
                                 }
                             }
@@ -355,11 +373,9 @@ fun ChatDetailScreen(
     }
 }
 
-// ✅ Delete Chat Function
 suspend fun deleteChat(db: FirebaseFirestore, chatId: String) {
     withContext(Dispatchers.IO) {
         try {
-            // Delete all messages first
             val messagesSnapshot = db.collection("chats")
                 .document(chatId)
                 .collection("messages")
@@ -370,7 +386,6 @@ suspend fun deleteChat(db: FirebaseFirestore, chatId: String) {
                 doc.reference.delete().await()
             }
 
-            // Delete the chat document
             db.collection("chats").document(chatId).delete().await()
         } catch (e: Exception) {
             e.printStackTrace()

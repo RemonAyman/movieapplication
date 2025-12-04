@@ -1,16 +1,20 @@
 package com.example.myapplication
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,9 +33,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
@@ -41,6 +47,9 @@ import com.example.myapplication.ui.navigation.AuthNavGraph
 import com.example.myapplication.ui.navigation.BottomNavigationBar
 import com.example.myapplication.ui.navigation.NavGraph
 import com.example.myapplication.ui.theme.MovitoBackground
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,12 +64,36 @@ import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
+
+    private val TAG = "MainActivity"
+
+    // ✅ حفظ الـ NavController للاستخدام في onNewIntent
+    private var mainNavController: NavHostController? = null
+
+    // ✅ Request Permission Launcher للإشعارات
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Log.d(TAG, "✅ Notification permission granted")
+            updateFCMToken()
+        } else {
+            Log.w(TAG, "⚠️ Notification permission denied")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // ⭐ Splash Screen - لازم يكون قبل super.onCreate()
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // ✅ طلب إذن الإشعارات (Android 13+)
+        requestNotificationPermission()
+
+        // ✅ تحديث FCM Token عند فتح التطبيق
+        updateFCMToken()
 
         setContent {
             // ⭐ قراءة isLoggedIn في background thread
@@ -71,6 +104,22 @@ class MainActivity : ComponentActivity() {
                     val prefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
                     isLoggedIn = prefs.getBoolean("isLoggedIn", false)
                 }
+            }
+
+            // ✅ إنشاء NavController وحفظه
+            val navController = rememberNavController()
+
+            // ✅ حفظ NavController للاستخدام في onNewIntent
+            DisposableEffect(navController) {
+                mainNavController = navController
+                onDispose {
+                    mainNavController = null
+                }
+            }
+
+            // ✅ معالجة الإشعارات عند فتح التطبيق
+            LaunchedEffect(Unit) {
+                handleNotificationIntent(intent, navController)
             }
 
             // انتظار حتى يتم تحميل الحالة
@@ -87,8 +136,6 @@ class MainActivity : ComponentActivity() {
             }
 
             MaterialTheme {
-                val navController = rememberNavController()
-
                 if (isLoggedIn == true) {
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = currentBackStackEntry?.destination?.route
@@ -126,11 +173,128 @@ class MainActivity : ComponentActivity() {
                                         .edit().putBoolean("isLoggedIn", true).apply()
                                 }
                                 isLoggedIn = true
+
+                                // ✅ تحديث FCM Token بعد تسجيل الدخول
+                                updateFCMToken()
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * ✅ طلب إذن الإشعارات (Android 13+)
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    Log.d(TAG, "✅ Notification permission already granted")
+                }
+                else -> {
+                    Log.d(TAG, "📱 Requesting notification permission...")
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            Log.d(TAG, "📱 Android < 13, no permission needed")
+        }
+    }
+
+    /**
+     * ✅ تحديث FCM Token في Firestore
+     */
+    private fun updateFCMToken() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId == null) {
+            Log.w(TAG, "⚠️ No user logged in, skipping FCM token update")
+            return
+        }
+
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                Log.d(TAG, "✅ FCM Token obtained: ${token.take(20)}...")
+
+                // ✅ حفظ الـ Token في Firestore
+                FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(currentUserId)
+                    .update("fcmToken", token)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "✅ FCM Token saved to Firestore successfully")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "❌ Failed to save FCM Token to Firestore", e)
+
+                        // ✅ إذا فشل التحديث، نحاول إنشاء الحقل
+                        FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(currentUserId)
+                            .set(
+                                hashMapOf("fcmToken" to token),
+                                com.google.firebase.firestore.SetOptions.merge()
+                            )
+                            .addOnSuccessListener {
+                                Log.d(TAG, "✅ FCM Token created in Firestore")
+                            }
+                            .addOnFailureListener { e2 ->
+                                Log.e(TAG, "❌ Failed to create FCM Token field", e2)
+                            }
+                    }
+            } else {
+                Log.e(TAG, "❌ Failed to get FCM Token", task.exception)
+            }
+        }
+    }
+
+    /**
+     * ✅ معالجة الـ Intent عند الضغط على الإشعار
+     */
+    private fun handleNotificationIntent(
+        intent: Intent,
+        navController: NavHostController
+    ) {
+        val openChat = intent.getBooleanExtra("openChat", false)
+        if (openChat) {
+            val chatId = intent.getStringExtra("chatId")
+            val isGroup = intent.getBooleanExtra("isGroup", false)
+
+            if (!chatId.isNullOrEmpty()) {
+                Log.d(TAG, "📩 Opening chat from notification: $chatId (isGroup: $isGroup)")
+
+                // الانتقال إلى الشات المناسب
+                val route = if (isGroup) {
+                    "chatDetail/$chatId"
+                } else {
+                    "privateChatDetail/$chatId"
+                }
+
+                // إزالة الـ Intent Extras لتجنب فتح الشات مرة أخرى
+                intent.removeExtra("openChat")
+                intent.removeExtra("chatId")
+                intent.removeExtra("isGroup")
+
+                // الانتقال إلى الشات
+                navController.navigate(route) {
+                    popUpTo("HomeScreen") { inclusive = false }
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        // ✅ معالجة الإشعارات عند فتح التطبيق من notification وهو شغال
+        mainNavController?.let { navController ->
+            handleNotificationIntent(intent, navController)
         }
     }
 }

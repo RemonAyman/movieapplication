@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myapplication.utils.NotificationHelper
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -134,7 +135,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
         }
     }
 
-    // ✅ Delete Dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -211,7 +211,6 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                 modifier = Modifier.weight(1f)
             )
 
-            // ✅ Options Menu
             Box {
                 IconButton(onClick = { showOptionsMenu = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = Color.White)
@@ -401,7 +400,29 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     val text = messageText.trim()
                     if(text.isNotEmpty()){
                         coroutineScope.launch {
+                            // إرسال الرسالة
                             sendPrivateMessage(chatId, currentUserId, text)
+
+                            // إرسال الإشعار للطرف الآخر
+                            val avatarBase64 = try {
+                                currentUserAvatar?.let { bitmap ->
+                                    val stream = java.io.ByteArrayOutputStream()
+                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                                    Base64.encodeToString(stream.toByteArray(), Base64.DEFAULT)
+                                } ?: ""
+                            } catch (e: Exception) {
+                                ""
+                            }
+
+                            NotificationHelper.sendNotificationToUser(
+                                userId = targetUserId,
+                                title = currentUserName,
+                                body = text,
+                                chatId = chatId,
+                                isGroup = false,
+                                senderAvatar = avatarBase64
+                            )
+
                             messageText = ""
                         }
                     }
@@ -421,11 +442,9 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
     }
 }
 
-// ✅ Delete Private Chat Function
 suspend fun deletePrivateChat(db: FirebaseFirestore, chatId: String) {
     withContext(Dispatchers.IO) {
         try {
-            // Delete all messages first
             val messagesSnapshot = db.collection("chats")
                 .document(chatId)
                 .collection("messages")
@@ -436,7 +455,6 @@ suspend fun deletePrivateChat(db: FirebaseFirestore, chatId: String) {
                 doc.reference.delete().await()
             }
 
-            // Delete the chat document
             db.collection("chats").document(chatId).delete().await()
         } catch (e: Exception) {
             e.printStackTrace()

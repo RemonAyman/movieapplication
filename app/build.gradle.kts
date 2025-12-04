@@ -24,7 +24,6 @@ android {
         val TMDB_API_KEY: String by project
         buildConfigField("String", "TMDB_API_KEY", "\"$TMDB_API_KEY\"")
 
-        // ⭐ تحسينات الأداء
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = true
     }
@@ -37,7 +36,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // ⭐ تحسينات Release
             buildConfigField("boolean", "DEBUG_MODE", "false")
         }
         debug {
@@ -53,7 +51,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        // ⭐ تحسينات Kotlin Compiler
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn",
             "-Xjvm-default=all"
@@ -82,7 +79,6 @@ android {
 
     composeCompiler {
         enableStrongSkippingMode = true
-        // ⭐ تحسينات Compose Compiler
         includeSourceInformation = false
     }
 }
@@ -99,7 +95,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.activity:activity-ktx:1.9.3")
 
-    // ⭐ Splash Screen API
+    // Splash Screen API
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Compose BOM + Material3
@@ -115,20 +111,20 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // ⭐ Material (للـ Pull to Refresh)
+    // Material (للـ Pull to Refresh)
     implementation("androidx.compose.material:material")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.navigation:navigation-runtime-ktx:2.8.5")
 
-    // Retrofit + Gson + OkHttp (⭐ محسّن)
+    // Retrofit + Gson + OkHttp
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // Coil (⭐ محسّن مع Image Caching)
+    // Coil
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.coil-kt:coil-gif:2.7.0")
 
@@ -136,7 +132,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.datastore:datastore-core:1.1.1")
 
-    // Coroutines (⭐ محسّن)
+    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
@@ -162,14 +158,12 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.53.1")
     kapt("com.google.dagger:hilt-compiler:2.53.1")
 
-    // Firebase (⭐ محسّن - استخدم بس الـ services الى محتاجها)
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
-
-    // 🔔 Firebase Cloud Messaging (للإشعارات في الشات)
     implementation("com.google.firebase:firebase-messaging-ktx")
 
     // Google Sign In
@@ -178,6 +172,11 @@ dependencies {
     // Google Mobile Ads
     implementation("com.google.android.gms:play-services-ads:23.6.0")
 
+
+
+    // Compose Animation
+    implementation("androidx.compose.animation:animation")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
@@ -185,9 +184,6 @@ dependencies {
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
-    // Compose Animation
-    implementation("androidx.compose.animation:animation")
-
-    // ⭐ Memory Leak Detection (Debug only)
+    // Memory Leak Detection (Debug only)
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 }

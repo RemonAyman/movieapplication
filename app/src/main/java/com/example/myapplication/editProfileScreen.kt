@@ -10,35 +10,36 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
-import com.example.myapplication.AppColors
+import com.example.myapplication.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun editProfileScreen(
     navController: NavHostController,
@@ -59,20 +60,15 @@ fun editProfileScreen(
     var saving by remember { mutableStateOf(false) }
     var uploading by remember { mutableStateOf(false) }
 
+    // ✅ حالة الـ Dialog
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     val currentUser = auth.currentUser
     val uid = currentUser?.uid
 
-    val textFieldColors = TextFieldDefaults.colors(
-        focusedContainerColor = AppColors.DarkBg.copy(alpha = 0.9f),
-        unfocusedContainerColor = AppColors.DarkBg.copy(alpha = 0.8f),
-        focusedTextColor = AppColors.TextColor,
-        unfocusedTextColor = AppColors.TextColor.copy(alpha = 0.8f),
-        cursorColor = AppColors.NeonGlow,
-        focusedIndicatorColor = AppColors.NeonGlow,
-        unfocusedIndicatorColor = AppColors.TextColor.copy(alpha = 0.4f),
-        focusedLabelColor = AppColors.NeonGlow,
-        unfocusedLabelColor = AppColors.TextColor.copy(alpha = 0.7f)
-    )
+    // 🎨 الألوان من الديزاين الجديد
+    val purple = Color(0xFF9B5FFF)
+    val bg = Color(0xFF0B0B23)
 
     // ✅ تحويل الصورة إلى Base64
     fun encodeImageToBase64(context: Context, uri: Uri): String? {
@@ -99,11 +95,9 @@ fun editProfileScreen(
                     val base64 = encodeImageToBase64(context, uri)
                     if (base64 != null) {
                         avatarBase64 = base64
-                        // حفظ في Firestore
                         db.collection("users").document(uid)
                             .update("avatarBase64", base64)
                             .await()
-                        // حفظ محلي
                         val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
                         sharedPref.edit().putString("avatarBase64", base64).apply()
                         snackbarHostState.showSnackbar("✅ الصورة اتسجلت")
@@ -141,61 +135,33 @@ fun editProfileScreen(
 
     LaunchedEffect(uid) { loadUserData() }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Profile",
-                        color = AppColors.TextColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                navigationIcon = {
-                    onBack?.let {
-                        IconButton(onClick = it) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = AppColors.TextColor)
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            loading = true
-                            loadUserData()
-                            snackbarHostState.showSnackbar("✅ تم تحديث البيانات")
-                        }
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = AppColors.NeonGlow)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppColors.DarkBg
-                )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bg)
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = purple
             )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(AppColors.DarkBg)
-                .padding(padding)
-        ) {
-            if (loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = AppColors.NeonGlow
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // ===== TOP BAR =====
+                TopBarNeon(
+                    borderColor = purple,
+                    onBackClick = { onBack?.invoke() ?: navController.navigateUp() }
                 )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+
+                Spacer(modifier = Modifier.height(30.dp))
+
+                // ===== AVATAR WITH CAMERA ICON =====
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // ✅ Avatar + Camera Icon Overlay
                     Box(
                         modifier = Modifier.size(130.dp),
                         contentAlignment = Alignment.Center
@@ -204,15 +170,15 @@ fun editProfileScreen(
                         Box(
                             modifier = Modifier
                                 .size(130.dp)
-                                .shadow(12.dp, CircleShape)
+                                .shadow(
+                                    elevation = 40.dp,
+                                    shape = CircleShape,
+                                    ambientColor = purple,
+                                    spotColor = purple
+                                )
                                 .clip(CircleShape)
                                 .background(
-                                    Brush.radialGradient(
-                                        colors = listOf(
-                                            AppColors.NeonGlow.copy(alpha = 0.3f),
-                                            AppColors.NeonGlow.copy(alpha = 0.1f)
-                                        )
-                                    )
+                                    if (avatarBase64 != null) Color.Transparent else Color.DarkGray
                                 )
                                 .clickable { launcher.launch("image/*") },
                             contentAlignment = Alignment.Center
@@ -223,23 +189,22 @@ fun editProfileScreen(
                                 Image(
                                     bitmap = bitmap.asImageBitmap(),
                                     contentDescription = "Avatar",
-                                    contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                                        .clip(CircleShape)
                                 )
                             } else {
-                                // Placeholder
                                 Text(
                                     text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
-                                    color = AppColors.NeonGlow,
+                                    color = purple,
                                     fontSize = 52.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                             }
                         }
 
-                        // ✅ Camera Icon Badge
+                        // Camera Icon Badge
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
@@ -247,57 +212,65 @@ fun editProfileScreen(
                                 .size(38.dp)
                                 .shadow(8.dp, CircleShape)
                                 .clip(CircleShape)
-                                .background(AppColors.NeonGlow)
+                                .background(purple)
                                 .clickable { launcher.launch("image/*") },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,
                                 contentDescription = "Change Avatar",
-                                tint = AppColors.DarkBg,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
-                    // Username
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = textFieldColors
+                // ===== TEXT FIELDS =====
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Username Field
+                    OutlinedPurpleField(
+                        value = username.text,
+                        onValueChange = { username = TextFieldValue(it) },
+                        placeholder = "Username",
+                        icon = R.drawable.ic_user,
+                        borderColor = purple
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // Email
-                    OutlinedTextField(
-                        value = email,
+                    // Email Field (Read-only)
+                    OutlinedPurpleField(
+                        value = email.text,
                         onValueChange = {},
-                        label = { Text("Email") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = textFieldColors
+                        placeholder = "Email",
+                        icon = R.drawable.ic_email,
+                        borderColor = purple,
+                        keyboard = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        readOnly = true
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // Phone
-                    OutlinedTextField(
-                        value = TextFieldValue(phone),
+                    // Phone Field (Read-only)
+                    OutlinedPurpleField(
+                        value = phone,
                         onValueChange = {},
-                        label = { Text("Phone") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = textFieldColors
+                        placeholder = "Phone Number",
+                        icon = R.drawable.ic_phone,
+                        borderColor = purple,
+                        keyboard = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        readOnly = true
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
 
-                    // Save button
+                    // ===== 🔥 SAVE BUTTON WITH NEON GLOW =====
                     Button(
                         onClick = {
                             if (uid == null) return@Button
@@ -324,42 +297,296 @@ fun editProfileScreen(
                             }
                         },
                         enabled = !saving && !uploading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.NeonGlow
-                        )
+                        shape = RoundedCornerShape(25.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp)
+                            .shadow(
+                                elevation = 20.dp,
+                                shape = RoundedCornerShape(25.dp),
+                                ambientColor = purple,
+                                spotColor = purple
+                            ),
+                        colors = ButtonDefaults.buttonColors(containerColor = purple)
                     ) {
-                        if (saving || uploading)
-                            CircularProgressIndicator(color = AppColors.TextColor, strokeWidth = 2.dp)
-                        else
-                            Text("Save Changes", color = AppColors.TextColor, fontWeight = FontWeight.SemiBold)
+                        if (saving || uploading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "Save Changes",
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // Logout button
+                    // ===== 🔥 LOGOUT BUTTON WITH NEON GLOW =====
                     OutlinedButton(
                         onClick = {
-                            scope.launch {
-                                val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                sharedPref.edit().putBoolean("isLoggedIn", false).apply()
-                                auth.signOut()
-                                navController.navigate("login") {
-                                    popUpTo("HomeScreen") { inclusive = true }
-                                }
-                            }
+                            showLogoutDialog = true  // ✅ فتح الـ Dialog
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.TextColor),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            width = 2.dp,
-                            brush = SolidColor(AppColors.NeonGlow)
-                        )
+                        shape = RoundedCornerShape(25.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp)
+                            .shadow(
+                                elevation = 15.dp,
+                                shape = RoundedCornerShape(25.dp),
+                                ambientColor = purple.copy(alpha = 0.6f),
+                                spotColor = purple.copy(alpha = 0.6f)
+                            ),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = purple),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp)
                     ) {
-                        Text("Logout", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Logout",
+                            fontSize = 18.sp,
+                            color = purple,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        // ===== 🔥 LOGOUT CONFIRMATION DIALOG =====
+        if (showLogoutDialog) {
+            LogoutConfirmationDialog(
+                onConfirm = {
+                    showLogoutDialog = false
+                    scope.launch {
+                        val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
+                        sharedPref.edit().putBoolean("isLoggedIn", false).apply()
+                        auth.signOut()
+                        navController.navigate("login") {
+                            popUpTo("HomeScreen") { inclusive = true }
+                        }
+                    }
+                },
+                onDismiss = {
+                    showLogoutDialog = false
+                },
+                purple = purple,
+                bg = bg
+            )
+        }
+
+        // Snackbar Host
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+// ===================================================================
+// 🔥 LOGOUT CONFIRMATION DIALOG
+// ===================================================================
+@Composable
+fun LogoutConfirmationDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    purple: Color,
+    bg: Color
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = bg)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // ===== Icon =====
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .shadow(
+                            elevation = 20.dp,
+                            shape = CircleShape,
+                            ambientColor = purple,
+                            spotColor = purple
+                        )
+                        .clip(CircleShape)
+                        .background(purple.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "👋",
+                        fontSize = 40.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ===== Message =====
+                Text(
+                    text = "ليه بس خليك شوية؟ 🥺",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "متأكد إنك عايز تسجل الخروج؟",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ===== Buttons =====
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // No Button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = purple),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp)
+                    ) {
+                        Text(
+                            text = "No",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = purple
+                        )
+                    }
+
+                    // Yes Button
+                    Button(
+                        onClick = onConfirm,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                            .shadow(
+                                elevation = 12.dp,
+                                shape = RoundedCornerShape(16.dp),
+                                ambientColor = purple,
+                                spotColor = purple
+                            ),
+                        colors = ButtonDefaults.buttonColors(containerColor = purple)
+                    ) {
+                        Text(
+                            text = "Yes",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                 }
             }
         }
     }
+}
+
+// ===================================================================
+// 🔥 TOP BAR WITH CENTER TITLE + BACK ICON + NEON GLOW
+// ===================================================================
+@Composable
+fun TopBarNeon(
+    borderColor: Color,
+    onBackClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Back Icon on the left
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_back),
+                    contentDescription = "Back",
+                    tint = borderColor
+                )
+            }
+        }
+
+        // Center Title with glow
+        Text(
+            text = "Profile",
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.shadow(
+                elevation = 25.dp,
+                ambientColor = borderColor,
+                spotColor = borderColor
+            )
+        )
+    }
+}
+
+// ===================================================================
+// 🔥 TEXT FIELD WITH ICON
+// ===================================================================
+@Composable
+fun OutlinedPurpleField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    icon: Int,
+    borderColor: Color,
+    keyboard: KeyboardOptions = KeyboardOptions.Default,
+    readOnly: Boolean = false
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        readOnly = readOnly,
+        leadingIcon = {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = placeholder,
+                tint = borderColor
+            )
+        },
+        placeholder = {
+            Text(text = placeholder, color = Color.Gray)
+        },
+        shape = RoundedCornerShape(16.dp),
+        keyboardOptions = keyboard,
+        textStyle = LocalTextStyle.current.copy(color = Color.White),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = borderColor,
+            unfocusedBorderColor = borderColor,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            cursorColor = borderColor,
+            disabledBorderColor = borderColor.copy(alpha = 0.5f),
+            disabledTextColor = Color.White.copy(alpha = 0.7f)
+        )
+    )
 }

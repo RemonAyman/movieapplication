@@ -444,7 +444,7 @@ fun LogoutConfirmationDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "متأكد إنك عايز تسجل الخروج؟",
+                    text = "متأكد إنك عايز تطلع من الابليكيشن؟",
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center

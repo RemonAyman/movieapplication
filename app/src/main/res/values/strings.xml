@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Movito</string>
+
+    <!-- ✅ نصوص الإشعارات -->
+    <string name="notification_channel_name">Chat Messages</string>
+    <string name="notification_channel_description">Notifications for chat messages</string>
+    <string name="new_message">New Message</string>
 </resources>

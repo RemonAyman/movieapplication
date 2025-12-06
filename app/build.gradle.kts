@@ -118,7 +118,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.navigation:navigation-runtime-ktx:2.8.5")
 
-    // Retrofit + Gson + OkHttp
+    // Retrofit + Gson + OkHttp (✅ محدّث للإشعارات)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -132,7 +132,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.datastore:datastore-core:1.1.1")
 
-    // Coroutines
+    // Coroutines (✅ محدّث للإشعارات)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
@@ -158,21 +158,20 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.53.1")
     kapt("com.google.dagger:hilt-compiler:2.53.1")
 
-    // Firebase
+    // Firebase (✅ مع FCM للإشعارات)
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
-    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx") // ✅ مهم للإشعارات
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Google Sign In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // Google Mobile Ads
     implementation("com.google.android.gms:play-services-ads:23.6.0")
-
-
 
     // Compose Animation
     implementation("androidx.compose.animation:animation")

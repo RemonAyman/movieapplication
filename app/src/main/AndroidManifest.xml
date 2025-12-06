@@ -14,8 +14,10 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
-    <!-- 🔔 Push Notifications (FCM) -->
+    <!-- 🔔 Push Notifications (FCM) - ✅ الأهم! -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".MyApplication"
@@ -43,7 +45,7 @@
             android:resource="@xml/gma_ad_services_config"
             tools:replace="android:resource" />
 
-        <!-- 🔔 Firebase Cloud Messaging Service (للإشعارات) -->
+        <!-- 🔔 Firebase Cloud Messaging Service (للإشعارات) - ✅ مهم جداً! -->
         <service
             android:name=".services.MyFirebaseMessagingService"
             android:exported="false">
@@ -52,12 +54,28 @@
             </intent-filter>
         </service>
 
-        <!-- ⭐ Main Activity - ✅ FIXED FOR KEYBOARD -->
+        <!-- ✅ Firebase Default Notification Channel -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="chat_notifications" />
+
+        <!-- ✅ Firebase Default Notification Icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <!-- ✅ Firebase Default Notification Color -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
+
+        <!-- ⭐ Main Activity - ✅ FIXED FOR KEYBOARD + NOTIFICATIONS -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTop"
             android:theme="@style/AppTheme">
 
             <intent-filter>

@@ -1,365 +1,232 @@
-package com.example.myapplication.ui.screens
-
-import android.annotation.SuppressLint
-import android.content.Context
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+package com.example.editprofilescreen.ui.EditProfile
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import com.example.myapplication.AppColors
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import com.example.editprofilescreen.R
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun editProfileScreen(
-    navController: NavHostController,
-    onBack: (() -> Unit)? = null
-) {
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+fun EditProfileScreen() {
 
-    var username by remember { mutableStateOf(TextFieldValue("")) }
-    var email by remember { mutableStateOf(TextFieldValue("")) }
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var avatarBase64 by remember { mutableStateOf<String?>(null) }
 
-    var loading by remember { mutableStateOf(true) }
-    var saving by remember { mutableStateOf(false) }
-    var uploading by remember { mutableStateOf(false) }
+    val purple = Color(0xFF9B5FFF)
+    val bg = Color(0xFF0B0B23)
 
-    val currentUser = auth.currentUser
-    val uid = currentUser?.uid
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bg)
+    ) {
 
-    val textFieldColors = TextFieldDefaults.colors(
-        focusedContainerColor = AppColors.DarkBg.copy(alpha = 0.9f),
-        unfocusedContainerColor = AppColors.DarkBg.copy(alpha = 0.8f),
-        focusedTextColor = AppColors.TextColor,
-        unfocusedTextColor = AppColors.TextColor.copy(alpha = 0.8f),
-        cursorColor = AppColors.NeonGlow,
-        focusedIndicatorColor = AppColors.NeonGlow,
-        unfocusedIndicatorColor = AppColors.TextColor.copy(alpha = 0.4f),
-        focusedLabelColor = AppColors.NeonGlow,
-        unfocusedLabelColor = AppColors.TextColor.copy(alpha = 0.7f)
-    )
 
-    // ✅ تحويل الصورة إلى Base64
-    fun encodeImageToBase64(context: Context, uri: Uri): String? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-            val outputStream = java.io.ByteArrayOutputStream()
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, outputStream)
-            val bytes = outputStream.toByteArray()
-            android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
-        } catch (e: Exception) {
-            null
-        }
-    }
+        TopBarNeon(
+            borderColor = purple,
+            onBackClick = { /* TODO */ }
+        )
 
-    // ✅ اختيار صورة
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null && uid != null) {
-            scope.launch {
-                uploading = true
-                try {
-                    val base64 = encodeImageToBase64(context, uri)
-                    if (base64 != null) {
-                        avatarBase64 = base64
-                        // حفظ في Firestore
-                        db.collection("users").document(uid)
-                            .update("avatarBase64", base64)
-                            .await()
-                        // حفظ محلي
-                        val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                        sharedPref.edit().putString("avatarBase64", base64).apply()
-                        snackbarHostState.showSnackbar("✅ الصورة اتسجلت")
-                    } else {
-                        snackbarHostState.showSnackbar("❌ فشل تحويل الصورة")
-                    }
-                } catch (e: Exception) {
-                    snackbarHostState.showSnackbar("❌ فشل حفظ الصورة")
-                } finally {
-                    uploading = false
-                }
-            }
-        }
-    }
+        Spacer(modifier = Modifier.height(30.dp))
 
-    suspend fun loadUserData() {
-        if (uid != null) {
-            try {
-                val snapshot = db.collection("users").document(uid).get().await()
-                if (snapshot.exists()) {
-                    username = TextFieldValue(snapshot.getString("username") ?: "")
-                    email = TextFieldValue(snapshot.getString("email") ?: "")
-                    phone = snapshot.getString("phone") ?: ""
-                    avatarBase64 = snapshot.getString("avatarBase64")
-                        ?: context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                            .getString("avatarBase64", null)
-                }
-            } catch (e: Exception) {
-                snackbarHostState.showSnackbar("❌ فشل تحميل البيانات")
-            } finally {
-                loading = false
-            }
-        } else loading = false
-    }
 
-    LaunchedEffect(uid) { loadUserData() }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Profile",
-                        color = AppColors.TextColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(130.dp)
+                    .shadow(
+                        elevation = 40.dp,
+                        shape = CircleShape,
+                        ambientColor = purple,
+                        spotColor = purple
                     )
-                },
-                navigationIcon = {
-                    onBack?.let {
-                        IconButton(onClick = it) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = AppColors.TextColor)
-                        }
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        scope.launch {
-                            loading = true
-                            loadUserData()
-                            snackbarHostState.showSnackbar("✅ تم تحديث البيانات")
-                        }
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = AppColors.NeonGlow)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppColors.DarkBg
-                )
+                    .clip(CircleShape)
+                    .background(Color.DarkGray) // Placeholder for image
             )
         }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(AppColors.DarkBg)
-                .padding(padding)
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        //---------------------------------------------------
+        // 🔥 TextFields with Icons
+        //---------------------------------------------------
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = AppColors.NeonGlow
+
+            OutlinedPurpleField(
+                value = username,
+                onValueChange = { username = it },
+                placeholder = "Username",
+                icon = R.drawable.ic_user,
+                borderColor = purple
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            OutlinedPurpleField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = "Email",
+                icon = R.drawable.ic_email,
+                borderColor = purple,
+                keyboard = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            OutlinedPurpleField(
+                value = phone,
+                onValueChange = { phone = it },
+                placeholder = "Phone Number",
+                icon = R.drawable.ic_phone,
+                borderColor = purple,
+                keyboard = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            Button(
+                onClick = { /* TODO */ },
+                shape = RoundedCornerShape(25.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = purple)
+            ) {
+                Text(
+                    text = "Save Changes",
+                    fontSize = 18.sp,
+                    color = Color.White
                 )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // ✅ Avatar + Camera Icon Overlay
-                    Box(
-                        modifier = Modifier.size(130.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Avatar Circle
-                        Box(
-                            modifier = Modifier
-                                .size(130.dp)
-                                .shadow(12.dp, CircleShape)
-                                .clip(CircleShape)
-                                .background(
-                                    Brush.radialGradient(
-                                        colors = listOf(
-                                            AppColors.NeonGlow.copy(alpha = 0.3f),
-                                            AppColors.NeonGlow.copy(alpha = 0.1f)
-                                        )
-                                    )
-                                )
-                                .clickable { launcher.launch("image/*") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (avatarBase64 != null) {
-                                val decodedBytes = android.util.Base64.decode(avatarBase64, android.util.Base64.DEFAULT)
-                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                                Image(
-                                    bitmap = bitmap.asImageBitmap(),
-                                    contentDescription = "Avatar",
-                                    contentScale = ContentScale.Crop,  // ✅ أهم تعديل
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
-                                )
-                            } else {
-                                // Placeholder
-                                Text(
-                                    text = if (username.text.isNotEmpty()) username.text.first().uppercase() else "?",
-                                    color = AppColors.NeonGlow,
-                                    fontSize = 52.sp,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                            }
-                        }
+            }
 
-                        // ✅ Camera Icon Badge
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .offset(x = (-4).dp, y = (-4).dp)
-                                .size(38.dp)
-                                .shadow(8.dp, CircleShape)
-                                .clip(CircleShape)
-                                .background(AppColors.NeonGlow)
-                                .clickable { launcher.launch("image/*") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Change Avatar",
-                                tint = AppColors.DarkBg,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
+            Spacer(modifier = Modifier.height(20.dp))
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Username
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = textFieldColors
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Email
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = {},
-                        label = { Text("Email") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = textFieldColors
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Phone
-                    OutlinedTextField(
-                        value = TextFieldValue(phone),
-                        onValueChange = {},
-                        label = { Text("Phone") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = textFieldColors
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Save button
-                    Button(
-                        onClick = {
-                            if (uid == null) return@Button
-
-                            if (!username.text.matches("^[A-Za-zأ-ي\\s]{3,}$".toRegex())) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("⚠️ الاسم لازم يكون 3 حروف على الأقل")
-                                }
-                                return@Button
-                            }
-
-                            scope.launch {
-                                saving = true
-                                try {
-                                    db.collection("users").document(uid)
-                                        .update("username", username.text.trim())
-                                        .await()
-                                    snackbarHostState.showSnackbar("✅ تم حفظ التغييرات")
-                                } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar("❌ فشل حفظ التغييرات")
-                                } finally {
-                                    saving = false
-                                }
-                            }
-                        },
-                        enabled = !saving && !uploading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.NeonGlow
-                        )
-                    ) {
-                        if (saving || uploading)
-                            CircularProgressIndicator(color = AppColors.TextColor, strokeWidth = 2.dp)
-                        else
-                            Text("Save Changes", color = AppColors.TextColor, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Logout button
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                val sharedPref = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-                                sharedPref.edit().putBoolean("isLoggedIn", false).apply()
-                                auth.signOut()
-                                navController.navigate("login") {
-                                    popUpTo("HomeScreen") { inclusive = true }
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.TextColor),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            width = 2.dp,
-                            brush = SolidColor(AppColors.NeonGlow)
-                        )
-                    ) {
-                        Text("Logout", fontWeight = FontWeight.Bold)
-                    }
-                }
+            OutlinedButton(
+                onClick = { /* TODO */ },
+                shape = RoundedCornerShape(25.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = purple),
+                border = ButtonDefaults.outlinedButtonBorder.copy(width = 2.dp)
+            ) {
+                Text(
+                    text = "Logout",
+                    fontSize = 18.sp,
+                    color = purple
+                )
             }
         }
     }
+}
+
+
+// ===================================================================
+// 🔥 TOP BAR WITH CENTER TITLE + BACK ICON + NEON GLOW
+// ===================================================================
+
+@Composable
+fun TopBarNeon(
+    borderColor: Color,
+    onBackClick: () -> Unit
+) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(60.dp),
+        contentAlignment = Alignment.Center
+    ) {
+
+        // 🔥 Back Icon on the left
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_back),
+                    contentDescription = "Back",
+                    tint = borderColor
+                )
+            }
+        }
+
+        // 🔥 Center Title with glow
+        Text(
+            text = "Profile",
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.shadow(
+                elevation = 25.dp,
+                ambientColor = borderColor,
+                spotColor = borderColor
+            )
+        )
+    }
+}
+
+
+// ===================================================================
+// 🔥 TEXT FIELD WITH ICON
+// ===================================================================
+
+@Composable
+fun OutlinedPurpleField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    icon: Int,
+    borderColor: Color,
+    keyboard: KeyboardOptions = KeyboardOptions.Default
+) {
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        leadingIcon = {
+            Icon(
+                painter = painterResource(id = icon),
+                contentDescription = placeholder,
+                tint = borderColor
+            )
+        },
+        placeholder = {
+            Text(text = placeholder, color = Color.Gray)
+        },
+        shape = RoundedCornerShape(16.dp),
+        keyboardOptions = keyboard,
+        textStyle = LocalTextStyle.current.copy(color = Color.White),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = borderColor,
+            unfocusedBorderColor = borderColor,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            cursorColor = borderColor
+        )
+    )
+}
 }

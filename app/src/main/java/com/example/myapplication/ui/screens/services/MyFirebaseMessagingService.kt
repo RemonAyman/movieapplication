@@ -25,9 +25,11 @@ import com.google.firebase.messaging.RemoteMessage
  */
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
-    private val TAG = "FCMService"
-    private val CHANNEL_ID = "chat_notifications"
-    private val CHANNEL_NAME = "Chat Messages"
+    companion object {
+        private const val TAG = "FCMService"
+        private const val CHANNEL_ID = "chat_notifications"
+        private const val CHANNEL_NAME = "Chat Messages"
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -37,18 +39,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     /**
      * ✅ يتم استدعاؤها عند استلام رسالة جديدة
+     * تعمل في الخلفية والتطبيق مفتوح
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
         Log.d(TAG, "📩 Message received from: ${remoteMessage.from}")
+        Log.d(TAG, "📬 Data payload: ${remoteMessage.data}")
+        Log.d(TAG, "📨 Notification: ${remoteMessage.notification}")
 
         // ✅ استخراج البيانات من الرسالة
-        val title = remoteMessage.data["title"] ?: remoteMessage.notification?.title ?: "New Message"
-        val body = remoteMessage.data["body"] ?: remoteMessage.notification?.body ?: ""
-        val chatId = remoteMessage.data["chatId"] ?: ""
-        val isGroup = remoteMessage.data["isGroup"]?.toBoolean() ?: false
-        val senderAvatar = remoteMessage.data["senderAvatar"] ?: ""
+        val data = remoteMessage.data
+        val title = data["title"] ?: remoteMessage.notification?.title ?: "New Message"
+        val body = data["body"] ?: remoteMessage.notification?.body ?: ""
+        val chatId = data["chatId"] ?: ""
+        val isGroup = data["isGroup"]?.toBoolean() ?: false
+        val senderAvatar = data["senderAvatar"] ?: ""
 
         Log.d(TAG, "📬 Title: $title")
         Log.d(TAG, "📝 Body: $body")
@@ -58,6 +64,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         // ✅ عرض الإشعار
         if (chatId.isNotEmpty()) {
             showNotification(title, body, chatId, isGroup, senderAvatar)
+        } else {
+            Log.w(TAG, "⚠️ No chatId found in notification")
         }
     }
 
@@ -87,6 +95,21 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "❌ Failed to update FCM Token", e)
+
+                    // ✅ محاولة إنشاء الحقل إذا لم يكن موجوداً
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(currentUserId)
+                        .set(
+                            hashMapOf("fcmToken" to token),
+                            com.google.firebase.firestore.SetOptions.merge()
+                        )
+                        .addOnSuccessListener {
+                            Log.d(TAG, "✅ FCM Token created in Firestore")
+                        }
+                        .addOnFailureListener { e2 ->
+                            Log.e(TAG, "❌ Failed to create FCM Token field", e2)
+                        }
                 }
         } else {
             Log.w(TAG, "⚠️ No user logged in, cannot update FCM Token")
@@ -136,16 +159,17 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         // ✅ بناء الإشعار
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification) // ✅ تأكد من وجود الأيقونة
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setSound(defaultSoundUri)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
-            .setColor(0xFF9B5DE5.toInt()) // لون الإشعار (بنفسجي)
+            .setColor(0xFF9B5DE5.toInt())
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
 
         // ✅ إضافة الصورة إذا كانت متوفرة
         if (largeIcon != null) {
@@ -169,12 +193,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             ).apply {
                 description = "Notifications for chat messages"
                 enableLights(true)
+                lightColor = 0xFF9B5DE5.toInt()
                 enableVibration(true)
                 setShowBadge(true)
             }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+            notificationManager?.createNotificationChannel(channel)
             Log.d(TAG, "✅ Notification channel created")
         }
     }

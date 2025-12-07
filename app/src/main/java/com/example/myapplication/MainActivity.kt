@@ -47,6 +47,7 @@ import com.example.myapplication.ui.navigation.AuthNavGraph
 import com.example.myapplication.ui.navigation.BottomNavigationBar
 import com.example.myapplication.ui.navigation.NavGraph
 import com.example.myapplication.ui.theme.MovitoBackground
+import com.example.myapplication.utils.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
@@ -94,6 +95,9 @@ class MainActivity : ComponentActivity() {
 
         // ✅ تحديث FCM Token عند فتح التطبيق
         updateFCMToken()
+
+        // ✅ بدء الاستماع للإشعارات (مجاني 100%)
+        NotificationHelper.startListeningForNotifications(this)
 
         setContent {
             // ⭐ قراءة isLoggedIn في background thread
@@ -176,6 +180,9 @@ class MainActivity : ComponentActivity() {
 
                                 // ✅ تحديث FCM Token بعد تسجيل الدخول
                                 updateFCMToken()
+
+                                // ✅ بدء الاستماع للإشعارات
+                                NotificationHelper.startListeningForNotifications(this@MainActivity)
                             }
                         }
                     }
@@ -296,6 +303,12 @@ class MainActivity : ComponentActivity() {
         mainNavController?.let { navController ->
             handleNotificationIntent(intent, navController)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // ✅ إيقاف الاستماع للإشعارات
+        NotificationHelper.stopListeningForNotifications()
     }
 }
 

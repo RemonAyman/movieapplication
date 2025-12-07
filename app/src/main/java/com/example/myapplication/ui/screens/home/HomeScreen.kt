@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,9 +41,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.myapplication.data.remote.MovieApiModel
 import com.example.myapplication.ui.commonComponents.PremiumMovieRow
-import com.example.myapplication.ui.commonComponents.PremiumSectionTitle
 import com.example.myapplication.ui.commonComponents.ShimmerMovieRow
 import com.example.myapplication.ui.theme.AccentOrange
 import com.example.myapplication.ui.theme.AccentYellow
@@ -51,6 +52,9 @@ import com.example.myapplication.ui.theme.DarkPurple
 import com.example.myapplication.ui.theme.MovitoBackground
 import com.example.myapplication.ui.theme.PrimaryPurple
 import com.example.myapplication.ui.theme.SurfaceDark
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
 
 // Premium Color Palette
 
@@ -430,9 +434,13 @@ fun FeaturedMovieSection(
                 .clickable { navController.navigate("details/${movie.id}") }
         ) {
             // Background Poster with subtle blur
+            val posterUrl = movie.poster_path?.let { "https://image.tmdb.org/t/p/original$it" }
             AsyncImage(
-                model = "https://image.tmdb.org/t/p/original${movie.poster_path}",
-                contentDescription = movie.title,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(posterUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = movie.title ?: "Movie poster",
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(6.dp)
@@ -449,8 +457,11 @@ fun FeaturedMovieSection(
                     .clip(RoundedCornerShape(20.dp))
             ) {
                 AsyncImage(
-                    model = "https://image.tmdb.org/t/p/original${movie.poster_path}",
-                    contentDescription = movie.title,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(posterUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = movie.title ?: "Movie poster",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -464,7 +475,10 @@ fun FeaturedMovieSection(
                             Color.White.copy(alpha = 0.25f),
                             shape = RoundedCornerShape(35.dp)
                         )
-                        .clickable { navController.navigate("details/${movie.id}") },
+                        .clickable(
+                            onClick = { navController.navigate("details/${movie.id}") },
+                            role = Role.Button
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -515,7 +529,7 @@ fun FeaturedMovieSection(
                 Column {
                     // Title
                     Text(
-                        text = movie.title,
+                        text = movie.title ?: "Untitled",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -544,9 +558,10 @@ fun FeaturedMovieSection(
                         )
 
                         movie.release_date?.let { date ->
-                            if (date.length >= 4) {
+                            val year = date.split("-").getOrNull(0)
+                            if (!year.isNullOrBlank()) {
                                 Text(
-                                    text = " • ${date.substring(0, 4)}",
+                                    text = " • $year",
                                     fontSize = 14.sp,
                                     color = Color.White.copy(alpha = 0.7f),
                                     fontWeight = FontWeight.Medium
@@ -559,7 +574,7 @@ fun FeaturedMovieSection(
 
                     // Description / Overview
                     Text(
-                        text = movie.overview,
+                        text = movie.overview ?: "",
                         fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.9f),
                         lineHeight = 18.sp,
@@ -598,10 +613,6 @@ fun FeaturedMovieSection(
         }
     }
 }
-
-
-
-
 
 @Composable
 fun PremiumErrorCard(
@@ -686,6 +697,65 @@ fun PremiumErrorCard(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Updated PremiumSectionTitle:
+ * - Title + subtitle placed in a Column inside a Row with weight(1f)
+ * - maxLines = 1 and overflow = Ellipsis for both title and subtitle
+ * - "See More" placed to the right and clickable
+ * This prevents "See More" from wrapping to the next line when the title/subtitle are long.
+ */
+@Composable
+fun PremiumSectionTitle(
+    title: String,
+    subtitle: String,
+    onSeeMoreClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+    ) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = subtitle,
+                    fontSize = 13.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Text(
+                text = "See More",
+                fontSize = 14.sp,
+                color = AccentOrange,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .clickable { onSeeMoreClick() }
+            )
         }
     }
 }

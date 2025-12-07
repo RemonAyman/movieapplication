@@ -46,6 +46,7 @@ fun SplashScreen(navController: NavHostController) {
             targetValue = 1.15f,
             animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing)
         )
+
         iconScale.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)

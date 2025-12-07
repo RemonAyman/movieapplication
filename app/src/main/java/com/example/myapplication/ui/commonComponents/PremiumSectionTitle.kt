@@ -47,7 +47,7 @@ fun PremiumSectionTitle(
             )
         }
 
-        // زر "See More" إذا ال callback مش null
+
         if (onSeeMoreClick != null) {
             Text(
                 text = "See More",

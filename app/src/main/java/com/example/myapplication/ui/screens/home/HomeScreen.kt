@@ -701,13 +701,7 @@ fun PremiumErrorCard(
     }
 }
 
-/**
- * Updated PremiumSectionTitle:
- * - Title + subtitle placed in a Column inside a Row with weight(1f)
- * - maxLines = 1 and overflow = Ellipsis for both title and subtitle
- * - "See More" placed to the right and clickable
- * This prevents "See More" from wrapping to the next line when the title/subtitle are long.
- */
+
 @Composable
 fun PremiumSectionTitle(
     title: String,

@@ -33,7 +33,6 @@ class FriendsViewModel : ViewModel() {
     private val _errorState = MutableStateFlow<String?>(null)
     val errorState: StateFlow<String?> = _errorState
 
-    // ===================== Loaders =====================
     fun loadFriendsList(userId: String = currentUserId()) = viewModelScope.launch {
         _loadingState.value = true
         try {
@@ -83,7 +82,6 @@ class FriendsViewModel : ViewModel() {
         }
     }
 
-    // ===================== Actions =====================
     fun sendFriendRequest(friendId: String) = viewModelScope.launch {
         _loadingState.value = true
         try {
@@ -141,7 +139,6 @@ class FriendsViewModel : ViewModel() {
         finally { _loadingState.value = false }
     }
 
-    // ===================== Helpers for UI =====================
     fun computeRequestStatusFor(userId: String): String {
         if (_friendsList.value.any { it.uid == userId }) return "friend"
         if (_sentFriendRequests.value.any { it.uid == userId }) return "sent"

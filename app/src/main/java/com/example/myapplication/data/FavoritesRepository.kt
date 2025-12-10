@@ -14,14 +14,12 @@ class FavoritesRepository {
     private val auth = FirebaseAuth.getInstance()
     private val TAG = "FavoritesRepository"
 
-    // ✅ دالة مساعدة للحصول على الـ Collection الخاصة باليوزر
     private fun getFavoritesCollection(userId: String?) =
         (userId ?: auth.currentUser?.uid)?.let { uid ->
             Log.d(TAG, "Getting favorites collection for user: $uid")
             db.collection("users").document(uid).collection("favorites")
         }
 
-    // ✅ جلب أول 5 Favorites (محسّن)
     suspend fun getFirst5Favorites(userId: String?): List<FavoritesItem> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getFirst5Favorites called with userId: $userId")
 
@@ -52,7 +50,6 @@ class FavoritesRepository {
         }
     }
 
-    // ✅ جلب كل الـ Favorites (محسّن)
     suspend fun getFavorites(userId: String?): List<FavoritesItem> = withContext(Dispatchers.IO) {
         Log.d(TAG, "getFavorites called with userId: $userId")
 
@@ -83,7 +80,6 @@ class FavoritesRepository {
         }
     }
 
-    // ✅ إضافة فيلم للـ Favorites (محسّن)
     suspend fun addFavorite(item: FavoritesItem, userId: String?) = withContext(Dispatchers.IO) {
         Log.d(TAG, "addFavorite called - movieId: ${item.movieId}, title: ${item.title}")
 
@@ -102,7 +98,6 @@ class FavoritesRepository {
         }
     }
 
-    // ✅ حذف فيلم من الـ Favorites (محسّن)
     suspend fun removeFavorite(movieId: String, userId: String?) = withContext(Dispatchers.IO) {
         Log.d(TAG, "removeFavorite called for movieId: $movieId")
 

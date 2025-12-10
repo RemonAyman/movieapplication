@@ -43,7 +43,6 @@ fun SearchScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    // ✅ تهيئة SearchPreferences
     LaunchedEffect(Unit) {
         viewModel.initPreferences(context)
     }
@@ -66,7 +65,7 @@ fun SearchScreen(
             .background(MovitoBackground)
             .padding(16.dp)
     ) {
-        // ======= Top Bar =======
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -84,7 +83,6 @@ fun SearchScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ======= Search Bar =======
         OutlinedTextField(
             value = uiState.query,
             onValueChange = { viewModel.updateQuery(it) },
@@ -122,7 +120,6 @@ fun SearchScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ======= Category Tabs =======
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -153,7 +150,6 @@ fun SearchScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ======= Search Button =======
         Button(
             onClick = { viewModel.search() },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B5DE5)),
@@ -169,7 +165,6 @@ fun SearchScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ======= Results / Loading / Recent Searches =======
         when {
             uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -193,7 +188,6 @@ fun SearchScreen(
                         }
                     }
 
-                    // Actors - ✅ الإصلاح هنا
                     items(uiState.actorResults) { actor ->
                         ActorResultItem(actor) {
                             navController.navigate("actorDetails/${actor.id}")

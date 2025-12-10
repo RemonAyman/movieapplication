@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.2"
+agp = "8.13.1"
 kotlin = "2.0.20"
 compose = "1.7.0"
 ads = "23.6.0"

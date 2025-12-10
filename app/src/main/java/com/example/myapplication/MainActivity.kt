@@ -68,10 +68,8 @@ class MainActivity : ComponentActivity() {
 
     private val TAG = "MainActivity"
 
-    // ✅ حفظ الـ NavController للاستخدام في onNewIntent
     private var mainNavController: NavHostController? = null
 
-    // ✅ Request Permission Launcher للإشعارات
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -84,23 +82,19 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ⭐ Splash Screen - لازم يكون قبل super.onCreate()
+
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // ✅ طلب إذن الإشعارات (Android 13+)
         requestNotificationPermission()
 
-        // ✅ تحديث FCM Token عند فتح التطبيق
         updateFCMToken()
 
-        // ✅ بدء الاستماع للإشعارات (مجاني 100%)
         NotificationHelper.startListeningForNotifications(this)
 
         setContent {
-            // ⭐ قراءة isLoggedIn في background thread
             var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
 
             LaunchedEffect(Unit) {
@@ -110,10 +104,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // ✅ إنشاء NavController وحفظه
             val navController = rememberNavController()
 
-            // ✅ حفظ NavController للاستخدام في onNewIntent
             DisposableEffect(navController) {
                 mainNavController = navController
                 onDispose {
@@ -121,12 +113,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // ✅ معالجة الإشعارات عند فتح التطبيق
             LaunchedEffect(Unit) {
                 handleNotificationIntent(intent, navController)
             }
 
-            // انتظار حتى يتم تحميل الحالة
             if (isLoggedIn == null) {
                 Box(
                     modifier = Modifier
@@ -170,7 +160,7 @@ class MainActivity : ComponentActivity() {
                     StatusBarBackground(MovitoBackground)
                     AuthNavGraph(navController = navController) { loginSuccess ->
                         if (loginSuccess) {
-                            // ⭐ حفظ في background thread
+
                             kotlinx.coroutines.MainScope().launch {
                                 withContext(Dispatchers.IO) {
                                     getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
@@ -178,10 +168,8 @@ class MainActivity : ComponentActivity() {
                                 }
                                 isLoggedIn = true
 
-                                // ✅ تحديث FCM Token بعد تسجيل الدخول
                                 updateFCMToken()
 
-                                // ✅ بدء الاستماع للإشعارات
                                 NotificationHelper.startListeningForNotifications(this@MainActivity)
                             }
                         }
@@ -191,9 +179,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * ✅ طلب إذن الإشعارات (Android 13+)
-     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             when {
@@ -213,9 +198,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * ✅ تحديث FCM Token في Firestore
-     */
     private fun updateFCMToken() {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId == null) {
@@ -228,7 +210,6 @@ class MainActivity : ComponentActivity() {
                 val token = task.result
                 Log.d(TAG, "✅ FCM Token obtained: ${token.take(20)}...")
 
-                // ✅ حفظ الـ Token في Firestore
                 FirebaseFirestore.getInstance()
                     .collection("users")
                     .document(currentUserId)
@@ -239,7 +220,6 @@ class MainActivity : ComponentActivity() {
                     .addOnFailureListener { e ->
                         Log.e(TAG, "❌ Failed to save FCM Token to Firestore", e)
 
-                        // ✅ إذا فشل التحديث، نحاول إنشاء الحقل
                         FirebaseFirestore.getInstance()
                             .collection("users")
                             .document(currentUserId)
@@ -260,9 +240,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * ✅ معالجة الـ Intent عند الضغط على الإشعار
-     */
     private fun handleNotificationIntent(
         intent: Intent,
         navController: NavHostController
@@ -275,19 +252,16 @@ class MainActivity : ComponentActivity() {
             if (!chatId.isNullOrEmpty()) {
                 Log.d(TAG, "📩 Opening chat from notification: $chatId (isGroup: $isGroup)")
 
-                // الانتقال إلى الشات المناسب
                 val route = if (isGroup) {
                     "chatDetail/$chatId"
                 } else {
                     "privateChatDetail/$chatId"
                 }
 
-                // إزالة الـ Intent Extras لتجنب فتح الشات مرة أخرى
                 intent.removeExtra("openChat")
                 intent.removeExtra("chatId")
                 intent.removeExtra("isGroup")
 
-                // الانتقال إلى الشات
                 navController.navigate(route) {
                     popUpTo("HomeScreen") { inclusive = false }
                 }
@@ -299,7 +273,6 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
 
-        // ✅ معالجة الإشعارات عند فتح التطبيق من notification وهو شغال
         mainNavController?.let { navController ->
             handleNotificationIntent(intent, navController)
         }
@@ -307,7 +280,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // ✅ إيقاف الاستماع للإشعارات
+
         NotificationHelper.stopListeningForNotifications()
     }
 }
@@ -326,7 +299,6 @@ fun StatusBarBackground(color: Color) {
     )
 }
 
-// ================= MODELS =================
 data class MovieResponse(val results: List<Movie>)
 data class Movie(
     val id: Int,
@@ -342,7 +314,6 @@ data class Video(val key: String, val name: String, val site: String, val type: 
 data class CreditsResponse(val cast: List<Cast>)
 data class Cast(val name: String, val character: String, val profile_path: String?)
 
-// ================= API =================
 interface MovieApi {
     @GET("movie/now_playing")
     suspend fun getLatestMovies(
@@ -376,7 +347,6 @@ interface MovieApi {
     ): CreditsResponse
 }
 
-// ================= RETROFIT (محسّن) =================
 object RetrofitClient {
     private val logging = HttpLoggingInterceptor().apply {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
@@ -399,7 +369,6 @@ object RetrofitClient {
     val api: MovieApi = retrofit.create(MovieApi::class.java)
 }
 
-// ================= MOVIE LIST SCREEN (محسّن) =================
 @Composable
 fun MovieListScreen(navController: androidx.navigation.NavHostController) {
     var movies by remember { mutableStateOf<List<Movie>>(emptyList()) }
@@ -409,7 +378,6 @@ fun MovieListScreen(navController: androidx.navigation.NavHostController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // تحميل الأفلام مرة واحدة فقط
     LaunchedEffect(Unit) {
         isLoading = true
         try {
@@ -567,7 +535,6 @@ fun MovieCard(movie: Movie, onClick: () -> Unit) {
     }
 }
 
-// ================= MOVIE DETAILS SCREEN (محسّن) =================
 @Composable
 fun MovieDetailScreen(navController: androidx.navigation.NavHostController, movieId: Int) {
     var movie by remember { mutableStateOf<Movie?>(null) }

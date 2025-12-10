@@ -21,20 +21,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-/**
- * ✅ نظام الإشعارات المجاني 100%
- * بدون Cloud Functions - بدون فلوس!
- * يعمل عن طريق Firestore Listener
- */
 object NotificationHelper {
 
     private const val TAG = "NotificationHelper"
     private val db = FirebaseFirestore.getInstance()
     private var notificationListener: ListenerRegistration? = null
 
-    /**
-     * ✅ إرسال إشعار لشخص واحد (مجاني 100%)
-     */
     suspend fun sendNotificationToUser(
         userId: String,
         title: String,
@@ -47,8 +39,6 @@ object NotificationHelper {
             try {
                 Log.d(TAG, "📤 Sending notification to user: $userId")
 
-                // ✅ حفظ الإشعار في Firestore
-                // التطبيق نفسه هيقراه ويعرضه!
                 val notificationData = hashMapOf(
                     "userId" to userId,
                     "title" to title,
@@ -59,8 +49,6 @@ object NotificationHelper {
                     "timestamp" to FieldValue.serverTimestamp(),
                     "read" to false
                 )
-
-                // ✅ حفظ في collection خاص بالإشعارات
                 db.collection("notifications")
                     .add(notificationData)
                     .await()
@@ -73,9 +61,6 @@ object NotificationHelper {
         }
     }
 
-    /**
-     * ✅ إرسال إشعار لمجموعة من المستخدمين
-     */
     suspend fun sendNotificationToMultipleUsers(
         userIds: List<String>,
         currentUserId: String,
@@ -87,12 +72,11 @@ object NotificationHelper {
     ) {
         withContext(Dispatchers.IO) {
             try {
-                // ✅ استبعاد المستخدم الحالي
+
                 val recipients = userIds.filter { it != currentUserId }
 
                 Log.d(TAG, "📤 Sending notifications to ${recipients.size} users")
 
-                // ✅ إرسال لكل مستخدم
                 recipients.forEach { userId ->
                     sendNotificationToUser(userId, title, body, chatId, isGroup, senderAvatar)
                 }
@@ -105,18 +89,13 @@ object NotificationHelper {
         }
     }
 
-    /**
-     * ✅ بدء الاستماع للإشعارات (يتم استدعاؤها في MainActivity)
-     */
     fun startListeningForNotifications(context: Context) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         Log.d(TAG, "🔔 Starting notification listener for user: $currentUserId")
 
-        // ✅ إلغاء الـ Listener القديم (لو موجود)
         notificationListener?.remove()
 
-        // ✅ إنشاء Listener جديد
         notificationListener = db.collection("notifications")
             .whereEqualTo("userId", currentUserId)
             .whereEqualTo("read", false)
@@ -138,7 +117,6 @@ object NotificationHelper {
 
                             Log.d(TAG, "📬 New notification: $title - $body")
 
-                            // ✅ عرض الإشعار
                             showLocalNotification(
                                 context,
                                 title,
@@ -149,7 +127,6 @@ object NotificationHelper {
                                 doc.document.id
                             )
 
-                            // ✅ تحديد الإشعار كمقروء
                             doc.document.reference.update("read", true)
                         }
                     }
@@ -157,18 +134,12 @@ object NotificationHelper {
             }
     }
 
-    /**
-     * ✅ إيقاف الاستماع للإشعارات
-     */
     fun stopListeningForNotifications() {
         notificationListener?.remove()
         notificationListener = null
         Log.d(TAG, "🔕 Notification listener stopped")
     }
 
-    /**
-     * ✅ عرض الإشعار المحلي
-     */
     private fun showLocalNotification(
         context: Context,
         title: String,
@@ -180,7 +151,6 @@ object NotificationHelper {
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // ✅ إنشاء القناة (Android 8.0+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "chat_notifications",
@@ -196,7 +166,6 @@ object NotificationHelper {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // ✅ Intent للانتقال إلى الشات
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("openChat", true)
@@ -211,7 +180,6 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // ✅ تحويل الصورة من Base64
         val largeIcon = try {
             if (senderAvatar.isNotEmpty()) {
                 val bytes = Base64.decode(senderAvatar, Base64.DEFAULT)
@@ -222,10 +190,8 @@ object NotificationHelper {
             null
         }
 
-        // ✅ صوت الإشعار
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-        // ✅ بناء الإشعار
         val notificationBuilder = NotificationCompat.Builder(context, "chat_notifications")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -239,19 +205,14 @@ object NotificationHelper {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
 
-        // ✅ إضافة الصورة
         if (largeIcon != null) {
             notificationBuilder.setLargeIcon(largeIcon)
         }
 
-        // ✅ عرض الإشعار
         notificationManager.notify(notificationId.hashCode(), notificationBuilder.build())
         Log.d(TAG, "✅ Notification displayed: $title")
     }
 
-    /**
-     * ✅ حذف الإشعارات القديمة (أكثر من 7 أيام)
-     */
     suspend fun deleteOldNotifications() {
         withContext(Dispatchers.IO) {
             try {

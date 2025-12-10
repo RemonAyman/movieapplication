@@ -27,13 +27,12 @@ data class SearchScreenState(
 
 class SearchScreenViewModel(
     private val apiService: MovieApiService = MovieApiService.create(),
-    private var searchPreferences: SearchPreferences? = null  // ✅ هنا
+    private var searchPreferences: SearchPreferences? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchScreenState())
     val uiState: StateFlow<SearchScreenState> = _uiState.asStateFlow()
 
-    // 📝 تهيئة SearchPreferences من الـ Screen
     fun initPreferences(context: Context) {
         if (searchPreferences == null) {
             searchPreferences = SearchPreferences(context)
@@ -99,18 +98,16 @@ class SearchScreenViewModel(
         search(spokenText)
     }
 
-    // ✅ حفظ البحث الأخير
     private fun saveRecentSearch(query: String) {
         val currentList = _uiState.value.recentSearches.toMutableList()
-        currentList.remove(query) // إزالة لو موجود
-        currentList.add(0, query) // إضافة في البداية
-        if (currentList.size > 10) currentList.removeAt(currentList.size - 1) // حد أقصى 10
+        currentList.remove(query)
+        currentList.add(0, query)
+        if (currentList.size > 10) currentList.removeAt(currentList.size - 1)
 
         _uiState.value = _uiState.value.copy(recentSearches = currentList)
         searchPreferences?.saveRecentSearches(currentList)
     }
 
-    // ✅ تحميل Recent Searches من SharedPreferences
     private fun loadRecentSearches() {
         val savedSearches = searchPreferences?.getRecentSearches() ?: emptyList()
         _uiState.value = _uiState.value.copy(recentSearches = savedSearches)

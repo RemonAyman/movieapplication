@@ -54,7 +54,6 @@ fun TvShowDetailsScreen(
             .fillMaxSize()
             .background(MovitoBackground)
     ) {
-        // ======= Backdrop + Back Button =======
         item {
             Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
                 Image(
@@ -82,7 +81,6 @@ fun TvShowDetailsScreen(
             }
         }
 
-        // ======= Title + Rating =======
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
@@ -115,7 +113,6 @@ fun TvShowDetailsScreen(
             }
         }
 
-        // ======= Overview =======
         item {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -134,7 +131,6 @@ fun TvShowDetailsScreen(
             }
         }
 
-        // ======= Info =======
         item {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -157,7 +153,6 @@ fun TvShowDetailsScreen(
             }
         }
 
-        // ======= Seasons =======
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Row(
@@ -192,7 +187,6 @@ fun TvShowDetailsScreen(
             }
         }
 
-        // ======= Cast =======
         item {
             if (tvShow.credits?.cast?.isNotEmpty() == true) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -224,7 +218,6 @@ fun TvShowDetailsScreen(
         }
     }
 
-    // ======= Seasons Dialog =======
     if (showSeasonsDialog) {
         SeasonsDialog(
             seasons = tvShow.seasons ?: emptyList(),
@@ -236,7 +229,6 @@ fun TvShowDetailsScreen(
         )
     }
 
-    // ======= Selected Season Episodes =======
     uiState.selectedSeason?.let { selectedSeason ->
         EpisodesDialog(
             season = selectedSeason,
@@ -244,7 +236,6 @@ fun TvShowDetailsScreen(
         )
     }
 
-    // ======= Error Snackbar =======
     uiState.error?.let { error ->
         LaunchedEffect(error) {
             // Show error

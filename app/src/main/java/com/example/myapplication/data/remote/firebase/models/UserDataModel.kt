@@ -8,28 +8,18 @@ data class UserDataModel(
     val email: String = "",
     val phone: String = "",
     val avatarBase64: String = "",
-    val requestStatus: String = "", // "pending", "sent", "" للعرض في UI
+    val requestStatus: String = "",
     val favoriest: List<FavoritesItem> = emptyList(),
-    val fcmToken: String = "" // ✅ FCM Token للإشعارات
+    val fcmToken: String = ""
 )
 
-/**
- * ✅ Extension function لتحديث FCM Token بسهولة
- */
 fun UserDataModel.withFcmToken(token: String): UserDataModel {
     return this.copy(fcmToken = token)
 }
-
-/**
- * ✅ Extension function للتحقق من صلاحية FCM Token
- */
 fun UserDataModel.hasFcmToken(): Boolean {
     return fcmToken.isNotEmpty()
 }
 
-/**
- * ✅ Data class لإرسال الإشعارات
- */
 data class NotificationData(
     val to: String, // FCM Token
     val priority: String = "high",

@@ -163,7 +163,7 @@ fun NewPrivateChatScreen(navController: NavController) {
                                     .padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // ✅ Avatar with proper styling
+                                //  Avatar with proper styling
                                 Box(
                                     modifier = Modifier
                                         .size(56.dp)
@@ -185,7 +185,7 @@ fun NewPrivateChatScreen(navController: NavController) {
                                         Image(
                                             bitmap = bmp.asImageBitmap(),
                                             contentDescription = user.name,
-                                            contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                                            contentScale = ContentScale.Crop,
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .clip(CircleShape)

@@ -5,7 +5,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// --------------------- Dark Colors ---------------------
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFFBB86FC),
     secondary = Color(0xFF03DAC5),
@@ -19,14 +18,14 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = true, // Dark Mode فقط
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colors = DarkColorScheme
 
     MaterialTheme(
         colorScheme = colors,
-        typography = Typography(), // ممكن تخصص Typography لو حابب
+        typography = Typography(),
         shapes = Shapes(),
         content = content
     )

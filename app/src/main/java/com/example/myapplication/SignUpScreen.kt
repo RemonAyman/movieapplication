@@ -37,14 +37,11 @@ import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
-// 🎨 Colors
 val DarkBg = Color(0xFF0C0F2A)
 val NeonGlow = Color(0xFF885CFF)
 val TextColor = Color(0xFFEDE6FF)
 
-// -------------------- Neon UI Components --------------------
 
-// 🟣 Title
 @Composable
 fun NeonTitle(title: String) {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -64,7 +61,6 @@ fun NeonTitle(title: String) {
     }
 }
 
-// 🔥 Neon Box - container with neon border + glow shadow
 @Composable
 fun NeonBox(
     modifier: Modifier = Modifier,
@@ -85,7 +81,6 @@ fun NeonBox(
     }
 }
 
-// 📝 Neon Input (uses ImageVector leading icon)
 @Composable
 fun NeonInput(
     value: String,
@@ -137,7 +132,6 @@ fun NeonInput(
     }
 }
 
-// 🔑 Neon Password Input (with eye toggle)
 @Composable
 fun NeonPassword(
     value: String,
@@ -197,7 +191,6 @@ fun NeonPassword(
     }
 }
 
-// 🟣 Neon Button - supports loading & enabled
 @Composable
 fun NeonButton(text: String, onClick: () -> Unit, loading: Boolean = false, enabled: Boolean = true) {
     NeonBox(
@@ -219,7 +212,6 @@ fun NeonButton(text: String, onClick: () -> Unit, loading: Boolean = false, enab
     }
 }
 
-// -------------------- SignUp Screen --------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignUpScreen(navController: NavHostController) {

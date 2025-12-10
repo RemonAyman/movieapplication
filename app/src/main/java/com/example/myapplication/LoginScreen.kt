@@ -40,7 +40,6 @@ fun LoginScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ✅ دالة مساعدة للتحقق من نوع المدخل
     fun isEmail(input: String): Boolean {
         return android.util.Patterns.EMAIL_ADDRESS.matcher(input).matches()
     }
@@ -49,7 +48,6 @@ fun LoginScreen(
         return input.matches(Regex("^01[0-9]{9}$"))
     }
 
-    // ✅ دالة موحدة للـ Login
     suspend fun performLogin(emailToUse: String, passwordToUse: String): Boolean {
         return try {
             Log.d("LoginScreen", "Attempting login with email: $emailToUse")
@@ -69,7 +67,6 @@ fun LoginScreen(
         }
     }
 
-    // ✅ دالة البحث عن Email بناءً على Username أو Phone
     suspend fun findEmailByIdentifier(field: String, value: String): String? {
         return try {
             Log.d("LoginScreen", "Searching for $field: $value")
@@ -164,26 +161,23 @@ fun LoginScreen(
                             scope.launch {
                                 try {
                                     val emailToLogin = when {
-                                        // ✅ إذا كان المدخل Email
+
                                         isEmail(identifier.trim()) -> {
                                             Log.d("LoginScreen", "Detected as email")
                                             identifier.trim()
                                         }
 
-                                        // ✅ إذا كان المدخل Phone
                                         isPhone(identifier.trim()) -> {
                                             Log.d("LoginScreen", "Detected as phone")
                                             findEmailByIdentifier("phone", identifier.trim())
                                         }
 
-                                        // ✅ إذا كان المدخل Username
                                         else -> {
                                             Log.d("LoginScreen", "Detected as username")
                                             findEmailByIdentifier("username", identifier.trim())
                                         }
                                     }
 
-                                    // ✅ محاولة تسجيل الدخول
                                     if (emailToLogin != null) {
                                         val success = performLogin(emailToLogin, password)
                                         if (success) {

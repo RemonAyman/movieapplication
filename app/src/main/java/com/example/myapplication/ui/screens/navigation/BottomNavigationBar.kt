@@ -31,7 +31,7 @@ import kotlinx.coroutines.tasks.await
 
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
-    // ⭐ جلب بيانات المستخدم من Firebase
+
     var username by remember { mutableStateOf("") }
     var avatarBase64 by remember { mutableStateOf("") }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
@@ -48,7 +48,7 @@ fun BottomNavigationBar(navController: NavHostController) {
                 username = doc.getString("username") ?: ""
                 avatarBase64 = doc.getString("avatarBase64") ?: ""
             } catch (e: Exception) {
-                // في حالة الخطأ
+
             }
         }
     }
@@ -101,7 +101,7 @@ fun BottomNavigationBar(navController: NavHostController) {
                     },
                     modifier = Modifier.scale(scale)
                 ) {
-                    // ⭐ إذا كان Profile، عرض الصورة أو الحرف الأول
+
                     if (item.isProfile) {
                         ProfileAvatar(
                             avatarBase64 = avatarBase64,
@@ -127,7 +127,7 @@ fun ProfileAvatar(
     username: String,
     isSelected: Boolean
 ) {
-    // تحويل Base64 إلى صورة
+
     val bitmap = remember(avatarBase64) {
         try {
             if (avatarBase64.isNotEmpty()) {
@@ -147,7 +147,7 @@ fun ProfileAvatar(
         contentAlignment = Alignment.Center
     ) {
         if (bitmap != null) {
-            // عرض الصورة
+
             Image(
                 bitmap = bitmap,
                 contentDescription = "Profile Avatar",
@@ -157,7 +157,7 @@ fun ProfileAvatar(
                     .clip(CircleShape)
             )
         } else {
-            // عرض الحرف الأول من الاسم
+
             Text(
                 text = username.firstOrNull()?.uppercase() ?: "U",
                 color = if (isSelected) Color.White else Color.LightGray,

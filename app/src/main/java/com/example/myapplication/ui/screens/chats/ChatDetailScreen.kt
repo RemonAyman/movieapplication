@@ -313,10 +313,10 @@ fun ChatDetailScreen(
                         onClick = {
                             if (messageText.isNotBlank()) {
                                 scope.launch {
-                                    // إرسال الرسالة
+
                                     sendMessage(db, chatId, currentUserId, messageText.trim())
 
-                                    // إرسال الإشعارات لجميع الأعضاء ما عدا المرسل
+
                                     val recipientIds = members.keys.filter { it != currentUserId }
                                     NotificationHelper.sendNotificationToMultipleUsers(
                                         userIds = recipientIds,

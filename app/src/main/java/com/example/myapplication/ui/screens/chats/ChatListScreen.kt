@@ -323,10 +323,10 @@ private fun Avatar(avatarBase64: String?, name: String, sizeDp: Int = 60) {
             Image(
                 bitmap = imageBitmap,
                 contentDescription = name,
-                contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                    .clip(CircleShape)
             )
         } else {
             Text(

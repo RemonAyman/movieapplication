@@ -60,7 +60,7 @@ fun FriendsScreen(
             .fillMaxSize()
             .background(Color(0xFF0F0820))
     ) {
-        // ===== Top Bar =====
+        // Top Bar
         TopAppBar(
             title = {
                 Text(
@@ -78,7 +78,7 @@ fun FriendsScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1B1330))
         )
 
-        // ===== Tabs: Friends | Requests =====
+
         TabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = Color(0xFF1B1330),
@@ -139,7 +139,6 @@ fun FriendsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ===== Content Based on Selected Tab =====
         when (selectedTabIndex) {
             0 -> FriendsListTab(friends, navController, onFriendClick)
             1 -> RequestsTab(
@@ -155,7 +154,6 @@ fun FriendsScreen(
     }
 }
 
-// ===== Friends List Tab =====
 @Composable
 fun FriendsListTab(
     friends: List<UserDataModel>,
@@ -196,7 +194,6 @@ fun FriendsListTab(
     }
 }
 
-// ===== Requests Tab =====
 @Composable
 fun RequestsTab(
     friendRequests: List<UserDataModel>,
@@ -213,7 +210,7 @@ fun RequestsTab(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // ===== Incoming Requests Section =====
+
         item {
             Text(
                 text = "Incoming Requests",
@@ -260,7 +257,6 @@ fun RequestsTab(
 
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
-        // ===== Sent Requests Section =====
         item {
             Text(
                 text = "Sent Requests",
@@ -309,7 +305,6 @@ fun RequestsTab(
     }
 }
 
-// ===== Friend Card (للـ Friends List) =====
 @Composable
 fun FriendCard(friend: UserDataModel, onFriendClick: (String) -> Unit) {
     Card(
@@ -358,7 +353,6 @@ fun FriendCard(friend: UserDataModel, onFriendClick: (String) -> Unit) {
     }
 }
 
-// ===== Request Card (للـ Requests Tab) =====
 @Composable
 fun RequestCard(
     friend: UserDataModel,
@@ -447,7 +441,6 @@ fun RequestCard(
     }
 }
 
-// ===== Avatar Image Component =====
 @Composable
 fun AvatarImage(user: UserDataModel) {
     Box(

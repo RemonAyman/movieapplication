@@ -10,7 +10,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-// 🎨 الوضع الداكن
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryColor,
     secondary = SecondaryColor,
@@ -24,7 +23,6 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = TextLight
 )
 
-// ☀ الوضع الفاتح
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryColor,
     secondary = SecondaryColor,

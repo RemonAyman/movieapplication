@@ -400,10 +400,9 @@ fun PrivateChatDetailScreen(chatId: String, navController: NavController) {
                     val text = messageText.trim()
                     if(text.isNotEmpty()){
                         coroutineScope.launch {
-                            // إرسال الرسالة
+
                             sendPrivateMessage(chatId, currentUserId, text)
 
-                            // إرسال الإشعار للطرف الآخر
                             val avatarBase64 = try {
                                 currentUserAvatar?.let { bitmap ->
                                     val stream = java.io.ByteArrayOutputStream()

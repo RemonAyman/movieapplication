@@ -56,7 +56,7 @@ fun PremiumMovieRow(
                 PremiumMovieCard(
                     movie = movie,
                     navController = navController,
-                    rank = if (showRank) index + 1 else null // 🔥 هنا السحر
+                    rank = if (showRank) index + 1 else null
                 )
             }
         }

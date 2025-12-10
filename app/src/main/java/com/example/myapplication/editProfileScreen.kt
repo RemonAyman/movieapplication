@@ -60,17 +60,14 @@ fun editProfileScreen(
     var saving by remember { mutableStateOf(false) }
     var uploading by remember { mutableStateOf(false) }
 
-    // ✅ حالة الـ Dialog
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     val currentUser = auth.currentUser
     val uid = currentUser?.uid
 
-    // 🎨 الألوان من الديزاين الجديد
     val purple = Color(0xFF9B5FFF)
     val bg = Color(0xFF0B0B23)
 
-    // ✅ تحويل الصورة إلى Base64
     fun encodeImageToBase64(context: Context, uri: Uri): String? {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri)
@@ -84,7 +81,6 @@ fun editProfileScreen(
         }
     }
 
-    // ✅ اختيار صورة
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -149,7 +145,6 @@ fun editProfileScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // ===== TOP BAR =====
                 TopBarNeon(
                     borderColor = purple,
                     onBackClick = { onBack?.invoke() ?: navController.navigateUp() }
@@ -157,7 +152,6 @@ fun editProfileScreen(
 
                 Spacer(modifier = Modifier.height(30.dp))
 
-                // ===== AVATAR WITH CAMERA ICON =====
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -228,7 +222,6 @@ fun editProfileScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // ===== TEXT FIELDS =====
                 Column(
                     modifier = Modifier.padding(horizontal = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -270,7 +263,6 @@ fun editProfileScreen(
 
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // ===== 🔥 SAVE BUTTON WITH NEON GLOW =====
                     Button(
                         onClick = {
                             if (uid == null) return@Button
@@ -327,10 +319,9 @@ fun editProfileScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ===== 🔥 LOGOUT BUTTON WITH NEON GLOW =====
                     OutlinedButton(
                         onClick = {
-                            showLogoutDialog = true  // ✅ فتح الـ Dialog
+                            showLogoutDialog = true
                         },
                         shape = RoundedCornerShape(25.dp),
                         modifier = Modifier
@@ -356,7 +347,6 @@ fun editProfileScreen(
             }
         }
 
-        // ===== 🔥 LOGOUT CONFIRMATION DIALOG =====
         if (showLogoutDialog) {
             LogoutConfirmationDialog(
                 onConfirm = {
@@ -386,9 +376,6 @@ fun editProfileScreen(
     }
 }
 
-// ===================================================================
-// 🔥 LOGOUT CONFIRMATION DIALOG
-// ===================================================================
 @Composable
 fun LogoutConfirmationDialog(
     onConfirm: () -> Unit,
@@ -410,7 +397,7 @@ fun LogoutConfirmationDialog(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ===== Icon =====
+
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -432,7 +419,6 @@ fun LogoutConfirmationDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // ===== Message =====
                 Text(
                     text = "ليه بس خليك شوية؟ 🥺",
                     color = Color.White,
@@ -452,12 +438,10 @@ fun LogoutConfirmationDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ===== Buttons =====
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // No Button
                     OutlinedButton(
                         onClick = onDismiss,
                         shape = RoundedCornerShape(16.dp),
@@ -503,9 +487,6 @@ fun LogoutConfirmationDialog(
     }
 }
 
-// ===================================================================
-// 🔥 TOP BAR WITH CENTER TITLE + BACK ICON + NEON GLOW
-// ===================================================================
 @Composable
 fun TopBarNeon(
     borderColor: Color,
@@ -548,9 +529,6 @@ fun TopBarNeon(
     }
 }
 
-// ===================================================================
-// 🔥 TEXT FIELD WITH ICON
-// ===================================================================
 @Composable
 fun OutlinedPurpleField(
     value: String,

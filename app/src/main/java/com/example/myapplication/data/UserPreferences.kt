@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
-// ✅ تعريف الـ DataStore كـ Singleton
 val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
 class UserPreferences(private val context: Context) {
@@ -21,7 +20,6 @@ class UserPreferences(private val context: Context) {
         private val KEY_USER_IMAGE = stringPreferencesKey("user_image")
     }
 
-    // ✅ حفظ بيانات المستخدم (اسم - إيميل - صورة)
     suspend fun saveUserData(name: String, email: String, image: String) {
         context.dataStore.edit { prefs ->
             prefs[KEY_USER_NAME] = name
@@ -30,7 +28,6 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    // ✅ تحديث جزئي + رجوع Boolean (لـ Auto Save)
     suspend fun updateProfile(
         name: String? = null,
         email: String? = null,
@@ -49,7 +46,6 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    // ✅ قراءة البيانات بشكل Reactive (Flow)
     val userName: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[KEY_USER_NAME] ?: ""
     }
@@ -62,7 +58,6 @@ class UserPreferences(private val context: Context) {
         prefs[KEY_USER_IMAGE] ?: ""
     }
 
-    // ✅ جلب القيم الحالية مباشرة (في Coroutine)
     suspend fun getUserData(): Triple<String, String, String> {
         val prefs = context.dataStore.data.first()
         val name = prefs[KEY_USER_NAME] ?: ""
@@ -71,7 +66,6 @@ class UserPreferences(private val context: Context) {
         return Triple(name, email, image)
     }
 
-    // ✅ تحديث البيانات من Firebase (زر Refresh)
     suspend fun refreshFromFirebase(userId: String, db: FirebaseFirestore) {
         try {
             val snapshot = db.collection("users").document(userId).get().await()
@@ -86,7 +80,6 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    // ✅ مزامنة تلقائية مع Firebase لما المستخدم يحدّث الاسم (Auto Save)
     suspend fun autoSaveToFirebase(userId: String, db: FirebaseFirestore, name: String): Boolean {
         return try {
             db.collection("users").document(userId)
@@ -101,12 +94,10 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    // ✅ مسح بيانات المستخدم (Logout)
     suspend fun clearData() {
         context.dataStore.edit { it.clear() }
     }
 
-    // ✅ فحص اكتمال البروفايل
     suspend fun isProfileComplete(): Boolean {
         val prefs = context.dataStore.data.first()
         val name = prefs[KEY_USER_NAME]

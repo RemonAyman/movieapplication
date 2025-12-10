@@ -68,7 +68,7 @@ fun NewGroupScreen(navController: NavController) {
         it.name.contains(searchText, ignoreCase = true)
     }
 
-    // ✅ Get selected friends details
+    //  Get selected friends details
     val selectedFriendsList = friends.filter { selectedFriends.contains(it.id) }
 
     Scaffold(
@@ -107,7 +107,7 @@ fun NewGroupScreen(navController: NavController) {
                     .padding(16.dp)
             ) {
 
-                // ✅ Group Avatar & Name Card
+                // Group Avatar & Name Card
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -167,7 +167,7 @@ fun NewGroupScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // ✅ Selected Members Row (Horizontal Scroll)
+                //  Selected Members Row (Horizontal Scroll)
                 if (selectedFriendsList.isNotEmpty()) {
                     Card(
                         modifier = Modifier
@@ -223,7 +223,7 @@ fun NewGroupScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // ✅ Search Bar
+                //  Search Bar
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = { searchText = it },
@@ -248,7 +248,7 @@ fun NewGroupScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ✅ Select Members Title
+                //  Select Members Title
                 Text(
                     text = "All Friends",
                     color = Color.White,
@@ -301,7 +301,7 @@ fun NewGroupScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ✅ Create Button
+                //  Create Button
                 Button(
                     onClick = {
                         if (groupName.isNotBlank() && selectedFriends.isNotEmpty()) {
@@ -365,7 +365,6 @@ fun NewGroupScreen(navController: NavController) {
     )
 }
 
-// ✅ Selected Member Chip (في الصف الأفقي)
 @Composable
 fun SelectedMemberChip(
     friend: EnhancedFriendItem,

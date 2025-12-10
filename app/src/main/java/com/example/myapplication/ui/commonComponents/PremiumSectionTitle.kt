@@ -21,7 +21,7 @@ import com.example.myapplication.ui.theme.PrimaryPurple
 fun PremiumSectionTitle(
     title: String,
     subtitle: String,
-    onSeeMoreClick: (() -> Unit)? = null // إضافي: لو مش null يبقى نعرض الزر
+    onSeeMoreClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier

@@ -1,6 +1,5 @@
 package com.example.myapplication.data.remote
 
-// ✅ Model للمسلسل الأساسي
 data class TvShowApiModel(
     val id: Int,
     val name: String,
@@ -28,7 +27,6 @@ data class TvShowResponse(
     val results: List<TvShowApiModel>
 )
 
-// ✅ Model لتفاصيل المسلسل الكاملة
 data class TvShowDetailsApiModel(
     val id: Int,
     val name: String,
@@ -55,7 +53,6 @@ data class TvShowDetailsApiModel(
     val similar: TvShowResponse?
 )
 
-// ✅ Model للموسم
 data class Season(
     val id: Int,
     val name: String,
@@ -66,7 +63,6 @@ data class Season(
     val air_date: String?
 )
 
-// ✅ Model لتفاصيل الموسم الكاملة
 data class SeasonDetailsApiModel(
     val id: Int,
     val name: String,
@@ -77,7 +73,6 @@ data class SeasonDetailsApiModel(
     val episodes: List<Episode>?
 )
 
-// ✅ Model للحلقة
 data class Episode(
     val id: Int,
     val name: String,
@@ -91,7 +86,6 @@ data class Episode(
     val runtime: Int?
 )
 
-// ✅ Model للشبكات
 data class Network(
     val id: Int,
     val name: String,
@@ -99,7 +93,6 @@ data class Network(
     val origin_country: String?
 )
 
-// ✅ Model للمنشئين
 data class Creator(
     val id: Int,
     val name: String,

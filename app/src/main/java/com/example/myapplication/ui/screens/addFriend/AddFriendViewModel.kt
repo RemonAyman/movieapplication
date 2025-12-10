@@ -43,7 +43,6 @@ class AddFriendViewModel : ViewModel() {
         try {
             val userId = currentUserId()
 
-            // تحميل كل البيانات بشكل متزامن
             val allUsers = repository.getAllUsers(userId)
             val friends = repository.getFriendsList(userId)
             val requests = repository.getFriendRequests(userId)
@@ -68,7 +67,6 @@ class AddFriendViewModel : ViewModel() {
         try {
             repository.sendFriendRequest(friendId)
 
-            // تحديث فوري للـ UI بإضافة المستخدم للـ sentRequests
             val currentState = _uiState.value
             val userToAdd = currentState.allUsers.find { it.uid == friendId }
 
@@ -78,7 +76,6 @@ class AddFriendViewModel : ViewModel() {
                 )
             }
 
-            // تحديث كامل من الـ Backend
             loadInitialData()
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(error = e.message)
@@ -89,13 +86,11 @@ class AddFriendViewModel : ViewModel() {
         try {
             repository.cancelFriendRequest(friendId)
 
-            // تحديث فوري للـ UI بإزالة المستخدم من sentRequests
             val currentState = _uiState.value
             _uiState.value = currentState.copy(
                 sentFriendRequests = currentState.sentFriendRequests.filter { it.uid != friendId }
             )
 
-            // تحديث كامل من الـ Backend
             loadInitialData()
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(error = e.message)

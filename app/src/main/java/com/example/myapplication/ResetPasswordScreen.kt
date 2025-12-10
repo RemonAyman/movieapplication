@@ -46,10 +46,10 @@ fun ResetPasswordScreen(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                NeonTitle("Reset Password") // لو ما عندكش NeonTitle، استبدله بـ Text
+                NeonTitle("Reset Password")
                 Spacer(modifier = Modifier.height(24.dp))
 
-                NeonInput( // لو ما عندكش NeonInput، استبدله بـ OutlinedTextField
+                NeonInput(
                     value = email,
                     onValueChange = { email = it },
                     placeholder = "Enter your email",

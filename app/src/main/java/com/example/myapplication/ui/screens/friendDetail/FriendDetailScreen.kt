@@ -82,7 +82,7 @@ fun FriendDetailScreen(
                             .fillMaxWidth()
                             .padding(20.dp)
                     ) {
-                        // ✅ Avatar with Gradient Background + Proper Crop
+                        //  Avatar with Gradient Background + Proper Crop
                         Box(
                             modifier = Modifier
                                 .size(140.dp)
@@ -113,10 +113,10 @@ fun FriendDetailScreen(
                                 Image(
                                     painter = BitmapPainter(bmp),
                                     contentDescription = "avatar",
-                                    contentScale = ContentScale.Crop,  // ✅ أهم تعديل
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(CircleShape)  // ✅ تأكيد الشكل الدائري
+                                        .clip(CircleShape)
                                 )
                             } else {
                                 // Placeholder
@@ -196,9 +196,7 @@ fun FriendDetailScreen(
                                 ) { Text("Add Friend", color = Color.White) }
                             }
                         }
-                        // =======================
-                        // Extra Profile Actions
-                        // =======================
+
                         Spacer(modifier = Modifier.height(28.dp))
 
                         Column(

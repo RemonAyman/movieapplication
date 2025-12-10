@@ -6,5 +6,5 @@ data class WatchedItem(
     val poster: String = "",
     val rating: Int = 0,
     val vote_average: Int = 0,
-    val duration: Int = 0 // مدة الفيلم بالدقائق
+    val duration: Int = 0
 )

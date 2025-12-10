@@ -44,7 +44,6 @@ data class ChatItem(
     val avatarBase64: String? = null
 )
 
-// ✅ تحويل Timestamp لوقت مع التاريخ الذكي
 object TimestampUtils {
     fun format(timestamp: Timestamp): String {
         val now = Calendar.getInstance()
@@ -52,23 +51,22 @@ object TimestampUtils {
             time = timestamp.toDate()
         }
 
-        // حساب الفرق بالأيام
         val daysDiff = ((now.timeInMillis - messageTime.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
 
         return when {
-            // نفس اليوم - عرض الوقت فقط
+
             daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) -> {
                 SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(messageTime.time)
             }
-            // امبارح
+
             daysDiff == 1 || (daysDiff == 0 && now.get(Calendar.DAY_OF_YEAR) - messageTime.get(Calendar.DAY_OF_YEAR) == 1) -> {
                 "Yesterday"
             }
-            // خلال الأسبوع الحالي - عرض اسم اليوم
+
             daysDiff < 7 && now.get(Calendar.WEEK_OF_YEAR) == messageTime.get(Calendar.WEEK_OF_YEAR) -> {
                 SimpleDateFormat("EEEE", Locale.ENGLISH).format(messageTime.time)
             }
-            // أكتر من أسبوع - عرض التاريخ الكامل
+
             else -> {
                 SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH).format(messageTime.time)
             }

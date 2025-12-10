@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 class MoviesRepository(
     private val apiService: MovieApiService = MovieApiService.create()
 ) {
-    // 🎬 Popular Movies (للـ Home Screen - أول 100)
+
     suspend fun getPopular100Movies(): List<MovieApiModel> = withContext(Dispatchers.IO) {
         coroutineScope {
             try {
@@ -41,7 +41,6 @@ class MoviesRepository(
         }
     }
 
-    // 🔥 Popular Movies with Pagination (للـ See More)
     suspend fun getPopularMovies(page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getPopularMovies(page = page)
@@ -56,7 +55,6 @@ class MoviesRepository(
         }
     }
 
-    // ⭐ Top Rated Movies (للـ Home Screen - أول 100)
     suspend fun getTop100Movies(): List<MovieApiModel> = withContext(Dispatchers.IO) {
         coroutineScope {
             try {
@@ -71,7 +69,6 @@ class MoviesRepository(
         }
     }
 
-    // ⭐ Top Rated Movies with Pagination (للـ See More)
     suspend fun getTopRatedMovies(page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             apiService.getTopRatedMovies(page = page)
@@ -80,7 +77,6 @@ class MoviesRepository(
         }
     }
 
-    // 📅 Upcoming Movies (للـ Home Screen - أول 100)
     suspend fun getUpcomingMovies(): List<MovieApiModel> = withContext(Dispatchers.IO) {
         coroutineScope {
             try {
@@ -96,7 +92,6 @@ class MoviesRepository(
         }
     }
 
-    // 📅 Upcoming Movies with Pagination (للـ See More)
     suspend fun getUpcomingMovies(page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getUpcomingMovies(page = page)
@@ -111,7 +106,6 @@ class MoviesRepository(
         }
     }
 
-    // 🎬 Now Playing Movies with Pagination (للـ See More)
     suspend fun getNowPlayingMovies(page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             apiService.getNowPlayingMovies(page = page)
@@ -120,7 +114,6 @@ class MoviesRepository(
         }
     }
 
-    // 🎭 Movies by Genre with Pagination
     suspend fun getMoviesByGenre(genreId: Int, page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             apiService.getMoviesByGenre(genreId = genreId, page = page)
@@ -129,7 +122,6 @@ class MoviesRepository(
         }
     }
 
-    // 🎌 Anime Movies with Pagination
     suspend fun getAnimeMovies(page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             apiService.getAnimeMovies(page = page)
@@ -138,7 +130,6 @@ class MoviesRepository(
         }
     }
 
-    // 🇪🇬 Arabic Movies with Pagination
     suspend fun getArabicMovies(page: Int = 1): MovieSearchResponse = withContext(Dispatchers.IO) {
         try {
             apiService.getArabicMovies(page = page)

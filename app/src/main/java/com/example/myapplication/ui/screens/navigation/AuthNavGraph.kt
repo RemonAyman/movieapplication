@@ -15,7 +15,7 @@ fun AuthNavGraph(
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
             LoginScreen(navController) {
-                // عند تسجيل الدخول بنجاح
+
                 onLoginSuccess(true)
             }
         }

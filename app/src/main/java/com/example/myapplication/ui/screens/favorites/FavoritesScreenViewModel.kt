@@ -31,7 +31,6 @@ class FavoritesScreenViewModel(
         loadScreenData(userId)
     }
 
-    // ✅ تحميل كل البيانات المطلوبة للشاشة (Favorites + Ratings)
     fun loadScreenData(userId: String? = this.userId) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -52,7 +51,6 @@ class FavoritesScreenViewModel(
         }
     }
 
-    // ✅ حذف فيلم من المفضلة
     fun removeFromFavorites(movieId: String) {
         viewModelScope.launch {
             try {
@@ -68,12 +66,10 @@ class FavoritesScreenViewModel(
         }
     }
 
-    // ✅ الحصول على تقييم فيلم معين
     fun getRatingForMovie(movieId: String): Float? {
         return _uiState.value.ratings.find { it.movieId == movieId }?.rating
     }
 
-    // ✅ مسح رسالة الخطأ
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

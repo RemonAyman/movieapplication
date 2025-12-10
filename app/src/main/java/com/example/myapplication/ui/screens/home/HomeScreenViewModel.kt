@@ -46,19 +46,17 @@ class HomeScreenViewModel(
         loadAllMovies()
     }
 
-    // ⭐ تحميل موازي باستخدام async
     fun loadAllMovies() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                // ⭐ تحميل البيانات بشكل متوازي
+
                 val popularDeferred = async { moviesRepository.getPopular100Movies() }
                 val upcomingDeferred = async { moviesRepository.getUpcomingMovies() }
                 val topRatedDeferred = async { moviesRepository.getTop100Movies() }
                 val arabicDeferred = async { moviesRepository.getArabicMoviesForHome() }
                 val watchlistDeferred = async { watchlistRepository.getWatchlistFlow().toMovieApiModel() }
 
-                // انتظار النتائج
                 val popular = popularDeferred.await()
                 val upcoming = upcomingDeferred.await()
                 val topRated = topRatedDeferred.await()
@@ -86,7 +84,7 @@ class HomeScreenViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true)
             try {
-                // ⭐ تحميل موازي أيضاً
+
                 val popularDeferred = async { moviesRepository.getPopular100Movies() }
                 val upcomingDeferred = async { moviesRepository.getUpcomingMovies() }
                 val topRatedDeferred = async { moviesRepository.getTop100Movies() }

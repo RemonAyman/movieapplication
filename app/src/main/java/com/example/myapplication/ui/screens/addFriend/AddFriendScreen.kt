@@ -47,7 +47,6 @@ fun AddFriendScreen(
         viewModel.loadInitialData()
     }
 
-    // تصفية المستخدمين حسب البحث
     val filteredUsers = remember(searchQuery, uiState.allUsers) {
         if (searchQuery.isEmpty()) {
             emptyList()
@@ -321,7 +320,6 @@ fun UserCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // زر بناءً على الحالة
             when (status) {
                 "friend" -> {
                     Text(

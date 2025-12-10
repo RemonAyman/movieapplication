@@ -77,7 +77,7 @@ fun ProfileMainScreen(
             .verticalScroll(scrollState)
             .background(MovitoBackground)
     ) {
-        // ===== TOP GRADIENT AREA =====
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -97,7 +97,7 @@ fun ProfileMainScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 30.dp)
             ) {
-                // ===== Edit Icon فوق على اليمين =====
+
                 if (userId == AppConstants.CURRENT_USER_ID) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -115,7 +115,7 @@ fun ProfileMainScreen(
                 }
 
                 Spacer(modifier = Modifier.height(200.dp))
-                // ===== PROFILE HEADER =====
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Avatar
                     val bmp = remember(uiState.avatarBase64) {
@@ -183,7 +183,7 @@ fun ProfileMainScreen(
                             }
                         ) {
                             Icon(
-                                imageVector = Icons.Default.People, // أيقونة الأصدقاء
+                                imageVector = Icons.Default.People,
                                 contentDescription = "Friends",
                                 tint = Color.White,
                                 modifier = Modifier.size(18.dp)
@@ -200,7 +200,7 @@ fun ProfileMainScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ===== TIME SPENT WATCHING CARD =====
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth(),
@@ -270,7 +270,6 @@ fun ProfileMainScreen(
                     }
                 }
 
-                // ===== FRIEND ACTION BUTTONS =====
                 if (userId != AppConstants.CURRENT_USER_ID) {
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -365,7 +364,7 @@ fun ProfileMainScreen(
                                     }
 
                                     "incoming" -> {
-                                        // Accept/Decline Row
+
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -475,7 +474,6 @@ fun ProfileMainScreen(
         }
 
 
-        // ===== باقي الشاشة بدون gradient =====
         PremiumSectionTitle(
             title = "Favorites",
             subtitle = "Your top picks",
@@ -553,7 +551,6 @@ fun TimeStatItem(value: String, label: String) {
     }
 }
 
-// ===== Extension Functions للتحويل =====
 fun FavoritesItem.toMovieApiModel() = com.example.myapplication.data.remote.MovieApiModel(
     id = movieId.toIntOrNull() ?: 0,
     title = title,

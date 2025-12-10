@@ -31,14 +31,13 @@ class ActorDetailsViewModel(
             _uiState.value = ActorDetailsUiState.Loading
 
             try {
-                // جلب تفاصيل الممثل
+
                 val actorDetails = apiService.getActorDetails(actorId)
 
-                // جلب الأفلام اللي شارك فيها
                 val movies = actorDetails.movie_credits?.cast
-                    ?.filter { it.poster_path != null } // فقط الأفلام اللي عندها poster
-                    ?.sortedByDescending { it.vote_average } // ترتيب حسب التقييم
-                    ?.take(20) // أول 20 فيلم
+                    ?.filter { it.poster_path != null }
+                    ?.sortedByDescending { it.vote_average }
+                    ?.take(20)
                     ?: emptyList()
 
                 _uiState.value = ActorDetailsUiState.Success(

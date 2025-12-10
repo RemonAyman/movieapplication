@@ -16,7 +16,6 @@ class MyApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
 
-        // ⭐ تحسين StrictMode للـ Debug (اختياري)
         if (BuildConfig.DEBUG) {
             StrictMode.setThreadPolicy(
                 StrictMode.ThreadPolicy.Builder()
@@ -31,19 +30,19 @@ class MyApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.20) // ⭐ قللت من 25% لـ 20%
+                    .maxSizePercent(0.20)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(256 * 1024 * 1024) // ⭐ قللت من 512MB لـ 256MB
+                    .maxSizeBytes(256 * 1024 * 1024)
                     .build()
             }
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .crossfade(true)
-            .respectCacheHeaders(false) // ⭐ تسريع التحميل
+            .respectCacheHeaders(false)
             .apply {
                 if (BuildConfig.DEBUG) {
                     logger(DebugLogger())

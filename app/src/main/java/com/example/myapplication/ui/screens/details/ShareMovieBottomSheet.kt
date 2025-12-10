@@ -180,7 +180,7 @@ fun ShareMovieBottomSheet(
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Poster - ✅ مظبوط دلوقتي
+
                         AsyncImage(
                             model = "https://image.tmdb.org/t/p/w200${movie.poster_path}",
                             contentDescription = movie.title,
@@ -421,7 +421,7 @@ private fun FallbackAvatar(chat: ShareChatItem) {
     )
 }
 
-// ✅ Share movie to chat
+//  Share movie to chat
 suspend fun shareMovieToChat(
     db: FirebaseFirestore,
     chatId: String,

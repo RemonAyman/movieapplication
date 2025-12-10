@@ -215,7 +215,6 @@ fun NavGraph(
             )
         }
 
-        // ✅ صفحة Add Friend الجديدة
         composable("addFriend") {
             onDestinationChanged("addFriend")
             val vm: AddFriendViewModel = viewModel()

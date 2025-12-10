@@ -2,19 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ✅ Permissions -->
+    <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- 🎤 Speech Recognition -->
+    <!-- Speech Recognition -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- 🖼 Media access (Android 13+ permissions) -->
+    <!-- Media access (Android 13+ permissions) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
-    <!-- 🔔 Push Notifications (FCM) - ✅ الأهم! -->
+    <!-- Push Notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -34,18 +34,18 @@
         android:hardwareAccelerated="true"
         tools:targetApi="34">
 
-        <!-- 🎯 AdMob Application ID -->
+        <!--  AdMob Application ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3940256099942544~3347511713"/>
 
-        <!-- ⭐ إصلاح تعارض Google Ads × Firebase Analytics -->
+        <!--  Google Ads × Firebase Analytics -->
         <property
             android:name="android.adservices.AD_SERVICES_CONFIG"
             android:resource="@xml/gma_ad_services_config"
             tools:replace="android:resource" />
 
-        <!-- 🔔 Firebase Cloud Messaging Service (للإشعارات) - ✅ مهم جداً! -->
+        <!--  Firebase Cloud Messaging Service  -->
         <service
             android:name=".services.MyFirebaseMessagingService"
             android:exported="false">
@@ -54,22 +54,22 @@
             </intent-filter>
         </service>
 
-        <!-- ✅ Firebase Default Notification Channel -->
+        <!-- Firebase Default Notification Channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="chat_notifications" />
 
-        <!-- ✅ Firebase Default Notification Icon -->
+        <!-- Firebase Default Notification Icon -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
 
-        <!-- ✅ Firebase Default Notification Color -->
+        <!-- Firebase Default Notification Color -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_color" />
 
-        <!-- ⭐ Main Activity - ✅ FIXED FOR KEYBOARD + NOTIFICATIONS -->
+        <!-- Main Activity - FIXED FOR KEYBOARD + NOTIFICATIONS -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

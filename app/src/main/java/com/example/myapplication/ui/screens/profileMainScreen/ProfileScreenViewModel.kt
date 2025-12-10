@@ -32,7 +32,7 @@ data class ProfileUiState(
     val watchedMovies: List<WatchedItem> = emptyList(),
     val ratingsMovies: List<RatingItem> = emptyList(),
 
-    // ✅ Added from FriendDetailScreenState
+    // Added from FriendDetailScreenState
     val friend: UserDataModel? = null,
     val friends: List<UserDataModel> = emptyList(),
     val friendRequests: List<UserDataModel> = emptyList(),
@@ -42,7 +42,7 @@ data class ProfileUiState(
     val isLoading: Boolean = true,
     val error: String? = null
 ) {
-    // ✅ Added relationship status calculation
+    // Added relationship status calculation
     val relationshipStatus: String
         get() = when {
             friends.any { it.uid == friend?.uid } -> "friend"
@@ -64,7 +64,7 @@ class ProfileScreenViewModel(
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    // ✅ Added helper function
+    //  Added helper function
     private fun currentUserId(): String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     init {
@@ -80,9 +80,6 @@ class ProfileScreenViewModel(
                     return@launch
                 }
 
-                // ---------------------------
-                // 🔥 Fetch username + avatar from Firestore only
-                // ---------------------------
                 val firestore = FirebaseFirestore.getInstance()
                 firestore.collection("users").document(uid).get()
                     .addOnSuccessListener { doc ->
@@ -98,7 +95,6 @@ class ProfileScreenViewModel(
                         Log.e("ProfileViewModel", "Firestore error: ${e.message}", e)
                     }
 
-                // باقي اللوجيك زي ما هو بدون أي تعديل
                 val watchTime = watchedRepository.getTotalWatchedTime(userId)
                 _uiState.value = _uiState.value.copy(totalWatchTime = watchTime)
 
@@ -114,7 +110,7 @@ class ProfileScreenViewModel(
                 val ratings = ratingsRepository.getRatings(userId)
                 _uiState.value = _uiState.value.copy(ratingsMovies = ratings)
 
-                // ✅ Added friend detail loading
+                // Added friend detail loading
                 loadFriendDetailData()
 
                 watchlistRepository.getWatchlistFlow(userId).collect { list ->
@@ -132,7 +128,7 @@ class ProfileScreenViewModel(
         }
     }
 
-    // ✅ Added from FriendDetailScreenViewModel
+    // Added from FriendDetailScreenViewModel
     private suspend fun loadFriendDetailData() {
         _uiState.value=_uiState.value.copy(isLoading = true)
         try {
@@ -154,7 +150,7 @@ class ProfileScreenViewModel(
         }
     }
 
-    // ✅ Added all friend management functions
+    // Added all friend management functions
     fun sendFriendRequest() {
         viewModelScope.launch {
             try {

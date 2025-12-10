@@ -46,7 +46,7 @@ fun FriendRequestsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        // ✅ استخدام popBackStack بدلاً من navigate
+
                         navController.popBackStack()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)

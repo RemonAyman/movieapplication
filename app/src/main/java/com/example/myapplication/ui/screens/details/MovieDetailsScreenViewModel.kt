@@ -159,7 +159,7 @@ class MovieDetailsScreenViewModel(
         viewModelScope.launch {
             try {
                 if (isWatched) {
-                    // جلب مدة الفيلم من API
+
                     val movieDetails = apiService.getMovieDetails(movie.id)
                     val durationMinutes = movieDetails.runtime ?: 0
 

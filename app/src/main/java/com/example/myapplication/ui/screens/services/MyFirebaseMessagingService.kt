@@ -19,10 +19,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
-/**
- * ✅ خدمة Firebase Cloud Messaging لاستقبال الإشعارات
- * تعمل حتى لو التطبيق مغلق أو في الخلفية
- */
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
@@ -37,10 +33,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "✅ FCM Service Created")
     }
 
-    /**
-     * ✅ يتم استدعاؤها عند استلام رسالة جديدة
-     * تعمل في الخلفية والتطبيق مفتوح
-     */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
@@ -48,7 +40,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "📬 Data payload: ${remoteMessage.data}")
         Log.d(TAG, "📨 Notification: ${remoteMessage.notification}")
 
-        // ✅ استخراج البيانات من الرسالة
         val data = remoteMessage.data
         val title = data["title"] ?: remoteMessage.notification?.title ?: "New Message"
         val body = data["body"] ?: remoteMessage.notification?.body ?: ""
@@ -61,7 +52,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "💬 Chat ID: $chatId")
         Log.d(TAG, "👥 Is Group: $isGroup")
 
-        // ✅ عرض الإشعار
         if (chatId.isNotEmpty()) {
             showNotification(title, body, chatId, isGroup, senderAvatar)
         } else {
@@ -69,20 +59,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    /**
-     * ✅ يتم استدعاؤها عند تحديث FCM Token
-     */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d(TAG, "🔑 New FCM Token: ${token.take(20)}...")
 
-        // ✅ حفظ الـ Token في Firestore
         updateFCMTokenInFirestore(token)
     }
 
-    /**
-     * ✅ تحديث FCM Token في Firestore
-     */
     private fun updateFCMTokenInFirestore(token: String) {
         val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
         if (currentUserId != null) {
@@ -96,7 +79,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 .addOnFailureListener { e ->
                     Log.e(TAG, "❌ Failed to update FCM Token", e)
 
-                    // ✅ محاولة إنشاء الحقل إذا لم يكن موجوداً
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(currentUserId)
@@ -116,9 +98,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    /**
-     * ✅ عرض الإشعار مع صورة المرسل
-     */
     private fun showNotification(
         title: String,
         body: String,
@@ -128,7 +107,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     ) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // ✅ Intent للانتقال إلى الشات عند الضغط على الإشعار
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("openChat", true)
@@ -138,12 +116,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val pendingIntent = PendingIntent.getActivity(
             this,
-            chatId.hashCode(), // ID فريد لكل شات
+            chatId.hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // ✅ تحويل الصورة من Base64 لـ Bitmap
         val largeIcon = try {
             if (senderAvatar.isNotEmpty()) {
                 val bytes = Base64.decode(senderAvatar, Base64.DEFAULT)
@@ -154,10 +131,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             null
         }
 
-        // ✅ صوت الإشعار
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-        // ✅ بناء الإشعار
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -171,19 +146,14 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
 
-        // ✅ إضافة الصورة إذا كانت متوفرة
         if (largeIcon != null) {
             notificationBuilder.setLargeIcon(largeIcon)
         }
 
-        // ✅ عرض الإشعار
         notificationManager.notify(chatId.hashCode(), notificationBuilder.build())
         Log.d(TAG, "✅ Notification displayed successfully")
     }
 
-    /**
-     * ✅ إنشاء قناة الإشعارات (مطلوب لـ Android 8.0+)
-     */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(

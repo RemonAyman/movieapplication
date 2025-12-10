@@ -423,7 +423,7 @@ fun MovieDetailsScreen(
             }
         }
 
-        // ✅ Share Sheet - Outside the scrollable content
+        // Share Sheet - Outside the scrollable content
         if (showShareSheet) {
             ShareMovieBottomSheet(
                 navController = navController,
